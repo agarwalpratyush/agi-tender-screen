@@ -1179,7 +1179,9 @@ function renderBoard() {
             t.km_length ? ' · ' + t.km_length + ' km' : ''}${
             t.tender_value_cr ? ' · ' + cr(t.tender_value_cr) + ' contract' : ''}</span></td>
         <td>${aw ? '<b>'+esc(aw.winner)+'</b>' : '<span class=bsub>'+bstatus(t)+'</span>'}</td>
-        <td class=num>${t.gabion_value_cr ? '<b>'+cr(t.gabion_value_cr)+'</b>' : '—'}</td>
+        <td class=num>${t.gabion_value_cr ? '<b>'+cr(t.gabion_value_cr)+'</b>'
+          : t.core_hits ? '<span class=bsub>named ×'+t.core_hits+'<br>not priced</span>'
+          : '—'}</td>
         <td class=num>${other ? cr(other) : '—'}</td>
         <td>${esc(t.corridor || t.nh || '—')}<span class=bsub>${esc(t.state||'')}</span></td>
         <td>${w ? day(w.start) + '<span class=bsub>' + w.phase + '</span>'
@@ -1221,6 +1223,17 @@ function renderReq() {
   }
 
   const otherDirect = Math.max(0, (t.direct_value_cr||0) - (t.gabion_value_cr||0));
+  // Maintenance, strengthening and STMC contracts carry no Schedule-H, so there
+  // is no weightage to price the product from. That is not the same as the
+  // product being absent, and showing a bare dash for both read as "nothing
+  // here" on jobs whose documents name it outright.
+  if (!t.gabion_value_cr && t.core_hits)
+    h += `<h3 class=s>What we could supply</h3><div class=mrow>
+      <div class=mtext>The documents name gabion <b>${t.core_hits} times</b>, but this
+      contract has no Schedule-H weightages — it is ${esc(t.form_of_contract || 'not an EPC contract')},
+      priced per item. <b>No rupee value can be derived.</b> Read the BoQ lines below
+      and ask the contractor directly.</div></div>`;
+  if (t.gabion_value_cr || !t.core_hits)
   h += `<h3 class=s>What we could supply</h3><dl class=kv>` +
     row('Gabion', t.gabion_value_cr ? `<b>${cr(t.gabion_value_cr)}</b>` : null) +
     row('Wire / geosynthetics', otherDirect ? cr(otherDirect) : null) +
