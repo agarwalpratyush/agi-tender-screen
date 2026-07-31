@@ -921,7 +921,7 @@ const esc = s => String(s ?? '').replace(/[&<>"]/g, c =>
 const cr = v => v == null ? '—' : '₹' + Number(v).toLocaleString('en-IN',
   {minimumFractionDigits:2, maximumFractionDigits:2}) + ' Cr';
 
-const D = { tenders: [], sched: {}, firms: [], geo: {}, awards: {} };
+const D = { tenders: [], sched: {}, firms: [], geo: {}, awards: {}, boq: {} };
 const state = { q:'', verdicts:new Set(['TRACK','REVIEW','SKIP','RESULT']), sel:null, view:'board' };
 const order = { TRACK:0, REVIEW:1, RESULT:2, SKIP:3 };
 const board = { by:'winner', sort:'gabion', q:'', sel:null };
@@ -935,12 +935,13 @@ async function signIn(email, password) {
 async function boot() {
   // RLS does the gating: an unauthenticated read returns zero rows, not an error,
   // so a successful query with data is itself proof of authorisation.
-  const [t, s, f, g, a] = await Promise.all([
+  const [t, s, f, g, a, b] = await Promise.all([
     SB.from('in_tenders').select('*').order('score', { ascending:false }),
     SB.from('in_schedule_h').select('*'),
     SB.from('in_contractors').select('*').order('wins', { ascending:false }).order('bids', { ascending:false }),
     SB.from('in_geo').select('*'),
     SB.from('in_awards').select('*'),
+    SB.from('in_boq_items').select('*'),
   ]);
   if (t.error) throw t.error;
   D.tenders = t.data || [];
@@ -948,6 +949,7 @@ async function boot() {
   (s.data || []).forEach(r => (D.sched[r.tender_id] ||= []).push(r));
   (g.data || []).forEach(r => D.geo[r.tender_id] = r);
   (a.data || []).forEach(r => D.awards[r.tender_id] = r);
+  (b.data || []).forEach(r => (D.boq[r.tender_id] ||= []).push(r));
 
   $('gate').hidden = true;
   $('app').hidden = false;
@@ -1225,6 +1227,24 @@ function renderReq() {
   // sold - they are the second conversation, not the first.
   if ((t.direct_value_cr || t.possible_value_cr) && t.gabion_value_cr)
     h += `<div class=mtext>Cross-sell after the gabion order lands.</div>`;
+
+  // The lines the documents actually bill. A quantity here is an order size, so
+  // the ones that name the product and carry a number come first.
+  const bq = (D.boq[t.tender_id] || []).slice().sort((x, y) =>
+    (y.core_match && y.quantity != null) - (x.core_match && x.quantity != null) ||
+    (y.core_match - x.core_match) || ((y.quantity != null) - (x.quantity != null)));
+  if (bq.length) {
+    h += `<h3 class=s>Billed lines</h3><table><tbody>` + bq.slice(0, 14).map(i => `
+      <tr><td>${i.core_match ? '<b>' : ''}${esc(String(i.description).slice(0, 80))}${
+        i.core_match ? '</b>' : ''}<span class=bsub>${esc(i.source_file || '')} ${
+        esc(i.sheet || '')}</span></td>
+      <td class=num>${i.quantity != null
+        ? Number(i.quantity).toLocaleString('en-IN') + ' ' + esc(i.unit || '') : ''}</td></tr>`)
+      .join('') + '</tbody></table>';
+    const spec = bq.find(i => i.spec);
+    if (spec) h += `<div class=mtext>Spec called for: ${
+      Object.entries(spec.spec).map(([k, v]) => esc(k.replace('_', ' ') + ' ' + v)).join(' · ')}</div>`;
+  }
 
   h += `<h3 class=s>Where to deliver</h3><dl class=kv>` +
     row('State', esc(t.state)) +
