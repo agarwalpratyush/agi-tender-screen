@@ -666,18 +666,261 @@ svg.leaflet-image-layer.leaflet-interactive path {
 	}
 </style>
 <style>
-*,*::before,*::after{box-sizing:border-box}
-:root{color-scheme:light;--surface:#fcfcfb;--plane:#f9f9f7;--ink:#0b0b0b;
- --ink-2:#52514e;--muted:#898781;--grid:#e1e0d9;--rule:#c3c2b7;
- --border:rgba(11,11,11,.1);--track:#0ca30c;--review:#fab219;--skip:#898781;
- --accent:#2a78d6;--shadow:0 1px 2px rgba(11,11,11,.04),0 4px 16px rgba(11,11,11,.05)}
+*, *::before, *::after { box-sizing: border-box; }
+:root {
+  color-scheme: light;
+  --surface: #fcfcfb; --plane: #f9f9f7; --ink: #0b0b0b; --ink-2: #52514e;
+  --muted: #898781; --grid: #e1e0d9; --rule: #c3c2b7;
+  --border: rgba(11,11,11,0.10);
+  --track: #0ca30c; --review: #fab219; --skip: #898781; --accent: #2a78d6;
+  --shadow: 0 1px 2px rgba(11,11,11,.04), 0 4px 16px rgba(11,11,11,.05);
+}
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    color-scheme: dark;
+    --surface: #1a1a19; --plane: #0d0d0d; --ink: #ffffff; --ink-2: #c3c2b7;
+    --muted: #898781; --grid: #2c2c2a; --rule: #383835;
+    --border: rgba(255,255,255,0.10); --accent: #3987e5;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 4px 16px rgba(0,0,0,.4);
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --surface: #1a1a19; --plane: #0d0d0d; --ink: #ffffff; --ink-2: #c3c2b7;
+  --muted: #898781; --grid: #2c2c2a; --rule: #383835;
+  --border: rgba(255,255,255,0.10); --accent: #3987e5;
+  --shadow: 0 1px 2px rgba(0,0,0,.3), 0 4px 16px rgba(0,0,0,.4);
+}
+
+/* A real flex column, not sticky bars offset by hardcoded pixel heights. An
+   earlier version guessed --head: 108px for the appbar; the moment the header
+   wrapped onto another line the guess was wrong and the top of the list hid
+   behind it. Nothing here needs to know how tall anything else is. */
+html, body { height: 100%; }
+body { margin: 0; background: var(--plane); color: var(--ink);
+  font: 14px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+
+.appbar { flex: none; background: var(--plane);
+  border-bottom: 1px solid var(--border); padding: 10px 18px 0; }
+.titlerow { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
+h1 { font-size: 15px; font-weight: 600; margin: 0; letter-spacing: -0.01em; }
+.stamp { color: var(--muted); font-size: 12px; }
+.pills { display: flex; gap: 12px; margin-left: auto; font-size: 12px;
+  color: var(--ink-2); flex-wrap: wrap; }
+.pills b { font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; }
+.tabs { display: flex; gap: 2px; margin-top: 10px; }
+.tab { padding: 7px 14px; font: inherit; font-size: 13px; cursor: pointer;
+  background: none; border: none; border-bottom: 2px solid transparent;
+  color: var(--muted); }
+.tab[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent);
+  font-weight: 500; }
+.view { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.view[hidden] { display: none; }
+
+/* ---- toolbar ---- */
+.toolbar { flex: none; display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+  padding: 10px 18px; border-bottom: 1px solid var(--border);
+  background: var(--surface); }
+.toolbar input[type=search] { flex: 1 1 220px; min-width: 160px; padding: 7px 11px;
+  font: inherit; font-size: 13px; background: var(--plane); color: var(--ink);
+  border: 1px solid var(--rule); border-radius: 7px; }
+.toolbar input[type=search]:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+.chip { padding: 6px 11px; font: inherit; font-size: 12px; cursor: pointer;
+  background: var(--plane); color: var(--ink-2);
+  border: 1px solid var(--rule); border-radius: 999px; white-space: nowrap; }
+.chip[aria-pressed="true"] { background: var(--ink); color: var(--surface);
+  border-color: var(--ink); font-weight: 500; }
+select.sel { padding: 6px 9px; font: inherit; font-size: 12px; background: var(--plane);
+  color: var(--ink); border: 1px solid var(--rule); border-radius: 7px; }
+.tcount { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums;
+  margin-left: auto; white-space: nowrap; }
+
+/* ---- master / detail ---- */
+.split { flex: 1; min-height: 0; display: grid;
+  grid-template-columns: minmax(320px, 34%) 1fr; }
+.listpane { overflow-y: auto; min-height: 0; border-right: 1px solid var(--border);
+  background: var(--surface); }
+.detailpane { overflow-y: auto; min-height: 0; padding: 20px 24px 60px; }
+
+.lrow { display: grid; grid-template-columns: 10px 1fr auto; gap: 9px;
+  align-items: center; padding: 9px 14px; border-bottom: 1px solid var(--grid);
+  cursor: pointer; }
+.lrow:hover { background: color-mix(in srgb, var(--accent) 7%, transparent); }
+.lrow[aria-selected="true"] { background: color-mix(in srgb, var(--accent) 13%, transparent);
+  box-shadow: inset 3px 0 0 var(--accent); }
+.lrow.done .lname { color: var(--muted); text-decoration: line-through; }
+.ldot { width: 9px; height: 9px; border-radius: 50%; }
+.d-TRACK { background: var(--track); } .d-REVIEW { background: var(--review); }
+.d-SKIP { background: var(--skip); } .d-RESULT { background: var(--accent); }
+.lname { font-weight: 500; font-size: 13px; overflow: hidden;
+  text-overflow: ellipsis; white-space: nowrap; }
+.lmeta { display: block; color: var(--muted); font-size: 11.5px; font-weight: 400;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 1px; }
+.lright { text-align: right; font-size: 11.5px; color: var(--ink-2);
+  font-variant-numeric: tabular-nums; white-space: nowrap; }
+.lright b { font-size: 13px; }
+.lwarn { color: var(--review); }
+
+/* ---- detail ---- */
+.dhead { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap;
+  margin-bottom: 4px; }
+.dhead h2 { font-size: 17px; font-weight: 600; margin: 0; word-break: break-word; }
+.dsub { color: var(--muted); font-size: 12.5px; margin-bottom: 16px; }
+.dactions { display: flex; gap: 8px; margin: 0 0 18px; flex-wrap: wrap; }
+.btn { padding: 6px 12px; font: inherit; font-size: 12.5px; cursor: pointer;
+  background: var(--surface); color: var(--ink); border: 1px solid var(--rule);
+  border-radius: 7px; }
+.btn:hover { border-color: var(--ink-2); }
+.btn.on { background: var(--track); border-color: var(--track); color: #fff; }
+a.btn.portal { text-decoration: none; margin-left: auto; }
+
+/* collapsed reference sections */
+.fold { border: 1px solid var(--grid); border-radius: 7px; margin-top: 10px; }
+.fold > summary { cursor: pointer; padding: 8px 11px; font-size: 11px;
+  text-transform: uppercase; letter-spacing: .06em; color: var(--muted);
+  font-weight: 600; list-style: none; }
+.fold > summary::-webkit-details-marker { display: none; }
+.fold > summary::before { content: "\25B8 "; display: inline-block;
+  transition: transform .12s; }
+.fold[open] > summary::before { transform: rotate(90deg); }
+.fold > summary:hover { color: var(--ink-2); }
+.fold .foldbody { padding: 4px 11px 12px; }
+.fold .lmeta { display: inline; }
+
+.bigval { font-size: 22px; font-weight: 650; letter-spacing: -0.02em;
+  color: var(--track); }
+
+/* Schedule-H: what else is on this contractor's payment schedule. */
+tr.sup-direct td { background: color-mix(in srgb, var(--track) 10%, transparent); }
+tr.sup-possible td { background: color-mix(in srgb, var(--review) 12%, transparent); }
+td.supcell { font-size: 10.5px; text-transform: uppercase; letter-spacing: .05em;
+  color: var(--ink-2); white-space: nowrap; }
+tr.is-core td { background: color-mix(in srgb, var(--track) 8%, transparent); }
+td.spec { color: var(--ink-2); font-size: 11.5px; }
+.empty-state { padding: 60px 20px; text-align: center; color: var(--muted); }
+
+.verdict { display: inline-flex; align-items: center; gap: 7px; font-weight: 600;
+  font-size: 12.5px; white-space: nowrap; }
+.verdict i { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+.v-TRACK i { background: var(--track); } .v-REVIEW i { background: var(--review); }
+.v-SKIP i { background: var(--skip); } .v-RESULT i { background: var(--accent); }
+.v-SKIP { color: var(--muted); }
+
+.dd h3 { font-size: 11px; text-transform: uppercase; letter-spacing: .06em;
+  color: var(--muted); margin: 22px 0 8px; font-weight: 600; }
+.tierlist { display: grid; gap: 5px; }
+.tierrow { display: flex; gap: 10px; align-items: baseline; font-size: 12.5px;
+  padding: 6px 10px; border: 1px solid var(--grid); border-radius: 6px; }
+.tierrow b { flex: none; width: 84px; font-weight: 600; font-size: 11px;
+  text-transform: uppercase; letter-spacing: .04em; color: var(--ink-2); }
+.tierrow .n { flex: none; width: 38px; text-align: right;
+  font-variant-numeric: tabular-nums; font-weight: 600; }
+.tierrow .terms { color: var(--ink-2); }
+.tierrow.empty { opacity: .45; }
+
+.qty { width: 100%; border-collapse: collapse; font-size: 12.5px;
+  border: 1px solid var(--grid); border-radius: 6px; overflow: hidden; }
+.qty th { text-align: left; font-size: 10.5px; padding: 6px 9px; color: var(--muted);
+  text-transform: uppercase; letter-spacing: .05em; border-bottom: 1px solid var(--grid); }
+.qty td { padding: 5px 9px; border-top: 1px solid var(--grid); }
+.qty td.num, .qty th.num { text-align: right; font-variant-numeric: tabular-nums; }
+
+.mrow { border: 1px solid var(--grid); border-left-width: 3px; border-radius: 6px;
+  padding: 9px 11px; margin-bottom: 7px; }
+.mrow.m-sup { border-left-color: var(--track); }
+.mrow.m-adj { border-left-color: var(--review); }
+.mhead { display: flex; gap: 12px; align-items: baseline; flex-wrap: wrap;
+  margin-bottom: 5px; }
+.mscore { font-size: 11.5px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.mtext { font-size: 12.5px; line-height: 1.55; color: var(--ink-2); }
+.ents { margin-top: 7px; display: flex; gap: 5px; flex-wrap: wrap; }
+.ent { font-size: 10.5px; padding: 2px 7px; border: 1px solid var(--grid);
+  border-radius: 999px; color: var(--ink-2); }
+.ent b { color: var(--muted); font-weight: 600; text-transform: uppercase;
+  letter-spacing: .04em; margin-right: 3px; }
+
+.snip { font-size: 12.5px; line-height: 1.55; color: var(--ink-2);
+  padding: 7px 11px; border-left: 2px solid var(--grid); margin: 0 0 7px; }
+.snip mark { background: color-mix(in srgb, var(--accent) 22%, transparent);
+  color: var(--ink); padding: 0 2px; border-radius: 2px; font-weight: 600; }
+.snip .src { display: block; font-size: 10.5px; margin-bottom: 3px; }
+.more { color: var(--muted); font-size: 11.5px; font-style: italic; }
+.paths { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 11.5px;
+  color: var(--ink-2); }
+a.cite { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 11.5px;
+  color: var(--accent); text-decoration: none; border-bottom: 1px solid transparent; }
+a.cite:hover { border-bottom-color: var(--accent); }
+a.cite::after { content: " \2197"; }
+a.pagelink { font-size: 10.5px; padding: 1px 6px; margin-left: 4px;
+  border: 1px solid var(--rule); border-radius: 999px; color: var(--ink-2);
+  text-decoration: none; white-space: nowrap; }
+a.pagelink:hover { border-color: var(--accent); color: var(--accent); }
+.warn { font-size: 11.5px; color: var(--ink-2); }
+.warn.none { color: var(--muted); }
+
+/* ---- panel views (map, contractors) ---- */
+.panelwrap { flex: 1; min-height: 0; overflow-y: auto; }
+.panel { padding: 18px; max-width: 1180px; }
+
+/* The map fills its pane by flexing, not by a hardcoded height, so the whole
+   region stays visible whatever the window size. */
+#view-map .panelwrap { overflow: hidden; }
+#view-map .panel { display: flex; flex-direction: column; height: 100%;
+  max-width: none; }
+#view-map .mapwrap { flex: 1; min-height: 0; display: flex; flex-direction: column;
+  margin-bottom: 0; }
+#view-map .mapsplit { flex: 1; min-height: 0; }
+#view-map #map { flex: 1; min-height: 260px; height: auto !important; }
+.panel h2 { font-size: 13px; font-weight: 600; margin: 0 0 4px; color: var(--ink-2); }
+.kbd { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 11px;
+  border: 1px solid var(--rule); border-radius: 4px; padding: 1px 5px;
+  color: var(--ink-2); }
+footer.hint { flex: none; padding: 8px 18px; border-top: 1px solid var(--border);
+  color: var(--muted); font-size: 11.5px; background: var(--surface); }
+
+@media (max-width: 860px) {
+  body { overflow: auto; height: auto; }
+  .view { min-height: 0; }
+  .split { grid-template-columns: 1fr; }
+  .listpane { max-height: 48vh; border-right: none;
+    border-bottom: 1px solid var(--border); }
+  .detailpane { padding: 16px; overflow: visible; }
+  .pills { margin-left: 0; width: 100%; }
+}
+/* ---- board ---- */
+.boardsplit{flex:1;min-height:0;display:grid;grid-template-columns:3fr 1fr}
+.boardlist{overflow:auto;min-height:0;border-right:1px solid var(--border);background:var(--surface)}
+.reqpane{overflow-y:auto;min-height:0;padding:16px 18px 60px}
+table.board{border:none;border-radius:0;width:100%;border-collapse:collapse;font-size:12.5px}
+table.board th{position:sticky;top:0;z-index:2;background:var(--surface);white-space:nowrap;
+ box-shadow:inset 0 -1px 0 var(--grid);text-align:left;font-size:10.5px;padding:6px 9px;
+ color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+table.board td{border-top:1px solid var(--grid);vertical-align:top;padding:5px 9px}
+table.board td.num,table.board th.num{text-align:right;font-variant-numeric:tabular-nums}
+tr.grp th{position:sticky;top:26px;z-index:1;color:var(--ink);font-size:11.5px;
+ text-transform:none;letter-spacing:0;font-weight:600;padding:7px 9px;
+ background:color-mix(in srgb,var(--accent) 9%,var(--surface))}
+tr.grp th .gcount{color:var(--muted);font-weight:400;margin-left:8px}
+tr.grp th .gval{float:right;font-variant-numeric:tabular-nums;color:var(--ink-2);font-weight:500}
+tr.brow{cursor:pointer}
+tr.brow:hover td{background:color-mix(in srgb,var(--accent) 7%,transparent)}
+tr.brow[aria-selected=true] td{background:color-mix(in srgb,var(--accent) 14%,transparent)}
+tr.brow[aria-selected=true] td:first-child{box-shadow:inset 3px 0 0 var(--accent)}
+.btitle{display:block;max-width:46ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bsub{display:block;color:var(--muted);font-size:11px;margin-top:1px}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:3px 10px;font-size:12.5px;margin:0 0 4px}
+.kv dt{color:var(--muted);white-space:nowrap}
+.kv dd{margin:0;font-variant-numeric:tabular-nums;text-align:right;word-break:break-word}
+.reqhead{font-size:13.5px;font-weight:600;line-height:1.35;margin:0 0 2px}
+.reqid{font-size:11.5px;color:var(--muted);margin-bottom:12px}
+@media(max-width:860px){.boardsplit{grid-template-columns:1fr}.boardlist{max-height:55vh}}
+
+/* ---- carried over from the hosted-only stylesheet ---- */
 @media(prefers-color-scheme:dark){:root{--surface:#1a1a19;--plane:#0d0d0d;--ink:#fff;
  --ink-2:#c3c2b7;--grid:#2c2c2a;--rule:#383835;--border:rgba(255,255,255,.1);
  --accent:#3987e5;color-scheme:dark}}
-html,body{height:100%}
-body{margin:0;background:var(--plane);color:var(--ink);
- font:14px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif;
- display:flex;flex-direction:column;height:100vh;overflow:hidden}
 .gate{margin:auto;width:min(360px,92vw);background:var(--surface);
  border:1px solid var(--border);border-radius:12px;padding:26px 24px;box-shadow:var(--shadow)}
 .gate h1{font-size:15px;font-weight:600;margin:0 0 4px}
@@ -687,117 +930,26 @@ body{margin:0;background:var(--plane);color:var(--ink);
 .gate button{width:100%;padding:9px;font:inherit;font-size:14px;font-weight:500;
  cursor:pointer;border:none;border-radius:8px;background:var(--accent);color:#fff}
 .gate .err{color:#d03b3b;font-size:12.5px;margin-top:10px;min-height:1em}
-.appbar{flex:none;background:var(--plane);border-bottom:1px solid var(--border);padding:10px 18px 0}
-.titlerow{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
 h1.t{font-size:15px;font-weight:600;margin:0}
-.pills{display:flex;gap:12px;margin-left:auto;font-size:12px;color:var(--ink-2);flex-wrap:wrap}
-.pills b{font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums}
-.tabs{display:flex;gap:2px;margin-top:10px}
-.tab{padding:7px 14px;font:inherit;font-size:13px;cursor:pointer;background:none;
- border:none;border-bottom:2px solid transparent;color:var(--muted)}
 .tab[aria-selected=true]{color:var(--ink);border-bottom-color:var(--accent);font-weight:500}
-.view{flex:1;min-height:0;display:flex;flex-direction:column}
-.view[hidden]{display:none}
-/* display:contents lets #app disappear from the flex column without adding a
-   wrapper - but the [hidden] rule must be more specific or it never hides. */
 #app{display:contents}
 #app[hidden]{display:none}
 #gate[hidden]{display:none}
 .chipwrap{display:contents}
-.toolbar{flex:none;display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:10px 18px;
- border-bottom:1px solid var(--border);background:var(--surface)}
-.toolbar input{flex:1 1 220px;min-width:160px;padding:7px 11px;font:inherit;font-size:13px;
- background:var(--plane);color:var(--ink);border:1px solid var(--rule);border-radius:7px}
-.chip{padding:6px 11px;font:inherit;font-size:12px;cursor:pointer;background:var(--plane);
- color:var(--ink-2);border:1px solid var(--rule);border-radius:999px;white-space:nowrap}
 .chip[aria-pressed=true]{background:var(--ink);color:var(--surface);border-color:var(--ink);font-weight:500}
-.tcount{font-size:12px;color:var(--muted);margin-left:auto;font-variant-numeric:tabular-nums}
-.split{flex:1;min-height:0;display:grid;grid-template-columns:minmax(300px,32%) 1fr}
-.listpane{overflow-y:auto;min-height:0;border-right:1px solid var(--border);background:var(--surface)}
-.detailpane{overflow-y:auto;min-height:0;padding:20px 24px 60px}
-.lrow{display:grid;grid-template-columns:10px 1fr auto;gap:9px;align-items:center;
- padding:9px 14px;border-bottom:1px solid var(--grid);cursor:pointer}
-.lrow:hover{background:color-mix(in srgb,var(--accent) 7%,transparent)}
 .lrow[aria-selected=true]{background:color-mix(in srgb,var(--accent) 13%,transparent);
  box-shadow:inset 3px 0 0 var(--accent)}
-.ldot{width:9px;height:9px;border-radius:50%}
-.d-TRACK{background:var(--track)}.d-REVIEW{background:var(--review)}
-.d-SKIP{background:var(--skip)}.d-RESULT{background:var(--accent)}
-.lname{font-weight:500;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.lmeta{display:block;color:var(--muted);font-size:11.5px;overflow:hidden;
- text-overflow:ellipsis;white-space:nowrap;margin-top:1px}
-.lright{text-align:right;font-size:11.5px;color:var(--ink-2);
- font-variant-numeric:tabular-nums;white-space:nowrap}
-.lright b{font-size:13px;color:var(--track)}
-.dhead{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:4px}
-.dhead h2{font-size:17px;font-weight:600;margin:0;word-break:break-word}
-.dsub{color:var(--muted);font-size:12.5px;margin-bottom:16px}
-.verdict{display:inline-flex;align-items:center;gap:7px;font-weight:600;font-size:12.5px}
-.verdict i{width:9px;height:9px;border-radius:50%}
-.v-TRACK i{background:var(--track)}.v-REVIEW i{background:var(--review)}
-.v-SKIP i{background:var(--skip)}.v-RESULT i{background:var(--accent)}
 h3.s{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);
  margin:22px 0 8px;font-weight:600}
-table{width:100%;border-collapse:collapse;font-size:12.5px;border:1px solid var(--grid);
- border-radius:6px;overflow:hidden}
-th{text-align:left;font-size:10.5px;padding:6px 9px;color:var(--muted);
- text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--grid)}
-td{padding:5px 9px;border-top:1px solid var(--grid)}
-td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
-tr.sup-direct td{background:color-mix(in srgb,var(--track) 10%,transparent)}
-tr.sup-possible td{background:color-mix(in srgb,var(--review) 12%,transparent)}
-.bigval{font-size:22px;font-weight:650;color:var(--track);letter-spacing:-.02em}
-.mrow{border:1px solid var(--grid);border-left:3px solid var(--track);border-radius:6px;
- padding:9px 11px;margin-bottom:7px}
-.mtext{font-size:12.5px;color:var(--ink-2)}
-.empty{padding:50px 20px;text-align:center;color:var(--muted)}
-#map{height:100%;min-height:300px;border-radius:8px;border:1px solid var(--border)}
-.mapsplit{display:grid;grid-template-columns:1fr 3fr;gap:12px;height:100%;min-height:0;padding:14px 18px}
 .maplist{overflow-y:auto;min-height:0;border:1px solid var(--border);border-radius:8px;background:var(--surface)}
-.panel{flex:1;min-height:0;overflow-y:auto;padding:18px}
-footer.hint{flex:none;padding:8px 18px;border-top:1px solid var(--border);
- color:var(--muted);font-size:11.5px;background:var(--surface)}
-/* ---- board ---- */
-/* Three quarters list, one quarter summary. The list is the working surface;
-   the summary only has to answer "what does this one need from me". */
-.boardsplit{flex:1;min-height:0;display:grid;grid-template-columns:3fr 1fr}
-.boardlist{overflow:auto;min-height:0;border-right:1px solid var(--border);background:var(--surface)}
-.reqpane{overflow-y:auto;min-height:0;padding:16px 18px 60px}
-table.board{border:none;border-radius:0}
-table.board th{position:sticky;top:0;z-index:2;background:var(--surface);
- box-shadow:inset 0 -1px 0 var(--grid);white-space:nowrap}
-table.board td{border-top:1px solid var(--grid);vertical-align:top}
-tr.grp th{position:sticky;top:26px;z-index:1;background:color-mix(in srgb,var(--accent) 9%,var(--surface));
- color:var(--ink);font-size:11.5px;text-transform:none;letter-spacing:0;font-weight:600;
- padding:7px 9px;box-shadow:inset 0 -1px 0 var(--grid)}
-tr.grp th .gcount{color:var(--muted);font-weight:400;margin-left:8px}
-tr.grp th .gval{float:right;font-variant-numeric:tabular-nums;color:var(--ink-2);font-weight:500}
-tr.brow{cursor:pointer}
-tr.brow:hover td{background:color-mix(in srgb,var(--accent) 7%,transparent)}
-tr.brow[aria-selected=true] td{background:color-mix(in srgb,var(--accent) 14%,transparent)}
-tr.brow[aria-selected=true] td:first-child{box-shadow:inset 3px 0 0 var(--accent)}
-.btitle{display:block;max-width:46ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.bsub{display:block;color:var(--muted);font-size:11px;margin-top:1px}
 .tagv{display:inline-block;padding:1px 6px;border-radius:999px;font-size:10.5px;font-weight:600}
 .tagv.TRACK{background:color-mix(in srgb,var(--track) 20%,transparent);color:var(--track)}
 .tagv.REVIEW{background:color-mix(in srgb,var(--review) 24%,transparent);color:#8a6200}
 .tagv.SKIP{background:color-mix(in srgb,var(--skip) 20%,transparent);color:var(--muted)}
-.warn{color:#d03b3b;font-weight:600}
 .cin{width:100%;min-width:90px;padding:3px 6px;font:inherit;font-size:12px;
  background:transparent;color:var(--ink);border:1px solid transparent;border-radius:5px}
 .cin:hover{border-color:var(--grid)}
 .cin:focus{border-color:var(--accent);background:var(--plane);outline:none}
-details summary::-webkit-details-marker{color:var(--muted)}
-.toolbar select{padding:7px 9px;font:inherit;font-size:12.5px;background:var(--plane);
- color:var(--ink);border:1px solid var(--rule);border-radius:7px}
-.kv{display:grid;grid-template-columns:auto 1fr;gap:3px 10px;font-size:12.5px;margin:0 0 4px}
-.kv dt{color:var(--muted);white-space:nowrap}
-.kv dd{margin:0;font-variant-numeric:tabular-nums;text-align:right;word-break:break-word}
-.reqhead{font-size:13.5px;font-weight:600;line-height:1.35;margin:0 0 2px}
-.reqid{font-size:11.5px;color:var(--muted);margin-bottom:12px}
-@media(max-width:860px){.split{grid-template-columns:1fr}.listpane{max-height:46vh}
- body{overflow:auto;height:auto}.mapsplit{grid-template-columns:1fr}
- .boardsplit{grid-template-columns:1fr}.boardlist{max-height:55vh}}
 </style>
 </head><body>
 
@@ -811,93 +963,107 @@ details summary::-webkit-details-marker{color:var(--muted)}
 </form>
 
 <div id=app hidden>
-  <div class=appbar>
-    <div class=titlerow>
-      <h1 class=t>Tender screen</h1>
-      <span class=pills id=pills></span>
-    </div>
-    <div class=tabs>
-      <button class=tab data-view=board aria-selected=true>Board</button>
-      <button class=tab data-view=tenders aria-selected=false>Tenders</button>
-      <button class=tab data-view=map aria-selected=false>Map</button>
-      <button class=tab data-view=contractors aria-selected=false>Call list</button>
-      <button class=tab data-view=upload aria-selected=false>Add tenders</button>
-    </div>
+<div class=appbar>
+  <div class=titlerow>
+    <h1>Tender screen — M/s Agarwal Gabion Industries</h1>
+    <span class=stamp>live from Supabase</span>
+    <span class=pills>
+<span id=pills></span>
+    </span>
   </div>
+  <div class=tabs role=tablist>
+    <button class=tab role=tab data-view=board aria-selected=true>Board</button>
+    <button class=tab role=tab data-view=tenders aria-selected=false>Tenders</button>
+    <button class=tab role=tab data-view=map aria-selected=false>Map</button>
+    <button class=tab role=tab data-view=contractors aria-selected=false>Call list</button>
+    <button class=tab role=tab data-view=upload aria-selected=false>Add tenders</button>
+  </div>
+</div>
 
-  <section class=view id=view-board>
-    <div class=toolbar>
-      <label for=groupby class=tcount style="margin:0">Group by</label>
-      <select id=groupby>
-        <option value=winner selected>Contractor to call</option>
-        <option value=state>State</option>
-        <option value=corridor>Corridor</option>
-        <option value=status>Where it stands</option>
-        <option value=nh>Highway</option>
-        <option value=inviting_office>Bid inviting office</option>
-      </select>
-      <select id=sortby>
-        <option value=gabion selected>Sort by gabion</option>
-        <option value=total>Sort by total supply</option>
-        <option value=date>Sort by award date</option>
-        <option value=value>Sort by contract size</option>
-        <option value=chain>Sort by chainage</option>
-      </select>
-      <input type=search id=bq placeholder="Search title, corridor, office, winner…">
-      <span class=tcount id=bcount></span>
-    </div>
-    <div class=boardsplit>
-      <div class=boardlist id=boardlist></div>
-      <div class=reqpane id=req></div>
-    </div>
-  </section>
+<section class=view id=view-board>
+  <div class=toolbar>
+    <label for=groupby>Group by</label>
+    <select id=groupby>
+      <option value=winner selected>Contractor to call</option>
+      <option value=state>State</option>
+      <option value=corridor>Corridor</option>
+      <option value=status>Where it stands</option>
+      <option value=nh>Highway</option>
+      <option value=office>Bid inviting office</option>
+    </select>
+    <select id=bsort>
+      <option value=gabion selected>Sort by gabion</option>
+      <option value=total>Sort by total supply</option>
+      <option value=value>Sort by contract size</option>
+      <option value=chain>Sort by chainage</option>
+    </select>
+    <input type=search id=bq placeholder="Search title, corridor, winner…">
+    <span class=count id=bcount></span>
+  </div>
+  <div class=boardsplit>
+    <div class=boardlist id=boardlist></div>
+    <div class=reqpane id=req></div>
+  </div>
+</section>
 
-  <section class=view id=view-tenders hidden>
-    <div class=toolbar>
-      <input type=search id=q placeholder="Search tender…">
-      <span id=chips class=chipwrap></span>
-      <span class=tcount id=tcount></span>
-    </div>
-    <div class=split>
-      <div class=listpane id=list></div>
-      <div class=detailpane id=detail></div>
-    </div>
-    <footer class=hint>Data is read live from Supabase and gated by the staff
-      allowlist. Citations to the source PDFs work in the local copy only.</footer>
-  </section>
+<section class=view id=view-tenders hidden>
+  <div class=toolbar>
+    <input type=search id=q placeholder="Search tender, keyword or contractor…" aria-label=Search>
+    <span id=chips class=chipwrap></span>
+    <button class=chip id=hidedone aria-pressed=false>Hide reviewed</button>
+    <select class=sel id=sort aria-label="Sort by">
+      <option value=verdict>Sort: verdict</option>
+      <option value=qty>Sort: has quantity</option>
+      <option value=core>Sort: core hits</option>
+      <option value=score>Sort: score</option>
+      <option value=name>Sort: name</option>
+    </select>
+    <span class=tcount id=tcount></span>
+  </div>
+  <div class=split>
+    <div class=listpane id=list role=listbox aria-label="Tenders"></div>
+    <div class=detailpane id=detail></div>
+  </div>
+  <footer class=hint>
+    <span class=kbd>j</span>/<span class=kbd>k</span> or arrows to move ·
+    <span class=kbd>x</span> mark reviewed · <span class=kbd>/</span> search.
+    Reviewed state is remembered in this browser.
+    Score ranks within a verdict; it does not set it.
+  </footer>
+</section>
 
-  <section class=view id=view-map hidden>
-    <div class=mapsplit>
-      <div class=maplist id=maplist></div>
-      <div><div id=map></div></div>
-    </div>
-  </section>
+<section class=view id=view-map hidden>
+  <div class=panelwrap><div class=panel><div class=mapsplit><div class=maplist id=maplist></div><div><div id=map></div></div></div></div></div>
+</section>
 
-  <section class=view id=view-contractors hidden>
-    <div class=panel id=firms></div>
-  </section>
+<section class=view id=view-contractors hidden>
+  <div class=panelwrap><div class=panel>
+    <h3 class=s>Won work — call these</h3>
+    <div id=calllist></div>
+    <h3 class=s>Every bidder we have seen</h3>
+    <div id=calllist></div>
+  </div></div>
+</section>
 
-  <section class=view id=view-upload hidden>
-    <div class=panel>
-      <h3 class=s>Add tenders</h3>
-      <p class=mtext style="max-width:62ch">Drop the tender ZIP here and it joins the
-        queue. The pipeline machine collects it on its next check and runs the full
-        pass at home — unzip, screen, quantities, Schedule-H, map. Nothing is
-        processed in the browser, so a large archive is fine; it only has to upload.</p>
-      <p><input type=file id=file multiple accept=".zip,.rar,.7z"></p>
-      <h3 class=s>Already copied onto the machine?</h3>
-      <p class=mtext style="max-width:62ch">If the archives are already in the
-        pipeline machine's <code>inbox</code> folder, nothing needs uploading —
-        just tell it to start.</p>
-      <p><button class=chip id=runinbox>Process inbox now</button></p>
-      <h3 class=s>Queue <button class=chip id=refreshq style="margin-left:8px">Refresh</button></h3>
-      <div id=uplog></div>
-      <div id=queue style="margin-top:10px"></div>
-      <p class=mtext style="margin-top:14px">Status stays <b>queued</b> until the
-        pipeline machine is running <code>watch.py --cloud</code>. If it sits there,
-        that machine is off.</p>
-    </div>
-  </section>
+
+<section class=view id=view-upload hidden>
+  <div class=panelwrap><div class=panel>
+    <h3 class=s>Add tenders</h3>
+    <p class=mtext style="max-width:62ch">Drop the tender ZIP here and it joins the
+      queue. The pipeline machine collects it on its next check and runs the full
+      pass at home. Nothing is processed in the browser, so a large archive is fine.</p>
+    <p><input type=file id=file multiple accept=".zip,.rar,.7z"></p>
+    <h3 class=s>Already copied onto the machine?</h3>
+    <p class=mtext style="max-width:62ch">If the archives are already in the pipeline
+      machine’s <code>inbox</code> folder, nothing needs uploading — just tell it to start.</p>
+    <p><button class=chip id=runinbox>Process inbox now</button>
+       <button class=chip id=refreshq>Refresh</button></p>
+    <div id=uplog></div>
+    <div id=queue style="margin-top:10px"></div>
+  </div></div>
+</section>
+
+
 </div>
 
 <script>/* @preserve
@@ -917,574 +1083,811 @@ details summary::-webkit-details-marker{color:var(--muted)}
 `))throw Error(`@supabase/auth-js: Invalid SIWE message field "statement". Statement must not include '\\n'. Provided value: ${e.statement}`);let f=gi(e.address),p=`${l?`${l}://${n}`:n} wants you to sign in with your Ethereum account:\n${f}\n\n${e.statement?`${e.statement}\n`:``}`,m=`URI: ${u}\nVersion: ${d}\nChain ID: ${t}${a?`\nNonce: ${a}`:``}\nIssued At: ${i.toISOString()}`;if(r&&(m+=`\nExpiration Time: ${r.toISOString()}`),o&&(m+=`\nNot Before: ${o.toISOString()}`),s&&(m+=`\nRequest ID: ${s}`),c){let e=`
 Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/auth-js: Invalid SIWE message field "resources". Every resource must be a valid string. Provided value: ${t}`);e+=`\n- ${t}`}m+=e}return`${p}\n${m}`}var $=class extends Error{constructor({message:e,code:t,cause:n,name:r}){super(e,{cause:n}),this.__isWebAuthnError=!0,this.name=r??(n instanceof Error?n.name:void 0)??`Unknown Error`,this.code=t}toJSON(){return{name:this.name,message:this.message,code:this.code}}},bi=class extends ${constructor(e,t){super({code:`ERROR_PASSTHROUGH_SEE_CAUSE_PROPERTY`,cause:t,message:e}),this.name=`WebAuthnUnknownError`,this.originalError=t}};function xi({error:e,options:t}){let{publicKey:n}=t;if(!n)throw Error(`options was missing required publicKey property`);if(e.name===`AbortError`){if(t.signal instanceof AbortSignal)return new $({message:`Registration ceremony was sent an abort signal`,code:`ERROR_CEREMONY_ABORTED`,cause:e})}else if(e.name===`ConstraintError`){if(n.authenticatorSelection?.requireResidentKey===!0)return new $({message:`Discoverable credentials were required but no available authenticator supported it`,code:`ERROR_AUTHENTICATOR_MISSING_DISCOVERABLE_CREDENTIAL_SUPPORT`,cause:e});if(t.mediation===`conditional`&&n.authenticatorSelection?.userVerification===`required`)return new $({message:`User verification was required during automatic registration but it could not be performed`,code:`ERROR_AUTO_REGISTER_USER_VERIFICATION_FAILURE`,cause:e});if(n.authenticatorSelection?.userVerification===`required`)return new $({message:`User verification was required but no available authenticator supported it`,code:`ERROR_AUTHENTICATOR_MISSING_USER_VERIFICATION_SUPPORT`,cause:e})}else if(e.name===`InvalidStateError`)return new $({message:`The authenticator was previously registered`,code:`ERROR_AUTHENTICATOR_PREVIOUSLY_REGISTERED`,cause:e});else if(e.name===`NotAllowedError`)return new $({message:e.message,code:`ERROR_PASSTHROUGH_SEE_CAUSE_PROPERTY`,cause:e});else if(e.name===`NotSupportedError`)return n.pubKeyCredParams.filter(e=>e.type===`public-key`).length===0?new $({message:`No entry in pubKeyCredParams was of type "public-key"`,code:`ERROR_MALFORMED_PUBKEYCREDPARAMS`,cause:e}):new $({message:`No available authenticator supported any of the specified pubKeyCredParams algorithms`,code:`ERROR_AUTHENTICATOR_NO_SUPPORTED_PUBKEYCREDPARAMS_ALG`,cause:e});else if(e.name===`SecurityError`){let t=window.location.hostname;if(Oi(t)){if(n.rp.id!==t)return new $({message:`The RP ID "${n.rp.id}" is invalid for this domain`,code:`ERROR_INVALID_RP_ID`,cause:e})}else return new $({message:`${window.location.hostname} is an invalid domain`,code:`ERROR_INVALID_DOMAIN`,cause:e})}else if(e.name===`TypeError`){if(n.user.id.byteLength<1||n.user.id.byteLength>64)return new $({message:`User ID was not between 1 and 64 characters`,code:`ERROR_INVALID_USER_ID_LENGTH`,cause:e})}else if(e.name===`UnknownError`)return new $({message:`The authenticator was unable to process the specified options, or could not create a new credential`,code:`ERROR_AUTHENTICATOR_GENERAL_ERROR`,cause:e});return new $({message:`a Non-Webauthn related error has occurred`,code:`ERROR_PASSTHROUGH_SEE_CAUSE_PROPERTY`,cause:e})}function Si({error:e,options:t}){let{publicKey:n}=t;if(!n)throw Error(`options was missing required publicKey property`);if(e.name===`AbortError`){if(t.signal instanceof AbortSignal)return new $({message:`Authentication ceremony was sent an abort signal`,code:`ERROR_CEREMONY_ABORTED`,cause:e})}else if(e.name===`NotAllowedError`)return new $({message:e.message,code:`ERROR_PASSTHROUGH_SEE_CAUSE_PROPERTY`,cause:e});else if(e.name===`SecurityError`){let t=window.location.hostname;if(Oi(t)){if(n.rpId!==t)return new $({message:`The RP ID "${n.rpId}" is invalid for this domain`,code:`ERROR_INVALID_RP_ID`,cause:e})}else return new $({message:`${window.location.hostname} is an invalid domain`,code:`ERROR_INVALID_DOMAIN`,cause:e})}else if(e.name===`UnknownError`)return new $({message:`The authenticator was unable to process the specified options, or could not create a new assertion signature`,code:`ERROR_AUTHENTICATOR_GENERAL_ERROR`,cause:e});return new $({message:`a Non-Webauthn related error has occurred`,code:`ERROR_PASSTHROUGH_SEE_CAUSE_PROPERTY`,cause:e})}let Ci=new class{createNewAbortSignal(){if(this.controller){let e=Error(`Cancelling existing WebAuthn API call for new one`);e.name=`AbortError`,this.controller.abort(e)}let e=new AbortController;return this.controller=e,e.signal}cancelCeremony(){if(this.controller){let e=Error(`Manually cancelling existing WebAuthn API call`);e.name=`AbortError`,this.controller.abort(e),this.controller=void 0}}};function wi(e){if(!e)throw Error(`Credential creation options are required`);if(typeof PublicKeyCredential<`u`&&`parseCreationOptionsFromJSON`in PublicKeyCredential&&typeof PublicKeyCredential.parseCreationOptionsFromJSON==`function`)return PublicKeyCredential.parseCreationOptionsFromJSON(e);let{challenge:n,user:r,excludeCredentials:i}=e,a=t(e,[`challenge`,`user`,`excludeCredentials`]),o=R(n).buffer,s=Object.assign(Object.assign({},r),{id:R(r.id).buffer}),c=Object.assign(Object.assign({},a),{challenge:o,user:s});if(i&&i.length>0){c.excludeCredentials=Array(i.length);for(let e=0;e<i.length;e++){let t=i[e];c.excludeCredentials[e]=Object.assign(Object.assign({},t),{id:R(t.id).buffer,type:t.type||`public-key`,transports:t.transports})}}return c}function Ti(e){if(!e)throw Error(`Credential request options are required`);if(typeof PublicKeyCredential<`u`&&`parseRequestOptionsFromJSON`in PublicKeyCredential&&typeof PublicKeyCredential.parseRequestOptionsFromJSON==`function`)return PublicKeyCredential.parseRequestOptionsFromJSON(e);let{challenge:n,allowCredentials:r}=e,i=t(e,[`challenge`,`allowCredentials`]),a=R(n).buffer,o=Object.assign(Object.assign({},i),{challenge:a});if(r&&r.length>0){o.allowCredentials=Array(r.length);for(let e=0;e<r.length;e++){let t=r[e];o.allowCredentials[e]=Object.assign(Object.assign({},t),{id:R(t.id).buffer,type:t.type||`public-key`,transports:t.transports})}}return o}function Ei(e){if(`toJSON`in e&&typeof e.toJSON==`function`)return e.toJSON();let t=e;return{id:e.id,rawId:e.id,response:{attestationObject:z(new Uint8Array(e.response.attestationObject)),clientDataJSON:z(new Uint8Array(e.response.clientDataJSON))},type:`public-key`,clientExtensionResults:e.getClientExtensionResults(),authenticatorAttachment:t.authenticatorAttachment??void 0}}function Di(e){if(`toJSON`in e&&typeof e.toJSON==`function`)return e.toJSON();let t=e,n=e.getClientExtensionResults(),r=e.response;return{id:e.id,rawId:e.id,response:{authenticatorData:z(new Uint8Array(r.authenticatorData)),clientDataJSON:z(new Uint8Array(r.clientDataJSON)),signature:z(new Uint8Array(r.signature)),userHandle:r.userHandle?z(new Uint8Array(r.userHandle)):void 0},type:`public-key`,clientExtensionResults:n,authenticatorAttachment:t.authenticatorAttachment??void 0}}function Oi(e){return e===`localhost`||/^([a-z0-9]+(-[a-z0-9]+)*\.)+[a-z]{2,}$/i.test(e)}function ki(){return!!(B()&&`PublicKeyCredential`in window&&window.PublicKeyCredential&&`credentials`in navigator&&typeof(navigator==null?void 0:navigator.credentials)?.create==`function`&&typeof(navigator==null?void 0:navigator.credentials)?.get==`function`)}async function Ai(e){try{let t=await navigator.credentials.create(e);return t?t instanceof PublicKeyCredential?{data:t,error:null}:{data:null,error:new bi(`Browser returned unexpected credential type`,t)}:{data:null,error:new bi(`Empty credential response`,t)}}catch(t){return{data:null,error:xi({error:t,options:e})}}}async function ji(e){try{let t=await navigator.credentials.get(e);return t?t instanceof PublicKeyCredential?{data:t,error:null}:{data:null,error:new bi(`Browser returned unexpected credential type`,t)}:{data:null,error:new bi(`Empty credential response`,t)}}catch(t){return{data:null,error:Si({error:t,options:e})}}}let Mi={hints:[`security-key`],authenticatorSelection:{authenticatorAttachment:`cross-platform`,requireResidentKey:!1,userVerification:`preferred`,residentKey:`discouraged`},attestation:`direct`},Ni={userVerification:`preferred`,hints:[`security-key`],attestation:`direct`};function Pi(...e){let t=e=>typeof e==`object`&&!!e&&!Array.isArray(e),n=e=>e instanceof ArrayBuffer||ArrayBuffer.isView(e),r={};for(let i of e)if(i)for(let e in i){let a=i[e];if(a!==void 0)if(Array.isArray(a))r[e]=a;else if(n(a))r[e]=a;else if(t(a)){let n=r[e];t(n)?r[e]=Pi(n,a):r[e]=Pi(a)}else r[e]=a}return r}function Fi(e,t){return Pi(Mi,e,t||{})}function Ii(e,t){return Pi(Ni,e,t||{})}var Li=class{constructor(e){this.client=e,this.enroll=this._enroll.bind(this),this.challenge=this._challenge.bind(this),this.verify=this._verify.bind(this),this.authenticate=this._authenticate.bind(this),this.register=this._register.bind(this)}async _enroll(e){return this.client.mfa.enroll(Object.assign(Object.assign({},e),{factorType:`webauthn`}))}async _challenge({factorId:e,webauthn:t,friendlyName:n,signal:r},i){try{let{data:a,error:o}=await this.client.mfa.challenge({factorId:e,webauthn:t});if(!a)return{data:null,error:o};let s=r??Ci.createNewAbortSignal();if(a.webauthn.type===`create`){let{user:e}=a.webauthn.credential_options.publicKey;if(!e.name){let t=n;if(t)e.name=`${e.id}:${t}`;else{let t=(await this.client.getUser()).data.user,n=t?.user_metadata?.name||t?.email||t?.id||`User`;e.name=`${e.id}:${n}`}}e.displayName||=e.name}switch(a.webauthn.type){case`create`:{let{data:t,error:n}=await Ai({publicKey:Fi(a.webauthn.credential_options.publicKey,i?.create),signal:s});return t?{data:{factorId:e,challengeId:a.id,webauthn:{type:a.webauthn.type,credential_response:t}},error:null}:{data:null,error:n}}case`request`:{let t=Ii(a.webauthn.credential_options.publicKey,i?.request),{data:n,error:r}=await ji(Object.assign(Object.assign({},a.webauthn.credential_options),{publicKey:t,signal:s}));return n?{data:{factorId:e,challengeId:a.id,webauthn:{type:a.webauthn.type,credential_response:n}},error:null}:{data:null,error:r}}}}catch(e){return N(e)?{data:null,error:e}:{data:null,error:new P(`Unexpected error in challenge`,e)}}}async _verify({challengeId:e,factorId:t,webauthn:n}){return this.client.mfa.verify({factorId:t,challengeId:e,webauthn:n})}async _authenticate({factorId:e,webauthn:{rpId:t=typeof window<`u`?window.location.hostname:void 0,rpOrigins:n=typeof window<`u`?[window.location.origin]:void 0,signal:r}={}},i){if(!t)return{data:null,error:new Gn(`rpId is required for WebAuthn authentication`)};try{if(!ki())return{data:null,error:new P(`Browser does not support WebAuthn`,null)};let{data:a,error:o}=await this.challenge({factorId:e,webauthn:{rpId:t,rpOrigins:n},signal:r},{request:i});if(!a)return{data:null,error:o};let{webauthn:s}=a;return this._verify({factorId:e,challengeId:a.challengeId,webauthn:{type:s.type,rpId:t,rpOrigins:n,credential_response:s.credential_response}})}catch(e){return N(e)?{data:null,error:e}:{data:null,error:new P(`Unexpected error in authenticate`,e)}}}async _register({friendlyName:e,webauthn:{rpId:t=typeof window<`u`?window.location.hostname:void 0,rpOrigins:n=typeof window<`u`?[window.location.origin]:void 0,signal:r}={}},i){if(!t)return{data:null,error:new Gn(`rpId is required for WebAuthn registration`)};try{if(!ki())return{data:null,error:new P(`Browser does not support WebAuthn`,null)};let{data:a,error:o}=await this._enroll({friendlyName:e});if(!a)return await this.client.mfa.listFactors().then(t=>t.data?.all.find(t=>t.factor_type===`webauthn`&&t.friendly_name===e&&t.status!==`unverified`)).then(e=>e?this.client.mfa.unenroll({factorId:e?.id}):void 0),{data:null,error:o};let{data:s,error:c}=await this._challenge({factorId:a.id,friendlyName:a.friendly_name,webauthn:{rpId:t,rpOrigins:n},signal:r},{create:i});return s?this._verify({factorId:a.id,challengeId:s.challengeId,webauthn:{rpId:t,rpOrigins:n,type:s.webauthn.type,credential_response:s.webauthn.credential_response}}):{data:null,error:c}}catch(e){return N(e)?{data:null,error:e}:{data:null,error:new P(`Unexpected error in register`,e)}}}};hi();let Ri={url:`http://localhost:9999`,storageKey:`supabase.auth.token`,autoRefreshToken:!0,persistSession:!0,detectSessionInUrl:!0,headers:Vn,flowType:`implicit`,debug:!1,hasCustomAuthorizationHeader:!1,throwOnError:!1,lockAcquireTimeout:5e3,skipAutoInitialize:!1,experimental:{}},zi={};var Bi=class e{get jwks(){return zi[this.storageKey]?.jwks??{keys:[]}}set jwks(e){zi[this.storageKey]=Object.assign(Object.assign({},zi[this.storageKey]),{jwks:e})}get jwks_cached_at(){return zi[this.storageKey]?.cachedAt??-(2**53-1)}set jwks_cached_at(e){zi[this.storageKey]=Object.assign(Object.assign({},zi[this.storageKey]),{cachedAt:e})}constructor(t){var n;this.userStorage=null,this.memoryStorage=null,this.stateChangeEmitters=new Map,this.autoRefreshTicker=null,this.autoRefreshTickTimeout=null,this.visibilityChangedCallback=null,this.refreshingDeferred=null,this.lastRefreshFailure=null,this._sessionRemovalEpoch=0,this.initializePromise=null,this._pendingInitNotifications=null,this.detectSessionInUrl=!0,this.hasCustomAuthorizationHeader=!1,this.suppressGetSessionWarning=!1,this.lock=null,this.lockAcquired=!1,this.pendingInLock=[],this.broadcastChannel=null,this.logger=console.log;let r=Object.assign(Object.assign({},Ri),t);if(this.storageKey=r.storageKey,this.instanceID=e.nextInstanceID[this.storageKey]??0,e.nextInstanceID[this.storageKey]=this.instanceID+1,this.logDebugMessages=!!r.debug,typeof r.debug==`function`&&(this.logger=r.debug),this.instanceID>0&&B()){let e=`${this._logPrefix()} Multiple GoTrueClient instances detected in the same browser context. It is not an error, but this should be avoided as it may produce undefined behavior when used concurrently under the same storage key.`;console.warn(e),this.logDebugMessages&&console.trace(e)}if(this.persistSession=r.persistSession,this.autoRefreshToken=r.autoRefreshToken,this.experimental=r.experimental??{},this.admin=new si({url:r.url,headers:r.headers,fetch:r.fetch,experimental:this.experimental}),this.url=r.url,this.headers=r.headers,this.fetch=Sr(r.fetch),this.detectSessionInUrl=r.detectSessionInUrl,this.flowType=r.flowType,this.hasCustomAuthorizationHeader=r.hasCustomAuthorizationHeader,this.throwOnError=r.throwOnError,this.lockAcquireTimeout=r.lockAcquireTimeout,r.lock!=null&&(this.lock=r.lock),this.jwks||(this.jwks={keys:[]},this.jwks_cached_at=-(2**53-1)),this.mfa={verify:this._verify.bind(this),enroll:this._enroll.bind(this),unenroll:this._unenroll.bind(this),challenge:this._challenge.bind(this),listFactors:this._listFactors.bind(this),challengeAndVerify:this._challengeAndVerify.bind(this),getAuthenticatorAssuranceLevel:this._getAuthenticatorAssuranceLevel.bind(this),webauthn:new Li(this)},this.oauth={getAuthorizationDetails:this._getAuthorizationDetails.bind(this),approveAuthorization:this._approveAuthorization.bind(this),denyAuthorization:this._denyAuthorization.bind(this),listGrants:this._listOAuthGrants.bind(this),revokeGrant:this._revokeOAuthGrant.bind(this)},this.passkey={startRegistration:this._startPasskeyRegistration.bind(this),verifyRegistration:this._verifyPasskeyRegistration.bind(this),startAuthentication:this._startPasskeyAuthentication.bind(this),verifyAuthentication:this._verifyPasskeyAuthentication.bind(this),list:this._listPasskeys.bind(this),update:this._updatePasskey.bind(this),delete:this._deletePasskey.bind(this)},this.persistSession?(r.storage?this.storage=r.storage:br()?this.storage=globalThis.localStorage:(this.memoryStorage={},this.storage=ci(this.memoryStorage)),r.userStorage&&(this.userStorage=r.userStorage)):(this.memoryStorage={},this.storage=ci(this.memoryStorage)),B()&&globalThis.BroadcastChannel&&this.persistSession&&this.storageKey){try{this.broadcastChannel=new globalThis.BroadcastChannel(this.storageKey)}catch(e){console.error(`Failed to create a new BroadcastChannel, multi-tab state changes will not be available`,e)}(n=this.broadcastChannel)==null||n.addEventListener(`message`,async e=>{this._debug(`received broadcast notification from other tab or client`,e),(e.data.event===`TOKEN_REFRESHED`||e.data.event===`SIGNED_IN`)&&(this.lastRefreshFailure=null);try{await this._notifyAllSubscribers(e.data.event,e.data.session,!1)}catch(e){this._debug(`#broadcastChannel`,`error`,e)}})}r.skipAutoInitialize||this.initialize().catch(e=>{this._debug(`#initialize()`,`error`,e)})}isThrowOnErrorEnabled(){return this.throwOnError}_returnResult(e){if(this.throwOnError&&e&&e.error)throw e.error;return e}_logPrefix(){return`GoTrueClient@${this.storageKey}:${this.instanceID} (${zn}) ${new Date().toISOString()}`}_debug(...e){return this.logDebugMessages&&this.logger(this._logPrefix(),...e),this}async initialize(){if(this.initializePromise)return await this.initializePromise;this._pendingInitNotifications=[],this.initializePromise=(async()=>this.lock==null?await this._initialize():await this._acquireLock(this.lockAcquireTimeout,async()=>await this._initialize()))();let e=await this.initializePromise,t=this._pendingInitNotifications??[];this._pendingInitNotifications=null;for(let e of t)await this._notifyAllSubscribers(e.event,e.session,e.broadcast);return e}async _initialize(){try{let e={},t=`none`;if(B()&&(e=xr(window.location.href),this._isImplicitGrantCallback(e)?t=`implicit`:await this._isPKCECallback(e)&&(t=`pkce`)),B()&&this.detectSessionInUrl&&t!==`none`){let{data:n,error:r}=await this._getSessionFromURL(e,t);if(r){if(this._debug(`#_initialize()`,`error detecting session from URL`,r),Zn(r)){let e=r.details?.code;if(e===`identity_already_exists`||e===`identity_not_found`||e===`single_identity_not_deletable`)return{error:r}}return{error:r}}let{session:i,redirectType:a}=n;return this._debug(`#_initialize()`,`detected session in URL`,i,`redirect type`,a),await this._saveSession(i),setTimeout(async()=>{a===`recovery`?await this._notifyAllSubscribers(`PASSWORD_RECOVERY`,i):await this._notifyAllSubscribers(`SIGNED_IN`,i)},0),{error:null}}return await this._recoverAndRefresh(),{error:null}}catch(e){return N(e)?this._returnResult({error:e}):this._returnResult({error:new P(`Unexpected error during initialization`,e)})}finally{await this._handleVisibilityChange(),this._debug(`#_initialize()`,`end`)}}async signInAnonymously(e){try{let{data:t,error:n}=await Y(this.fetch,`POST`,`${this.url}/signup`,{headers:this.headers,body:{data:e?.options?.data??{},gotrue_meta_security:{captcha_token:e?.options?.captchaToken}},xform:X});if(n||!t)return this._returnResult({data:{user:null,session:null},error:n});let r=t.session,i=t.user;return t.session&&(await this._saveSession(t.session),await this._notifyAllSubscribers(`SIGNED_IN`,r)),this._returnResult({data:{user:i,session:r},error:null})}catch(e){if(N(e))return this._returnResult({data:{user:null,session:null},error:e});throw e}}async signUp(e){let t=null;try{let n;if(`email`in e){let{email:r,password:i,options:a}=e,o=null,s=null;this.flowType===`pkce`&&([o,s,t]=await this._getCodeChallengeAndMethod()),n=await Y(this.fetch,`POST`,`${this.url}/signup`,{headers:this.headers,redirectTo:this._maybeAppendFlowIdToRedirect(a?.emailRedirectTo,t),body:{email:r,password:i,data:a?.data??{},gotrue_meta_security:{captcha_token:a?.captchaToken},code_challenge:o,code_challenge_method:s},xform:X})}else if(`phone`in e){let{phone:t,password:r,options:i}=e;n=await Y(this.fetch,`POST`,`${this.url}/signup`,{headers:this.headers,body:{phone:t,password:r,data:i?.data??{},channel:i?.channel??`sms`,gotrue_meta_security:{captcha_token:i?.captchaToken}},xform:X})}else throw new Yn(`You must provide either an email or phone number and a password`);let{data:r,error:i}=n;if(i||!r)return await G(this.storage,this.storageKey,t),this._returnResult({data:{user:null,session:null},error:i});let a=r.session,o=r.user;return r.session&&(await this._saveSession(r.session),await this._notifyAllSubscribers(`SIGNED_IN`,a)),this._returnResult({data:{user:o,session:a},error:null})}catch(e){if(await G(this.storage,this.storageKey,t),N(e))return this._returnResult({data:{user:null,session:null},error:e});throw e}}async signInWithPassword(e){try{let t;if(`email`in e){let{email:n,password:r,options:i}=e;t=await Y(this.fetch,`POST`,`${this.url}/token?grant_type=password`,{headers:this.headers,body:{email:n,password:r,gotrue_meta_security:{captcha_token:i?.captchaToken}},xform:ti})}else if(`phone`in e){let{phone:n,password:r,options:i}=e;t=await Y(this.fetch,`POST`,`${this.url}/token?grant_type=password`,{headers:this.headers,body:{phone:n,password:r,gotrue_meta_security:{captcha_token:i?.captchaToken}},xform:ti})}else throw new Yn(`You must provide either an email or phone number and a password`);let{data:n,error:r}=t;if(r)return this._returnResult({data:{user:null,session:null},error:r});if(!n||!n.session||!n.user){let e=new L;return this._returnResult({data:{user:null,session:null},error:e})}return n.session&&(await this._saveSession(n.session),await this._notifyAllSubscribers(`SIGNED_IN`,n.session)),this._returnResult({data:Object.assign({user:n.user,session:n.session},n.weak_password?{weakPassword:n.weak_password}:null),error:r})}catch(e){if(N(e))return this._returnResult({data:{user:null,session:null},error:e});throw e}}async signInWithOAuth(e){return await this._handleProviderSignIn(e.provider,{redirectTo:e.options?.redirectTo,scopes:e.options?.scopes,queryParams:e.options?.queryParams,skipBrowserRedirect:e.options?.skipBrowserRedirect})}async exchangeCodeForSession(e,t){return await this.initializePromise,this.lock==null?this._exchangeCodeForSession(e,t):this._acquireLock(this.lockAcquireTimeout,async()=>this._exchangeCodeForSession(e,t))}async signInWithWeb3(e){let{chain:t}=e;switch(t){case`ethereum`:return await this.signInWithEthereum(e);case`solana`:return await this.signInWithSolana(e);default:throw Error(`@supabase/auth-js: Unsupported chain "${t}"`)}}async signInWithEthereum(e){let t,n;if(`message`in e)t=e.message,n=e.signature;else{let{chain:r,wallet:i,statement:a,options:o}=e,s;if(B())if(typeof i==`object`)s=i;else{let e=window;if(`ethereum`in e&&typeof e.ethereum==`object`&&`request`in e.ethereum&&typeof e.ethereum.request==`function`)s=e.ethereum;else throw Error(`@supabase/auth-js: No compatible Ethereum wallet interface on the window object (window.ethereum) detected. Make sure the user already has a wallet installed and connected for this app. Prefer passing the wallet interface object directly to signInWithWeb3({ chain: 'ethereum', wallet: resolvedUserWallet }) instead.`)}else{if(typeof i!=`object`||!o?.url)throw Error(`@supabase/auth-js: Both wallet and url must be specified in non-browser environments.`);s=i}let c=new URL(o?.url??window.location.href),l=await s.request({method:`eth_requestAccounts`}).then(e=>e).catch(()=>{throw Error(`@supabase/auth-js: Wallet method eth_requestAccounts is missing or invalid`)});if(!l||l.length===0)throw Error(`@supabase/auth-js: No accounts available. Please ensure the wallet is connected.`);let u=gi(l[0]),d=o?.signInWithEthereum?.chainId;d||=_i(await s.request({method:`eth_chainId`})),t=yi({domain:c.host,address:u,statement:a,uri:c.href,version:`1`,chainId:d,nonce:o?.signInWithEthereum?.nonce,issuedAt:o?.signInWithEthereum?.issuedAt??new Date,expirationTime:o?.signInWithEthereum?.expirationTime,notBefore:o?.signInWithEthereum?.notBefore,requestId:o?.signInWithEthereum?.requestId,resources:o?.signInWithEthereum?.resources}),n=await s.request({method:`personal_sign`,params:[vi(t),u]})}try{let{data:r,error:i}=await Y(this.fetch,`POST`,`${this.url}/token?grant_type=web3`,{headers:this.headers,body:Object.assign({chain:`ethereum`,message:t,signature:n},e.options?.captchaToken?{gotrue_meta_security:{captcha_token:e.options?.captchaToken}}:null),xform:X});if(i)throw i;if(!r||!r.session||!r.user){let e=new L;return this._returnResult({data:{user:null,session:null},error:e})}return r.session&&(await this._saveSession(r.session),await this._notifyAllSubscribers(`SIGNED_IN`,r.session)),this._returnResult({data:Object.assign({},r),error:i})}catch(e){if(N(e))return this._returnResult({data:{user:null,session:null},error:e});throw e}}async signInWithSolana(e){let t,n;if(`message`in e)t=e.message,n=e.signature;else{let{chain:r,wallet:i,statement:a,options:o}=e,s;if(B())if(typeof i==`object`)s=i;else{let e=window;if(`solana`in e&&typeof e.solana==`object`&&(`signIn`in e.solana&&typeof e.solana.signIn==`function`||`signMessage`in e.solana&&typeof e.solana.signMessage==`function`))s=e.solana;else throw Error(`@supabase/auth-js: No compatible Solana wallet interface on the window object (window.solana) detected. Make sure the user already has a wallet installed and connected for this app. Prefer passing the wallet interface object directly to signInWithWeb3({ chain: 'solana', wallet: resolvedUserWallet }) instead.`)}else{if(typeof i!=`object`||!o?.url)throw Error(`@supabase/auth-js: Both wallet and url must be specified in non-browser environments.`);s=i}let c=new URL(o?.url??window.location.href);if(`signIn`in s&&s.signIn){let e=await s.signIn(Object.assign(Object.assign(Object.assign({issuedAt:new Date().toISOString()},o?.signInWithSolana),{version:`1`,domain:c.host,uri:c.href}),a?{statement:a}:null)),r;if(Array.isArray(e)&&e[0]&&typeof e[0]==`object`)r=e[0];else if(e&&typeof e==`object`&&`signedMessage`in e&&`signature`in e)r=e;else throw Error(`@supabase/auth-js: Wallet method signIn() returned unrecognized value`);if(`signedMessage`in r&&`signature`in r&&(typeof r.signedMessage==`string`||r.signedMessage instanceof Uint8Array)&&r.signature instanceof Uint8Array)t=typeof r.signedMessage==`string`?r.signedMessage:new TextDecoder().decode(r.signedMessage),n=r.signature;else throw Error(`@supabase/auth-js: Wallet method signIn() API returned object without signedMessage and signature fields`)}else{if(!(`signMessage`in s)||typeof s.signMessage!=`function`||!(`publicKey`in s)||typeof s!=`object`||!s.publicKey||!(`toBase58`in s.publicKey)||typeof s.publicKey.toBase58!=`function`)throw Error(`@supabase/auth-js: Wallet does not have a compatible signMessage() and publicKey.toBase58() API`);t=[`${c.host} wants you to sign in with your Solana account:`,s.publicKey.toBase58(),...a?[``,a,``]:[``],`Version: 1`,`URI: ${c.href}`,`Issued At: ${o?.signInWithSolana?.issuedAt??new Date().toISOString()}`,...o?.signInWithSolana?.notBefore?[`Not Before: ${o.signInWithSolana.notBefore}`]:[],...o?.signInWithSolana?.expirationTime?[`Expiration Time: ${o.signInWithSolana.expirationTime}`]:[],...o?.signInWithSolana?.chainId?[`Chain ID: ${o.signInWithSolana.chainId}`]:[],...o?.signInWithSolana?.nonce?[`Nonce: ${o.signInWithSolana.nonce}`]:[],...o?.signInWithSolana?.requestId?[`Request ID: ${o.signInWithSolana.requestId}`]:[],...o?.signInWithSolana?.resources?.length?[`Resources`,...o.signInWithSolana.resources.map(e=>`- ${e}`)]:[]].join(`
 `);let e=await s.signMessage(new TextEncoder().encode(t),`utf8`);if(!e||!(e instanceof Uint8Array))throw Error(`@supabase/auth-js: Wallet signMessage() API returned an recognized value`);n=e}}try{let{data:r,error:i}=await Y(this.fetch,`POST`,`${this.url}/token?grant_type=web3`,{headers:this.headers,body:Object.assign({chain:`solana`,message:t,signature:z(n)},e.options?.captchaToken?{gotrue_meta_security:{captcha_token:e.options?.captchaToken}}:null),xform:X});if(i)throw i;if(!r||!r.session||!r.user){let e=new L;return this._returnResult({data:{user:null,session:null},error:e})}return r.session&&(await this._saveSession(r.session),await this._notifyAllSubscribers(`SIGNED_IN`,r.session)),this._returnResult({data:Object.assign({},r),error:i})}catch(e){if(N(e))return this._returnResult({data:{user:null,session:null},error:e});throw e}}async _exchangeCodeForSession(e,t){let n=t?.flowId!=null,r=n?Nr(t?.flowId):B()?Nr(xr(window.location.href)[M]):null;n&&!r&&this._debug(`#_exchangeCodeForSession()`,`provided flowId is not a valid flow id`,t?.flowId);let{verifier:i,flowId:a}=n&&!r?{verifier:null,flowId:null}:await zr(this.storage,this.storageKey,r),[o,s]=(i??``).split(`/`);try{if(!o&&this.flowType===`pkce`)throw new $n;let{data:t,error:n}=await Y(this.fetch,`POST`,`${this.url}/token?grant_type=pkce`,{headers:this.headers,body:{auth_code:e,code_verifier:o},xform:X});if(await G(this.storage,this.storageKey,a),n)throw n;if(!t||!t.session||!t.user){let e=new L;return this._returnResult({data:{user:null,session:null,redirectType:null},error:e})}return t.session&&(await this._saveSession(t.session),await this._notifyAllSubscribers(s===`recovery`?`PASSWORD_RECOVERY`:`SIGNED_IN`,t.session)),this._returnResult({data:Object.assign(Object.assign({},t),{redirectType:s??null}),error:n})}catch(e){if(await G(this.storage,this.storageKey,a),N(e))return this._returnResult({data:{user:null,session:null,redirectType:null},error:e});throw e}}async signInWithIdToken(e){try{let{options:t,provider:n,token:r,access_token:i,nonce:a}=e,{data:o,error:s}=await Y(this.fetch,`POST`,`${this.url}/token?grant_type=id_token`,{headers:this.headers,body:{provider:n,id_token:r,access_token:i,nonce:a,gotrue_meta_security:{captcha_token:t?.captchaToken}},xform:X});if(s)return this._returnResult({data:{user:null,session:null},error:s});if(!o||!o.session||!o.user){let e=new L;return this._returnResult({data:{user:null,session:null},error:e})}return o.session&&(await this._saveSession(o.session),await this._notifyAllSubscribers(`SIGNED_IN`,o.session)),this._returnResult({data:o,error:s})}catch(e){if(N(e))return this._returnResult({data:{user:null,session:null},error:e});throw e}}async signInWithOtp(e){let t=null;try{if(`email`in e){let{email:n,options:r}=e,i=null,a=null;this.flowType===`pkce`&&([i,a,t]=await this._getCodeChallengeAndMethod());let{error:o}=await Y(this.fetch,`POST`,`${this.url}/otp`,{headers:this.headers,body:{email:n,data:r?.data??{},create_user:r?.shouldCreateUser??!0,gotrue_meta_security:{captcha_token:r?.captchaToken},code_challenge:i,code_challenge_method:a},redirectTo:this._maybeAppendFlowIdToRedirect(r?.emailRedirectTo,t)});return this._returnResult({data:{user:null,session:null},error:o})}if(`phone`in e){let{phone:t,options:n}=e,{data:r,error:i}=await Y(this.fetch,`POST`,`${this.url}/otp`,{headers:this.headers,body:{phone:t,data:n?.data??{},create_user:n?.shouldCreateUser??!0,gotrue_meta_security:{captcha_token:n?.captchaToken},channel:n?.channel??`sms`}});return this._returnResult({data:{user:null,session:null,messageId:r?.message_id},error:i})}throw new Yn(`You must provide either an email or phone number.`)}catch(e){if(await G(this.storage,this.storageKey,t),N(e))return this._returnResult({data:{user:null,session:null},error:e});throw e}}async verifyOtp(e){try{let t,n;`options`in e&&(t=e.options?.redirectTo,n=e.options?.captchaToken);let{data:r,error:i}=await Y(this.fetch,`POST`,`${this.url}/verify`,{headers:this.headers,body:Object.assign(Object.assign({},e),{gotrue_meta_security:{captcha_token:n}}),redirectTo:t,xform:X});if(i)throw i;if(!r)throw Error(`An error occurred on token verification.`);let a=r.session,o=r.user;return a?.access_token&&(await this._saveSession(a),await this._notifyAllSubscribers(e.type==`recovery`?`PASSWORD_RECOVERY`:`SIGNED_IN`,a)),this._returnResult({data:{user:o,session:a},error:null})}catch(e){if(N(e))return this._returnResult({data:{user:null,session:null},error:e});throw e}}async signInWithSSO(e){let t=null;try{let n=null,r=null;this.flowType===`pkce`&&([n,r,t]=await this._getCodeChallengeAndMethod());let i=await Y(this.fetch,`POST`,`${this.url}/sso`,{body:Object.assign(Object.assign(Object.assign(Object.assign(Object.assign({},`providerId`in e?{provider_id:e.providerId}:null),`domain`in e?{domain:e.domain}:null),{redirect_to:this._maybeAppendFlowIdToRedirect(e.options?.redirectTo,t)}),e?.options?.captchaToken?{gotrue_meta_security:{captcha_token:e.options.captchaToken}}:null),{skip_http_redirect:!0,code_challenge:n,code_challenge_method:r}),headers:this.headers,xform:ni});return i.data?.url&&B()&&!e.options?.skipBrowserRedirect&&window.location.assign(i.data.url),this._returnResult(i)}catch(e){if(await G(this.storage,this.storageKey,t),N(e))return this._returnResult({data:null,error:e});throw e}}async reauthenticate(){return await this.initializePromise,this.lock==null?await this._reauthenticate():await this._acquireLock(this.lockAcquireTimeout,async()=>await this._reauthenticate())}async _reauthenticate(){try{return await this._useSession(async e=>{let{data:{session:t},error:n}=e;if(n)throw n;if(!t)throw new I;let{error:r}=await Y(this.fetch,`GET`,`${this.url}/reauthenticate`,{headers:this.headers,jwt:t.access_token});return this._returnResult({data:{user:null,session:null},error:r})})}catch(e){if(N(e))return this._returnResult({data:{user:null,session:null},error:e});throw e}}async resend(e){let t=null;try{let n=`${this.url}/resend`;if(`email`in e){let{email:r,type:i,options:a}=e,o=null,s=null;this.flowType===`pkce`&&([o,s,t]=await this._getCodeChallengeAndMethod());let{error:c}=await Y(this.fetch,`POST`,n,{headers:this.headers,body:{email:r,type:i,gotrue_meta_security:{captcha_token:a?.captchaToken},code_challenge:o,code_challenge_method:s},redirectTo:this._maybeAppendFlowIdToRedirect(a?.emailRedirectTo,t)});return c&&await G(this.storage,this.storageKey,t),this._returnResult({data:{user:null,session:null},error:c})}else if(`phone`in e){let{phone:t,type:r,options:i}=e,{data:a,error:o}=await Y(this.fetch,`POST`,n,{headers:this.headers,body:{phone:t,type:r,gotrue_meta_security:{captcha_token:i?.captchaToken}}});return this._returnResult({data:{user:null,session:null,messageId:a?.message_id},error:o})}throw new Yn(`You must provide either an email or phone number and a type`)}catch(e){if(await G(this.storage,this.storageKey,t),N(e))return this._returnResult({data:{user:null,session:null},error:e});throw e}}async getSession(){return await this.initializePromise,this.lock==null?await this._useSession(async e=>e):await this._acquireLock(this.lockAcquireTimeout,async()=>this._useSession(async e=>e))}async _acquireLock(e,t){this._debug(`#_acquireLock`,`begin`,e);try{if(this.lockAcquired){let e=this.pendingInLock.length?this.pendingInLock[this.pendingInLock.length-1]:Promise.resolve(),n=(async()=>(await e,await t()))();return this.pendingInLock.push((async()=>{try{await n}catch{}})()),n}return await this.lock(`lock:${this.storageKey}`,e,async()=>{this._debug(`#_acquireLock`,`lock acquired for storage key`,this.storageKey);try{this.lockAcquired=!0;let e=t();for(this.pendingInLock.push((async()=>{try{await e}catch{}})()),await e;this.pendingInLock.length;){let e=[...this.pendingInLock];await Promise.all(e),this.pendingInLock.splice(0,e.length)}return await e}finally{this._debug(`#_acquireLock`,`lock released for storage key`,this.storageKey),this.lockAcquired=!1}})}finally{this._debug(`#_acquireLock`,`end`)}}async _useSession(e){this._debug(`#_useSession`,`begin`);try{return await e(await this.__loadSession())}finally{this._debug(`#_useSession`,`end`)}}async __loadSession(){this._debug(`#__loadSession()`,`begin`),this.lock!=null&&!this.lockAcquired&&this._debug(`#__loadSession()`,`used outside of an acquired lock!`,Error().stack);try{let e=null,t=await U(this.storage,this.storageKey);if(this._debug(`#getSession()`,`session from storage`,t),t!==null&&(this._isValidSession(t)?e=t:(this._debug(`#getSession()`,`session from storage is not valid`),await this._removeSession())),!e)return{data:{session:null},error:null};let n=e.expires_at?e.expires_at*1e3-Date.now()<Bn:!1;if(this._debug(`#__loadSession()`,`session has${n?``:` not`} expired`,`expires_at`,e.expires_at),!n){if(this.userStorage){let t=await U(this.userStorage,this.storageKey+`-user`);t?.user?e.user=t.user:e.user=Jr()}if(this.storage.isServer&&e.user&&!e.user.__isUserNotAvailableProxy){let t={value:this.suppressGetSessionWarning};e.user=Yr(e.user,t),t.value&&(this.suppressGetSessionWarning=!0)}return{data:{session:e},error:null}}let{data:r,error:i}=await this._callRefreshToken(e.refresh_token);if(i){if(e.expires_at&&e.expires_at*1e3>Date.now()){let t=await U(this.storage,this.storageKey);if(t&&t.refresh_token===e.refresh_token)return this._returnResult({data:{session:e},error:null})}return this._returnResult({data:{session:null},error:i})}return this._returnResult({data:{session:r},error:null})}finally{this._debug(`#__loadSession()`,`end`)}}async getUser(e){if(e)return await this._getUser(e);await this.initializePromise;let t;return t=this.lock==null?await this._getUser():await this._acquireLock(this.lockAcquireTimeout,async()=>await this._getUser()),t.data.user&&(this.suppressGetSessionWarning=!0),t}async _getUser(e){try{return e?await Y(this.fetch,`GET`,`${this.url}/user`,{headers:this.headers,jwt:e,xform:Z}):await this._useSession(async e=>{let{data:t,error:n}=e;if(n)throw n;return!t.session?.access_token&&!this.hasCustomAuthorizationHeader?{data:{user:null},error:new I}:await Y(this.fetch,`GET`,`${this.url}/user`,{headers:this.headers,jwt:t.session?.access_token??void 0,xform:Z})})}catch(e){if(N(e))return Jn(e)&&await this._removeSession(),this._returnResult({data:{user:null},error:e});throw e}}async updateUser(e,t={}){return await this.initializePromise,this.lock==null?await this._updateUser(e,t):await this._acquireLock(this.lockAcquireTimeout,async()=>await this._updateUser(e,t))}async _updateUser(e,t={}){let n=null;try{return await this._useSession(async r=>{let{data:i,error:a}=r;if(a)throw a;if(!i.session)throw new I;let o=i.session,s=null,c=null;this.flowType===`pkce`&&e.email!=null&&([s,c,n]=await this._getCodeChallengeAndMethod());let{data:l,error:u}=await Y(this.fetch,`PUT`,`${this.url}/user`,{headers:this.headers,redirectTo:this._maybeAppendFlowIdToRedirect(t?.emailRedirectTo,n),body:Object.assign(Object.assign({},e),{code_challenge:s,code_challenge_method:c}),jwt:o.access_token,xform:Z});if(u)throw u;return o.user=l.user,await this._saveSession(o),await this._notifyAllSubscribers(`USER_UPDATED`,o),this._returnResult({data:{user:o.user},error:null})})}catch(e){if(await G(this.storage,this.storageKey,n),N(e))return this._returnResult({data:{user:null},error:e});throw e}}async setSession(e){return await this.initializePromise,this.lock==null?await this._setSession(e):await this._acquireLock(this.lockAcquireTimeout,async()=>await this._setSession(e))}async _setSession(e){try{if(!e.access_token||!e.refresh_token)throw new I;let t=Date.now()/1e3,n=t,r=!0,i=null,{payload:a}=Tr(e.access_token);if(a.exp&&(n=a.exp,r=n<=t),r){let{data:t,error:n}=await this._callRefreshToken(e.refresh_token);if(n)return this._returnResult({data:{user:null,session:null},error:n});if(!t)return{data:{user:null,session:null},error:null};i=t}else{let{data:r,error:a}=await this._getUser(e.access_token);if(a)return this._returnResult({data:{user:null,session:null},error:a});i={access_token:e.access_token,refresh_token:e.refresh_token,user:r.user,token_type:`bearer`,expires_in:n-t,expires_at:n},await this._saveSession(i),await this._notifyAllSubscribers(`SIGNED_IN`,i)}return this._returnResult({data:{user:i.user,session:i},error:null})}catch(e){if(N(e))return this._returnResult({data:{session:null,user:null},error:e});throw e}}async refreshSession(e){return await this.initializePromise,this.lock==null?await this._refreshSession(e):await this._acquireLock(this.lockAcquireTimeout,async()=>await this._refreshSession(e))}async _refreshSession(e){try{return await this._useSession(async t=>{if(!e){let{data:n,error:r}=t;if(r)throw r;e=n.session??void 0}if(!e?.refresh_token)throw new I;let{data:n,error:r}=await this._callRefreshToken(e.refresh_token);return r?this._returnResult({data:{user:null,session:null},error:r}):n?this._returnResult({data:{user:n.user,session:n},error:null}):this._returnResult({data:{user:null,session:null},error:null})})}catch(e){if(N(e))return this._returnResult({data:{user:null,session:null},error:e});throw e}}async _getSessionFromURL(e,t){try{if(!B())throw new Xn(`No browser detected.`);if(e.error||e.error_description||e.error_code)throw new Xn(e.error_description||`Error in URL with unspecified error_description`,{error:e.error||`unspecified_error`,code:e.error_code||`unspecified_code`});switch(t){case`implicit`:if(this.flowType===`pkce`)throw new Qn(`Not a valid PKCE flow url.`);break;case`pkce`:if(this.flowType===`implicit`)throw new Xn(`Not a valid implicit grant flow url.`);break;default:}if(t===`pkce`){if(this._debug(`#_initialize()`,`begin`,`is PKCE flow`,!0),!e.code)throw new Qn(`No code detected.`);let{data:t,error:n}=await this._exchangeCodeForSession(e.code,{flowId:e[M]});if(n)throw n;let r=new URL(window.location.href);return r.searchParams.delete(`code`),r.searchParams.delete(M),window.history.replaceState(window.history.state,``,r.toString()),{data:{session:t.session,redirectType:t.redirectType??null},error:null}}let{provider_token:n,provider_refresh_token:r,access_token:i,refresh_token:a,expires_in:o,expires_at:s,token_type:c}=e;if(!i||!o||!a||!c)throw new Xn(`No session defined in URL`);let l=Math.round(Date.now()/1e3),u=parseInt(o),d=l+u;s&&(d=parseInt(s));let f=d-l;f*1e3<=j&&console.warn(`@supabase/gotrue-js: Session as retrieved from URL expires in ${f}s, should have been closer to ${u}s`);let p=d-u;l-p>=120?console.warn(`@supabase/gotrue-js: Session as retrieved from URL was issued over 120s ago, URL could be stale`,p,d,l):l-p<0&&console.warn(`@supabase/gotrue-js: Session as retrieved from URL was issued in the future? Check the device clock for skew`,p,d,l);let{data:m,error:h}=await this._getUser(i);if(h)throw h;let g={provider_token:n,provider_refresh_token:r,access_token:i,expires_in:u,expires_at:d,refresh_token:a,token_type:c,user:m.user};return window.location.hash=``,this._debug(`#_getSessionFromURL()`,`clearing window.location.hash`),this._returnResult({data:{session:g,redirectType:e.type},error:null})}catch(e){if(N(e))return this._returnResult({data:{session:null,redirectType:null},error:e});throw e}}_isImplicitGrantCallback(e){return typeof this.detectSessionInUrl==`function`?this.detectSessionInUrl(new URL(window.location.href),e):!!(e.access_token||e.error||e.error_description||e.error_code)}async _isPKCECallback(e){if(!e.code)return!1;let t=Nr(e[M]);return t&&await U(this.storage,Fr(this.storageKey,t))?!0:!!await U(this.storage,`${this.storageKey}-code-verifier`)}async signOut(e={scope:`global`}){return await this.initializePromise,this.lock==null?await this._signOut(e):await this._acquireLock(this.lockAcquireTimeout,async()=>await this._signOut(e))}async _signOut({scope:e}={scope:`global`}){return await this._useSession(async t=>{let n=async()=>{await this._removeSession()},{data:r,error:i}=t;if(i&&!Jn(i))return this._returnResult({error:i});let a=r.session?.access_token;if(a){let{error:t}=await this.admin.signOut(a,e);if(t&&!(qn(t)&&(t.status===404||t.status===401||t.status===403)||Jn(t)))return e!==`others`&&await n(),this._returnResult({error:t})}return e!==`others`&&await n(),this._returnResult({error:null})})}onAuthStateChange(e){let t=yr(),n={id:t,callback:e,unsubscribe:()=>{this._debug(`#unsubscribe()`,`state change callback with id removed`,t),this.stateChangeEmitters.delete(t)}};return this._debug(`#onAuthStateChange()`,`registered callback with id`,t),this.stateChangeEmitters.set(t,n),(async()=>{await this.initializePromise,this.lock==null?await this._emitInitialSession(t):await this._acquireLock(this.lockAcquireTimeout,async()=>{this._emitInitialSession(t)})})(),{data:{subscription:n}}}async _emitInitialSession(e){return await this._useSession(async t=>{try{let{data:{session:n},error:r}=t;if(r)throw r;await this.stateChangeEmitters.get(e)?.callback(`INITIAL_SESSION`,n),this._debug(`INITIAL_SESSION`,`callback id`,e,`session`,n)}catch(t){await this.stateChangeEmitters.get(e)?.callback(`INITIAL_SESSION`,null),this._debug(`INITIAL_SESSION`,`callback id`,e,`error`,t),Jn(t)||nr(t)||qn(t)&&(t.code===`refresh_token_not_found`||t.code===`refresh_token_already_used`||t.code===`session_expired`)?console.warn(t):console.error(t)}})}async resetPasswordForEmail(e,t={}){let n=null,r=null,i=null;this.flowType===`pkce`&&([n,r,i]=await this._getCodeChallengeAndMethod(!0));try{return await Y(this.fetch,`POST`,`${this.url}/recover`,{body:{email:e,code_challenge:n,code_challenge_method:r,gotrue_meta_security:{captcha_token:t.captchaToken}},headers:this.headers,redirectTo:this._maybeAppendFlowIdToRedirect(t.redirectTo,i)})}catch(e){if(await G(this.storage,this.storageKey,i),N(e))return this._returnResult({data:null,error:e});throw e}}async getUserIdentities(){try{let{data:e,error:t}=await this.getUser();if(t)throw t;return this._returnResult({data:{identities:e.user.identities??[]},error:null})}catch(e){if(N(e))return this._returnResult({data:null,error:e});throw e}}async linkIdentity(e){return`token`in e?this.linkIdentityIdToken(e):this.linkIdentityOAuth(e)}async linkIdentityOAuth(e){let t=null;try{let{data:n,error:r}=await this._useSession(async n=>{let{data:r,error:i}=n;if(i)throw i;let{url:a,flowId:o}=await this._getUrlForProvider(`${this.url}/user/identities/authorize`,e.provider,{redirectTo:e.options?.redirectTo,scopes:e.options?.scopes,queryParams:e.options?.queryParams,skipBrowserRedirect:!0});return t=o,await Y(this.fetch,`GET`,a,{headers:this.headers,jwt:r.session?.access_token??void 0})});if(r)throw r;return B()&&!e.options?.skipBrowserRedirect&&window.location.assign(n?.url),this._returnResult({data:{provider:e.provider,url:n?.url,flowId:t},error:null})}catch(n){if(N(n))return this._returnResult({data:{provider:e.provider,url:null,flowId:t},error:n});throw n}}async linkIdentityIdToken(e){return await this._useSession(async t=>{try{let{error:n,data:{session:r}}=t;if(n)throw n;let{options:i,provider:a,token:o,access_token:s,nonce:c}=e,{data:l,error:u}=await Y(this.fetch,`POST`,`${this.url}/token?grant_type=id_token`,{headers:this.headers,jwt:r?.access_token??void 0,body:{provider:a,id_token:o,access_token:s,nonce:c,link_identity:!0,gotrue_meta_security:{captcha_token:i?.captchaToken}},xform:X});return u?this._returnResult({data:{user:null,session:null},error:u}):!l||!l.session||!l.user?this._returnResult({data:{user:null,session:null},error:new L}):(l.session&&(await this._saveSession(l.session),await this._notifyAllSubscribers(`USER_UPDATED`,l.session)),this._returnResult({data:l,error:u}))}catch(e){if(await G(this.storage,this.storageKey,null),N(e))return this._returnResult({data:{user:null,session:null},error:e});throw e}})}async unlinkIdentity(e){try{return await this._useSession(async t=>{let{data:n,error:r}=t;if(r)throw r;return await Y(this.fetch,`DELETE`,`${this.url}/user/identities/${e.identity_id}`,{headers:this.headers,jwt:n.session?.access_token??void 0})})}catch(e){if(N(e))return this._returnResult({data:null,error:e});throw e}}async _refreshAccessToken(e){let t=`#_refreshAccessToken()`;this._debug(t,`begin`);try{let n=Date.now();return await Dr(async n=>(n>0&&await Er(200*2**(n-1)),this._debug(t,`refreshing attempt`,n),await Y(this.fetch,`POST`,`${this.url}/token?grant_type=refresh_token`,{body:{refresh_token:e},headers:this.headers,xform:X})),(e,t)=>{let r=200*2**e;return t&&nr(t)&&Date.now()+r-n<j})}catch(e){if(this._debug(t,`error`,e),N(e))return this._returnResult({data:{session:null,user:null},error:e});throw e}finally{this._debug(t,`end`)}}_isValidSession(e){return typeof e==`object`&&!!e&&`access_token`in e&&`refresh_token`in e&&`expires_at`in e}async _handleProviderSignIn(e,t){let{url:n,flowId:r}=await this._getUrlForProvider(`${this.url}/authorize`,e,{redirectTo:t.redirectTo,scopes:t.scopes,queryParams:t.queryParams});return this._debug(`#_handleProviderSignIn()`,`provider`,e,`options`,t,`url`,n),B()&&!t.skipBrowserRedirect&&window.location.assign(n),{data:{provider:e,url:n,flowId:r},error:null}}async _recoverAndRefresh(){let e=`#_recoverAndRefresh()`;this._debug(e,`begin`);try{let t=await U(this.storage,this.storageKey);if(t&&this.userStorage){let e=await U(this.userStorage,this.storageKey+`-user`);!this.storage.isServer&&Object.is(this.storage,this.userStorage)&&!e&&(e={user:t.user},await H(this.userStorage,this.storageKey+`-user`,e)),t.user=e?.user??Jr()}else if(t&&!t.user&&!t.user){let e=await U(this.storage,this.storageKey+`-user`);e&&e?.user?(t.user=e.user,await W(this.storage,this.storageKey+`-user`),await H(this.storage,this.storageKey,t)):t.user=Jr()}if(this._debug(e,`session from storage`,t),!this._isValidSession(t)){this._debug(e,`session is not valid`),t!==null&&await this._removeSession();return}let n=(t.expires_at??1/0)*1e3-Date.now()<Bn;if(this._debug(e,`session has${n?``:` not`} expired with margin of ${Bn}s`),n){if(this.autoRefreshToken&&t.refresh_token){let{error:n}=await this._callRefreshToken(t.refresh_token);n&&(ir(n)?this._debug(e,`refresh discarded by commit guard`,n):this._debug(e,`refresh failed`,n))}}else if(t.user&&t.user.__isUserNotAvailableProxy===!0)try{let{data:n,error:r}=await this._getUser(t.access_token);!r&&n?.user?(t.user=n.user,await this._saveSession(t),await this._notifyAllSubscribers(`SIGNED_IN`,t)):this._debug(e,`could not get user data, skipping SIGNED_IN notification`)}catch(t){console.error(`Error getting user data:`,t),this._debug(e,`error getting user data, skipping SIGNED_IN notification`,t)}else await this._notifyAllSubscribers(`SIGNED_IN`,t)}catch(t){this._debug(e,`error`,t),nr(t)?console.warn(t):console.error(t);return}finally{this._debug(e,`end`)}}async _callRefreshToken(e){var t,n;if(!e)throw new I;if(this.refreshingDeferred)return this.refreshingDeferred.promise;if(this.lastRefreshFailure&&this.lastRefreshFailure.refreshToken===e&&Date.now()<this.lastRefreshFailure.expiresAt)return this._debug(`#_callRefreshToken()`,`returning cached failure (cooldown active)`),this.lastRefreshFailure.result;let r=`#_callRefreshToken()`;this._debug(r,`begin`);try{this.refreshingDeferred=new wr;let t=await U(this.storage,this.storageKey),{data:n,error:i}=await this._refreshAccessToken(e);if(i)throw i;if(!n.session)throw new I;let a=await U(this.storage,this.storageKey);if(t!==null&&(a===null||a.refresh_token!==t.refresh_token)){this._debug(r,`commit guard: storage changed since refresh started, discarding rotated tokens`,{startedWith:`present`,nowHolds:a?`replaced`:`cleared`});let e={data:null,error:new rr};return this.refreshingDeferred.resolve(e),e}let o=this._sessionRemovalEpoch;if(await this._saveSession(n.session),this._sessionRemovalEpoch!==o){this._debug(r,`commit guard (post-save): _removeSession ran during _saveSession, undoing write`),await W(this.storage,this.storageKey),this.userStorage&&await W(this.userStorage,this.storageKey+`-user`);let e={data:null,error:new rr};return this.refreshingDeferred.resolve(e),e}await this._notifyAllSubscribers(`TOKEN_REFRESHED`,n.session);let s={data:n.session,error:null};return this.lastRefreshFailure=null,this.refreshingDeferred.resolve(s),s}catch(i){if(this._debug(r,`error`,i),N(i)){let n={data:null,error:i};if(!nr(i)){let e=await U(this.storage,this.storageKey);e?.expires_at&&e.expires_at*1e3>Date.now()?this._debug(r,`proactive refresh failed, access token still valid — preserving session`):await this._removeSession()}return this.lastRefreshFailure={refreshToken:e,result:n,expiresAt:Date.now()+6e4},(t=this.refreshingDeferred)==null||t.resolve(n),n}throw(n=this.refreshingDeferred)==null||n.reject(i),i}finally{this.refreshingDeferred=null,this._debug(r,`end`)}}async _notifyAllSubscribers(e,t,n=!0){if(this._pendingInitNotifications!==null&&n){this._pendingInitNotifications.push({event:e,session:t,broadcast:n});return}let r=`#_notifyAllSubscribers(${e})`;this._debug(r,`begin`,t,`broadcast = ${n}`);try{this.broadcastChannel&&n&&this.broadcastChannel.postMessage({event:e,session:t});let r=[],i=Array.from(this.stateChangeEmitters.values()).map(async n=>{try{await n.callback(e,t)}catch(e){r.push(e)}});if(await Promise.all(i),r.length>0){for(let e=0;e<r.length;e+=1)console.error(r[e]);throw r[0]}}finally{this._debug(r,`end`)}}async _saveSession(e){this._debug(`#_saveSession()`,e),this.suppressGetSessionWarning=!0;let t=Object.assign({},e),n=t.user&&t.user.__isUserNotAvailableProxy===!0;if(this.userStorage){!n&&t.user&&await H(this.userStorage,this.storageKey+`-user`,{user:t.user});let e=Object.assign({},t);delete e.user;let r=Xr(e);await H(this.storage,this.storageKey,r)}else{let e=Xr(t);await H(this.storage,this.storageKey,e)}}async _removeSession(){this._sessionRemovalEpoch+=1,this._debug(`#_removeSession()`),this.lastRefreshFailure=null,this.suppressGetSessionWarning=!1,await W(this.storage,this.storageKey),await Br(this.storage,this.storageKey),await W(this.storage,this.storageKey+`-user`),this.userStorage&&await W(this.userStorage,this.storageKey+`-user`),await this._notifyAllSubscribers(`SIGNED_OUT`,null)}_removeVisibilityChangedCallback(){this._debug(`#_removeVisibilityChangedCallback()`);let e=this.visibilityChangedCallback;this.visibilityChangedCallback=null;try{e&&B()&&window!=null&&window.removeEventListener&&window.removeEventListener(`visibilitychange`,e)}catch(e){console.error(`removing visibilitychange callback failed`,e)}}async _startAutoRefresh(){await this._stopAutoRefresh(),this._debug(`#_startAutoRefresh()`);let e=setInterval(()=>this._autoRefreshTokenTick(),j);this.autoRefreshTicker=e,e&&typeof e==`object`&&typeof e.unref==`function`?e.unref():typeof Deno<`u`&&typeof Deno.unrefTimer==`function`&&Deno.unrefTimer(e);let t=setTimeout(async()=>{await this.initializePromise,await this._autoRefreshTokenTick()},0);this.autoRefreshTickTimeout=t,t&&typeof t==`object`&&typeof t.unref==`function`?t.unref():typeof Deno<`u`&&typeof Deno.unrefTimer==`function`&&Deno.unrefTimer(t)}async _stopAutoRefresh(){this._debug(`#_stopAutoRefresh()`);let e=this.autoRefreshTicker;this.autoRefreshTicker=null,e&&clearInterval(e);let t=this.autoRefreshTickTimeout;this.autoRefreshTickTimeout=null,t&&clearTimeout(t)}async startAutoRefresh(){this._removeVisibilityChangedCallback(),await this._startAutoRefresh()}async stopAutoRefresh(){this._removeVisibilityChangedCallback(),await this._stopAutoRefresh()}async dispose(){var e;this._removeVisibilityChangedCallback(),await this._stopAutoRefresh(),(e=this.broadcastChannel)==null||e.close(),this.broadcastChannel=null,this.stateChangeEmitters.clear()}async _autoRefreshTokenTick(){if(this._debug(`#_autoRefreshTokenTick()`,`begin`),this.lock!=null){try{await this._acquireLock(0,async()=>{try{let e=Date.now();try{return await this._useSession(async t=>{let{data:{session:n}}=t;if(!n||!n.refresh_token||!n.expires_at){this._debug(`#_autoRefreshTokenTick()`,`no session`);return}let r=Math.floor((n.expires_at*1e3-e)/j);this._debug(`#_autoRefreshTokenTick()`,`access token expires in ${r} ticks, a tick lasts ${j}ms, refresh threshold is 3 ticks`),r<=3&&await this._callRefreshToken(n.refresh_token)})}catch(e){console.error(`Auto refresh tick failed with error. This is likely a transient error.`,e)}}finally{this._debug(`#_autoRefreshTokenTick()`,`end`)}})}catch(e){if(e instanceof li)this._debug(`auto refresh token tick lock not available`);else throw e}return}if(this.refreshingDeferred!==null){this._debug(`#_autoRefreshTokenTick()`,`refresh already in flight, skipping`);return}try{let e=Date.now();try{await this._useSession(async t=>{let{data:{session:n}}=t;if(!n||!n.refresh_token||!n.expires_at){this._debug(`#_autoRefreshTokenTick()`,`no session`);return}let r=Math.floor((n.expires_at*1e3-e)/j);this._debug(`#_autoRefreshTokenTick()`,`access token expires in ${r} ticks, a tick lasts ${j}ms, refresh threshold is 3 ticks`),r<=3&&await this._callRefreshToken(n.refresh_token)})}catch(e){console.error(`Auto refresh tick failed with error. This is likely a transient error.`,e)}}finally{this._debug(`#_autoRefreshTokenTick()`,`end`)}}async _handleVisibilityChange(){if(this._debug(`#_handleVisibilityChange()`),!B()||!(window!=null&&window.addEventListener))return this.autoRefreshToken&&this.startAutoRefresh(),!1;try{this.visibilityChangedCallback=async()=>{try{await this._onVisibilityChanged(!1)}catch(e){this._debug(`#visibilityChangedCallback`,`error`,e)}},window==null||window.addEventListener(`visibilitychange`,this.visibilityChangedCallback),await this._onVisibilityChanged(!0)}catch(e){console.error(`_handleVisibilityChange`,e)}}async _onVisibilityChanged(e){let t=`#_onVisibilityChanged(${e})`;if(this._debug(t,`visibilityState`,document.visibilityState),document.visibilityState===`visible`){if(this.autoRefreshToken&&this._startAutoRefresh(),!e)if(await this.initializePromise,this.lock!=null)await this._acquireLock(this.lockAcquireTimeout,async()=>{if(document.visibilityState!==`visible`){this._debug(t,`acquired the lock to recover the session, but the browser visibilityState is no longer visible, aborting`);return}await this._recoverAndRefresh()});else{if(document.visibilityState!==`visible`){this._debug(t,`visibilityState is no longer visible, skipping recovery`);return}await this._recoverAndRefresh()}}else document.visibilityState===`hidden`&&this.autoRefreshToken&&this._stopAutoRefresh()}async _getUrlForProvider(e,t,n){let r=n?.redirectTo,i=null,a=null,o=null;this.flowType===`pkce`&&([i,a,o]=await this._getCodeChallengeAndMethod(),r=this._maybeAppendFlowIdToRedirect(r,o));let s=[`provider=${encodeURIComponent(t)}`];if(r&&s.push(`redirect_to=${encodeURIComponent(r)}`),n?.scopes&&s.push(`scopes=${encodeURIComponent(n.scopes)}`),i!=null&&a!=null){let e=new URLSearchParams({code_challenge:`${encodeURIComponent(i)}`,code_challenge_method:`${encodeURIComponent(a)}`});s.push(e.toString())}if(n?.queryParams){let e=new URLSearchParams(n.queryParams);s.push(e.toString())}return n?.skipBrowserRedirect&&s.push(`skip_http_redirect=${n.skipBrowserRedirect}`),{url:`${e}?${s.join(`&`)}`,flowId:o}}_maybeAppendFlowIdToRedirect(e,t){return!e||!t||!this.experimental.appendPkceFlowIdToRedirects?e??void 0:Vr(e,t)}async _getCodeChallengeAndMethod(e=!1){return Hr(this.storage,this.storageKey,e,e=>this._debug(`#_getCodeChallengeAndMethod()`,`evicted oldest pending PKCE verifier slot`,e))}async _unenroll(e){try{return await this._useSession(async t=>{let{data:n,error:r}=t;return r?this._returnResult({data:null,error:r}):await Y(this.fetch,`DELETE`,`${this.url}/factors/${e.factorId}`,{headers:this.headers,jwt:n?.session?.access_token})})}catch(e){if(N(e))return this._returnResult({data:null,error:e});throw e}}async _enroll(e){try{return await this._useSession(async t=>{let{data:n,error:r}=t;if(r)return this._returnResult({data:null,error:r});let i=Object.assign({friendly_name:e.friendlyName,factor_type:e.factorType},e.factorType===`phone`?{phone:e.phone}:e.factorType===`totp`?{issuer:e.issuer}:{}),{data:a,error:o}=await Y(this.fetch,`POST`,`${this.url}/factors`,{body:i,headers:this.headers,jwt:n?.session?.access_token});return o?this._returnResult({data:null,error:o}):(e.factorType===`totp`&&a.type===`totp`&&a?.totp?.qr_code&&(a.totp.qr_code=`data:image/svg+xml;utf-8,${a.totp.qr_code}`),this._returnResult({data:a,error:null}))})}catch(e){if(N(e))return this._returnResult({data:null,error:e});throw e}}async _verify(e){let t=async()=>{try{return await this._useSession(async t=>{let{data:n,error:r}=t;if(r)return this._returnResult({data:null,error:r});let i=Object.assign({challenge_id:e.challengeId},`webauthn`in e?{webauthn:Object.assign(Object.assign({},e.webauthn),{credential_response:e.webauthn.type===`create`?Ei(e.webauthn.credential_response):Di(e.webauthn.credential_response)})}:{code:e.code}),{data:a,error:o}=await Y(this.fetch,`POST`,`${this.url}/factors/${e.factorId}/verify`,{body:i,headers:this.headers,jwt:n?.session?.access_token});return o?this._returnResult({data:null,error:o}):(await this._saveSession(Object.assign({expires_at:Math.round(Date.now()/1e3)+a.expires_in},a)),await this._notifyAllSubscribers(`MFA_CHALLENGE_VERIFIED`,a),this._returnResult({data:a,error:o}))})}catch(e){if(N(e))return this._returnResult({data:null,error:e});throw e}};return this.lock==null?t():this._acquireLock(this.lockAcquireTimeout,t)}async _challenge(e){let t=async()=>{try{return await this._useSession(async t=>{let{data:n,error:r}=t;if(r)return this._returnResult({data:null,error:r});let i=await Y(this.fetch,`POST`,`${this.url}/factors/${e.factorId}/challenge`,{body:e,headers:this.headers,jwt:n?.session?.access_token});if(i.error)return i;let{data:a}=i;if(a.type!==`webauthn`)return{data:a,error:null};switch(a.webauthn.type){case`create`:return{data:Object.assign(Object.assign({},a),{webauthn:Object.assign(Object.assign({},a.webauthn),{credential_options:Object.assign(Object.assign({},a.webauthn.credential_options),{publicKey:wi(a.webauthn.credential_options.publicKey)})})}),error:null};case`request`:return{data:Object.assign(Object.assign({},a),{webauthn:Object.assign(Object.assign({},a.webauthn),{credential_options:Object.assign(Object.assign({},a.webauthn.credential_options),{publicKey:Ti(a.webauthn.credential_options.publicKey)})})}),error:null}}})}catch(e){if(N(e))return this._returnResult({data:null,error:e});throw e}};return this.lock==null?t():this._acquireLock(this.lockAcquireTimeout,t)}async _challengeAndVerify(e){let{data:t,error:n}=await this._challenge({factorId:e.factorId});return n?this._returnResult({data:null,error:n}):await this._verify({factorId:e.factorId,challengeId:t.id,code:e.code})}async _listFactors(){let{data:{user:e},error:t}=await this.getUser();if(t)return{data:null,error:t};let n={all:[],phone:[],totp:[],webauthn:[]};for(let t of e?.factors??[])n.all.push(t),t.status===`verified`&&n[t.factor_type].push(t);return{data:n,error:null}}async _getAuthenticatorAssuranceLevel(e){if(e)try{let{payload:t}=Tr(e),n=null;t.aal&&(n=t.aal);let r=n,{data:{user:i},error:a}=await this.getUser(e);if(a)return this._returnResult({data:null,error:a});((i?.factors)?.filter(e=>e.status===`verified`)??[]).length>0&&(r=`aal2`);let o=t.amr||[];return{data:{currentLevel:n,nextLevel:r,currentAuthenticationMethods:o},error:null}}catch(e){if(N(e))return this._returnResult({data:null,error:e});throw e}let{data:{session:t},error:n}=await this.getSession();if(n)return this._returnResult({data:null,error:n});if(!t)return{data:{currentLevel:null,nextLevel:null,currentAuthenticationMethods:[]},error:null};let{payload:r}=Tr(t.access_token),i=null;r.aal&&(i=r.aal);let a=i;(t.user.factors?.filter(e=>e.status===`verified`)??[]).length>0&&(a=`aal2`);let o=r.amr||[];return{data:{currentLevel:i,nextLevel:a,currentAuthenticationMethods:o},error:null}}async _getAuthorizationDetails(e){try{return await this._useSession(async t=>{let{data:{session:n},error:r}=t;return r?this._returnResult({data:null,error:r}):n?await Y(this.fetch,`GET`,`${this.url}/oauth/authorizations/${e}`,{headers:this.headers,jwt:n.access_token,xform:e=>({data:e,error:null})}):this._returnResult({data:null,error:new I})})}catch(e){if(N(e))return this._returnResult({data:null,error:e});throw e}}async _approveAuthorization(e,t){try{return await this._useSession(async n=>{let{data:{session:r},error:i}=n;if(i)return this._returnResult({data:null,error:i});if(!r)return this._returnResult({data:null,error:new I});let a=await Y(this.fetch,`POST`,`${this.url}/oauth/authorizations/${e}/consent`,{headers:this.headers,jwt:r.access_token,body:{action:`approve`},xform:e=>({data:e,error:null})});return a.data&&a.data.redirect_url&&B()&&!t?.skipBrowserRedirect&&window.location.assign(a.data.redirect_url),a})}catch(e){if(N(e))return this._returnResult({data:null,error:e});throw e}}async _denyAuthorization(e,t){try{return await this._useSession(async n=>{let{data:{session:r},error:i}=n;if(i)return this._returnResult({data:null,error:i});if(!r)return this._returnResult({data:null,error:new I});let a=await Y(this.fetch,`POST`,`${this.url}/oauth/authorizations/${e}/consent`,{headers:this.headers,jwt:r.access_token,body:{action:`deny`},xform:e=>({data:e,error:null})});return a.data&&a.data.redirect_url&&B()&&!t?.skipBrowserRedirect&&window.location.assign(a.data.redirect_url),a})}catch(e){if(N(e))return this._returnResult({data:null,error:e});throw e}}async _listOAuthGrants(){try{return await this._useSession(async e=>{let{data:{session:t},error:n}=e;return n?this._returnResult({data:null,error:n}):t?await Y(this.fetch,`GET`,`${this.url}/user/oauth/grants`,{headers:this.headers,jwt:t.access_token,xform:e=>({data:e,error:null})}):this._returnResult({data:null,error:new I})})}catch(e){if(N(e))return this._returnResult({data:null,error:e});throw e}}async _revokeOAuthGrant(e){try{return await this._useSession(async t=>{let{data:{session:n},error:r}=t;return r?this._returnResult({data:null,error:r}):n?(await Y(this.fetch,`DELETE`,`${this.url}/user/oauth/grants`,{headers:this.headers,jwt:n.access_token,query:{client_id:e.clientId},noResolveJson:!0}),{data:{},error:null}):this._returnResult({data:null,error:new I})})}catch(e){if(N(e))return this._returnResult({data:null,error:e});throw e}}async fetchJwk(e,t={keys:[]}){let n=t.keys.find(t=>t.kid===e);if(n)return n;let r=Date.now();if(n=this.jwks.keys.find(t=>t.kid===e),n&&this.jwks_cached_at+6e5>r)return n;let{data:i,error:a}=await Y(this.fetch,`GET`,`${this.url}/.well-known/jwks.json`,{headers:this.headers});if(a)throw a;return!i.keys||i.keys.length===0||(this.jwks=i,this.jwks_cached_at=r,n=i.keys.find(t=>t.kid===e),!n)?null:n}async getClaims(e,t={}){try{let n=e;if(!n){let{data:e,error:t}=await this.getSession();if(t||!e.session)return this._returnResult({data:null,error:t});n=e.session.access_token}let{header:r,payload:i,signature:a,raw:{header:o,payload:s}}=Tr(n);if(!t?.allowExpired)try{Gr(i.exp)}catch(e){throw new sr(e instanceof Error?e.message:`JWT validation failed`)}let c=!r.alg||r.alg.startsWith(`HS`)||!r.kid||!(`crypto`in globalThis&&`subtle`in globalThis.crypto)?null:await this.fetchJwk(r.kid,t?.keys?{keys:t.keys}:t?.jwks);if(!c){let{error:e}=await this.getUser(n);if(e)throw e;return{data:{claims:i,header:r,signature:a},error:null}}let l=Kr(r.alg),u=await crypto.subtle.importKey(`jwk`,c,l,!0,[`verify`]);if(!await crypto.subtle.verify(l,u,a,_r(`${o}.${s}`)))throw new sr(`Invalid JWT signature`);return{data:{claims:i,header:r,signature:a},error:null}}catch(e){if(N(e))return this._returnResult({data:null,error:e});throw e}}async signInWithPasskey(e){q(this.experimental);try{if(!ki())return this._returnResult({data:null,error:new P(`Browser does not support WebAuthn`,null)});let{data:t,error:n}=await this._startPasskeyAuthentication({options:{captchaToken:e?.options?.captchaToken}});if(n||!t)return this._returnResult({data:null,error:n});let{data:r,error:i}=await ji({publicKey:Ti(t.options),signal:e?.options?.signal??Ci.createNewAbortSignal()});if(i||!r)return this._returnResult({data:null,error:i??new P(`WebAuthn ceremony failed`,null)});let a=Di(r);return this._verifyPasskeyAuthentication({challengeId:t.challenge_id,credential:a})}catch(e){if(N(e))return this._returnResult({data:null,error:e});throw e}}async registerPasskey(e){q(this.experimental);try{if(!ki())return this._returnResult({data:null,error:new P(`Browser does not support WebAuthn`,null)});let{data:t,error:n}=await this._startPasskeyRegistration();if(n||!t)return this._returnResult({data:null,error:n});let{data:r,error:i}=await Ai({publicKey:wi(t.options),signal:e?.options?.signal??Ci.createNewAbortSignal()});if(i||!r)return this._returnResult({data:null,error:i??new P(`WebAuthn ceremony failed`,null)});let a=Ei(r);return this._verifyPasskeyRegistration({challengeId:t.challenge_id,credential:a})}catch(e){if(N(e))return this._returnResult({data:null,error:e});throw e}}async _startPasskeyRegistration(){q(this.experimental);try{return await this._useSession(async e=>{let{data:{session:t},error:n}=e;if(n)return this._returnResult({data:null,error:n});if(!t)return this._returnResult({data:null,error:new I});let{data:r,error:i}=await Y(this.fetch,`POST`,`${this.url}/passkeys/registration/options`,{headers:this.headers,jwt:t.access_token,body:{}});return i?this._returnResult({data:null,error:i}):this._returnResult({data:r,error:null})})}catch(e){if(N(e))return this._returnResult({data:null,error:e});throw e}}async _verifyPasskeyRegistration(e){q(this.experimental);try{return await this._useSession(async t=>{let{data:{session:n},error:r}=t;if(r)return this._returnResult({data:null,error:r});if(!n)return this._returnResult({data:null,error:new I});let{data:i,error:a}=await Y(this.fetch,`POST`,`${this.url}/passkeys/registration/verify`,{headers:this.headers,jwt:n.access_token,body:{challenge_id:e.challengeId,credential:e.credential}});return a?this._returnResult({data:null,error:a}):this._returnResult({data:i,error:null})})}catch(e){if(N(e))return this._returnResult({data:null,error:e});throw e}}async _startPasskeyAuthentication(e){q(this.experimental);try{let{data:t,error:n}=await Y(this.fetch,`POST`,`${this.url}/passkeys/authentication/options`,{headers:this.headers,body:{gotrue_meta_security:{captcha_token:e?.options?.captchaToken}}});return n?this._returnResult({data:null,error:n}):this._returnResult({data:t,error:null})}catch(e){if(N(e))return this._returnResult({data:null,error:e});throw e}}async _verifyPasskeyAuthentication(e){q(this.experimental);try{let{data:t,error:n}=await Y(this.fetch,`POST`,`${this.url}/passkeys/authentication/verify`,{headers:this.headers,body:{challenge_id:e.challengeId,credential:e.credential},xform:X});return n?this._returnResult({data:null,error:n}):(t.session&&(await this._saveSession(t.session),await this._notifyAllSubscribers(`SIGNED_IN`,t.session)),this._returnResult({data:t,error:null}))}catch(e){if(N(e))return this._returnResult({data:null,error:e});throw e}}async _listPasskeys(){q(this.experimental);try{return await this._useSession(async e=>{let{data:{session:t},error:n}=e;if(n)return this._returnResult({data:null,error:n});if(!t)return this._returnResult({data:null,error:new I});let{data:r,error:i}=await Y(this.fetch,`GET`,`${this.url}/passkeys`,{headers:this.headers,jwt:t.access_token,xform:e=>({data:e,error:null})});return i?this._returnResult({data:null,error:i}):this._returnResult({data:r,error:null})})}catch(e){if(N(e))return this._returnResult({data:null,error:e});throw e}}async _updatePasskey(e){q(this.experimental);try{return await this._useSession(async t=>{let{data:{session:n},error:r}=t;if(r)return this._returnResult({data:null,error:r});if(!n)return this._returnResult({data:null,error:new I});let{data:i,error:a}=await Y(this.fetch,`PATCH`,`${this.url}/passkeys/${e.passkeyId}`,{headers:this.headers,jwt:n.access_token,body:{friendly_name:e.friendlyName}});return a?this._returnResult({data:null,error:a}):this._returnResult({data:i,error:null})})}catch(e){if(N(e))return this._returnResult({data:null,error:e});throw e}}async _deletePasskey(e){q(this.experimental);try{return await this._useSession(async t=>{let{data:{session:n},error:r}=t;if(r)return this._returnResult({data:null,error:r});if(!n)return this._returnResult({data:null,error:new I});let{error:i}=await Y(this.fetch,`DELETE`,`${this.url}/passkeys/${e.passkeyId}`,{headers:this.headers,jwt:n.access_token,noResolveJson:!0});return i?this._returnResult({data:null,error:i}):this._returnResult({data:null,error:null})})}catch(e){if(N(e))return this._returnResult({data:null,error:e});throw e}}};Bi.nextInstanceID={};var Vi=Bi,Hi=si,Ui=Vi,Wi=class extends Ui{constructor(e){super(e)}},Gi=class{constructor(e,t,n){this.supabaseUrl=e,this.supabaseKey=t;let r=Rn(e);if(!t)throw Error(`supabaseKey is required.`);Mn(t),this.realtimeUrl=new URL(`realtime/v1`,r),this.realtimeUrl.protocol=this.realtimeUrl.protocol.replace(`http`,`ws`),this.authUrl=new URL(`auth/v1`,r),this.storageUrl=new URL(`storage/v1`,r),this.functionsUrl=new URL(`functions/v1`,r);let i=`sb-${r.hostname.split(`.`)[0]}-auth-token`,a={db:_n,realtime:yn,auth:{...vn,storageKey:i},global:gn,tracePropagation:bn},o=Ln(n??{},a);this.settings=o,this.storageKey=o.auth.storageKey??``,this.headers=o.global.headers??{},o.accessToken?(this.accessToken=o.accessToken,this.auth=new Proxy({},{get:(e,t)=>{throw Error(`@supabase/supabase-js: Supabase Client is configured with the accessToken option, accessing supabase.auth.${String(t)} is not possible`)}})):this.auth=this._initSupabaseAuthClient(o.auth??{},this.headers,o.global.fetch),this.fetch=Nn(t,e,this._getSessionToken.bind(this),o.global.fetch,o.tracePropagation),this.functionsFetch=Nn(t,e,this._getSessionToken.bind(this),o.global.fetch,o.tracePropagation,{omitApiKeyAsBearer:!0}),this.realtime=this._initRealtimeClient({headers:this.headers,accessToken:this._getAccessToken.bind(this),fetch:this.fetch,...o.realtime}),this.accessToken&&Promise.resolve(this.accessToken()).then(e=>this.realtime.setAuth(e)).catch(e=>console.warn(`Failed to set initial Realtime auth token:`,e)),this.rest=new ce(new URL(`rest/v1`,r).href,{headers:this.headers,schema:o.db.schema,fetch:this.fetch,timeout:o.db.timeout,urlLengthLimit:o.db.urlLengthLimit}),this.storage=new fn(this.storageUrl.href,this.headers,this.fetch,n?.storage),o.accessToken||this._listenForAuthEvents()}get functions(){return new l(this.functionsUrl.href,{headers:this.headers,customFetch:this.functionsFetch})}from(e){return this.rest.from(e)}schema(e){return this.rest.schema(e)}rpc(e,t={},n={head:!1,get:!1,count:void 0}){return this.rest.rpc(e,t,n)}channel(e,t={config:{}}){return this.realtime.channel(e,t)}getChannels(){return this.realtime.getChannels()}removeChannel(e){return this.realtime.removeChannel(e)}removeAllChannels(){return this.realtime.removeAllChannels()}async _getSessionToken(){if(this.accessToken)return await this.accessToken();let{data:e}=await this.auth.getSession();return e.session?.access_token??null}async _getAccessToken(){return await this._getSessionToken()??this.supabaseKey}_initSupabaseAuthClient({autoRefreshToken:e,persistSession:t,detectSessionInUrl:n,storage:r,userStorage:i,storageKey:a,flowType:o,lock:s,debug:c,throwOnError:l,experimental:u,lockAcquireTimeout:d,skipAutoInitialize:f},p,m){let h={Authorization:`Bearer ${this.supabaseKey}`,apikey:`${this.supabaseKey}`};return new Wi({url:this.authUrl.href,headers:{...h,...p},storageKey:a,autoRefreshToken:e,persistSession:t,detectSessionInUrl:n,storage:r,userStorage:i,flowType:o,lock:s,debug:c,throwOnError:l,experimental:u,fetch:m,lockAcquireTimeout:d,skipAutoInitialize:f,hasCustomAuthorizationHeader:Object.keys(this.headers).some(e=>e.toLowerCase()===`authorization`)})}_initRealtimeClient(e){return new mt(this.realtimeUrl.href,{...e,params:{apikey:this.supabaseKey,...e?.params}})}_listenForAuthEvents(){return this.auth.onAuthStateChange((e,t)=>{this._handleTokenChanged(e,`CLIENT`,t?.access_token)})}_handleTokenChanged(e,t,n){(e===`TOKEN_REFRESHED`||e===`SIGNED_IN`||e===`INITIAL_SESSION`)&&this.changedAccessToken!==n?(this.changedAccessToken=n,this.realtime.setAuth(n)):e===`SIGNED_OUT`&&(this.realtime.setAuth(),t==`STORAGE`&&this.auth.signOut(),this.changedAccessToken=void 0)}};let Ki=(e,t,n)=>new Gi(e,t,n);function qi(){if(typeof window<`u`||globalThis.Deno!==void 0)return!1;let e=globalThis.process;if(!e)return!1;let t=e.version;if(t==null)return!1;let n=t.match(/^v(\d+)\./);return n?parseInt(n[1],10)<=20:!1}return qi()&&console.warn(`⚠️  Node.js 20 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 22 or later. For more information, visit: https://github.com/orgs/supabase/discussions/45715`),e.AuthAdminApi=Hi,e.AuthApiError=Kn,e.AuthClient=Ui,e.AuthError=Gn,e.AuthImplicitGrantRedirectError=Xn,e.AuthInvalidCredentialsError=Yn,e.AuthInvalidJwtError=sr,e.AuthInvalidTokenResponseError=L,e.AuthPKCECodeVerifierMissingError=$n,e.AuthPKCEGrantCodeExchangeError=Qn,e.AuthRefreshDiscardedError=rr,e.AuthRetryableFetchError=tr,e.AuthSessionMissingError=I,e.AuthUnknownError=P,e.AuthWeakPasswordError=ar,e.CustomAuthError=F,Object.defineProperty(e,`FunctionRegion`,{enumerable:!0,get:function(){return c}}),e.FunctionsError=i,e.FunctionsFetchError=a,e.FunctionsHttpError=s,e.FunctionsRelayError=o,e.GoTrueAdminApi=si,e.GoTrueClient=Vi,e.NavigatorLockAcquireTimeoutError=ui,e.PostgrestError=p,e.REALTIME_CHANNEL_STATES=st,Object.defineProperty(e,`REALTIME_LISTEN_TYPES`,{enumerable:!0,get:function(){return ot}}),Object.defineProperty(e,`REALTIME_POSTGRES_CHANGES_LISTEN_EVENT`,{enumerable:!0,get:function(){return at}}),Object.defineProperty(e,`REALTIME_PRESENCE_LISTEN_EVENTS`,{enumerable:!0,get:function(){return Ke}}),Object.defineProperty(e,`REALTIME_SUBSCRIBE_STATES`,{enumerable:!0,get:function(){return E}}),e.RealtimeChannel=ct,e.RealtimeClient=mt,e.RealtimePostgresFilterBuilder=rt,e.RealtimePresence=qe,e.SIGN_OUT_SCOPES=oi,e.StorageApiError=At,e.SupabaseClient=Gi,e.WebSocketFactory=le,e.createClient=Ki,e.isAuthApiError=qn,e.isAuthError=N,e.isAuthImplicitGrantRedirectError=Zn,e.isAuthPKCECodeVerifierMissingError=er,e.isAuthRefreshDiscardedError=ir,e.isAuthRetryableFetchError=nr,e.isAuthSessionMissingError=Jn,e.isAuthWeakPasswordError=or,e.lockInternals=Q,e.navigatorLock=fi,e.postgresChangesFilter=it,e.processLock=mi,e})({});</script>
-<script>const CFG = { url: "https://qqzkqaedroeehuewmiic.supabase.co", key: "sb_publishable_2kQnRCAIxSyOfi4wsQrKDA_KHFHOJsr" };</script>
 <script>
-const SB = supabase.createClient(CFG.url, CFG.key);
-const $ = id => document.getElementById(id);
-const esc = s => String(s ?? '').replace(/[&<>"]/g, c =>
-  ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-const cr = v => v == null ? '—' : '₹' + Number(v).toLocaleString('en-IN',
-  {minimumFractionDigits:2, maximumFractionDigits:2}) + ' Cr';
+window.__SB__ = supabase.createClient("https://qqzkqaedroeehuewmiic.supabase.co", "sb_publishable_2kQnRCAIxSyOfi4wsQrKDA_KHFHOJsr");
+window.__BOOT__ = { mode: "cloud",
+  caps: { citations: false, review: false, upload: true } };
+</script>
+<script>
+/* ---------- boot ---------- */
+/* One interface, two sources. `adapt()` is the only place that knows the
+   difference; everything after it sees the same shape. */
+const BOOT = window.__BOOT__ || { mode: 'local', caps: {}, data: { tenders: [] } };
+const CAPS = Object.assign({ citations: false, review: false, upload: false }, BOOT.caps);
+let D = { tenders: [] };
 
-const D = { tenders: [], sched: {}, firms: [], geo: {}, awards: {}, boq: {} };
-const state = { q:'', verdicts:new Set(['TRACK','REVIEW','SKIP','RESULT']), sel:null, view:'board' };
-const order = { TRACK:0, REVIEW:1, RESULT:2, SKIP:3 };
-const board = { by:'winner', sort:'gabion', q:'', sel:null };
-
-/* ---------- auth ---------- */
-async function signIn(email, password) {
-  const { error } = await SB.auth.signInWithPassword({ email, password });
-  if (error) throw error;
-}
-
-async function boot() {
-  // RLS does the gating: an unauthenticated read returns zero rows, not an error,
-  // so a successful query with data is itself proof of authorisation.
-  const [t, s, f, g, a, b] = await Promise.all([
-    SB.from('in_tenders').select('*').order('score', { ascending:false }),
-    SB.from('in_schedule_h').select('*'),
-    SB.from('in_contractors').select('*').order('wins', { ascending:false }).order('bids', { ascending:false }),
-    SB.from('in_geo').select('*'),
-    SB.from('in_awards').select('*'),
-    SB.from('in_boq_items').select('*'),
-  ]);
-  if (t.error) throw t.error;
-  D.tenders = t.data || [];
-  D.firms = f.data || [];
-  (s.data || []).forEach(r => (D.sched[r.tender_id] ||= []).push(r));
-  (g.data || []).forEach(r => D.geo[r.tender_id] = r);
-  (a.data || []).forEach(r => D.awards[r.tender_id] = r);
-  (b.data || []).forEach(r => (D.boq[r.tender_id] ||= []).push(r));
-
-  $('gate').hidden = true;
-  $('app').hidden = false;
-  renderPills(); renderChips(); renderList(); renderFirms(); renderMap(); renderBoard();
-}
-
-/* ---------- header ---------- */
-function renderPills() {
-  const n = v => D.tenders.filter(t => t.verdict === v).length;
-  const gab = D.tenders.reduce((a,t) => a + (Number(t.gabion_value_cr)||0), 0);
-  const poss = D.tenders.reduce((a,t) => a + (Number(t.direct_value_cr)||0), 0);
-  $('pills').innerHTML =
-    `<span><b>${Object.keys(D.awards).length}</b> to call</span>` +
-    `<span><b>${cr(gab)}</b> gabion</span><span><b>${cr(poss)}</b> supplyable</span>` +
-    `<span><b>${n('TRACK')}</b> track</span><span><b>${D.tenders.length}</b> jobs</span>`;
-}
-function renderChips() {
-  $('chips').innerHTML = ['TRACK','REVIEW','SKIP','RESULT']
-    .filter(v => D.tenders.some(t => t.verdict === v))
-    .map(v => `<button class=chip data-v="${v}" aria-pressed=true>${v} ${
-      D.tenders.filter(t=>t.verdict===v).length}</button>`).join('');
-  $('chips').querySelectorAll('.chip').forEach(b => b.addEventListener('click', () => {
-    const v = b.dataset.v;
-    state.verdicts.has(v) ? state.verdicts.delete(v) : state.verdicts.add(v);
-    b.setAttribute('aria-pressed', String(state.verdicts.has(v)));
-    renderList();
+/* The canonical tender. The local payload already has this shape - it is the
+   richer of the two - so the cloud loader assembles it from the `in_*` tables
+   rather than the UI learning two vocabularies. Anything a source cannot supply
+   stays empty and its section hides itself. */
+function adapt(rows, extra) {
+  const sched = extra.sched || {}, awards = extra.awards || {},
+        boq = extra.boq || {}, geo = extra.geo || {}, findings = extra.findings || {};
+  return rows.map(t => ({
+    tender_id: t.tender_id,
+    verdict: t.verdict, score: t.score || 0,
+    md_files: t.doc_count || 0, total_chars: t.total_chars || 0,
+    needs_ocr: t.needs_ocr || 0, failed: t.failed_files || 0,
+    hit_totals: { core: t.core_hits || 0, spec: t.spec_hits || 0,
+                  application: t.app_hits || 0, adjacent: t.adj_hits || 0 },
+    detail: {
+      title: t.title, work_description: t.work_description,
+      reference_no: t.reference_no, ministry: t.ministry,
+      inviting_office: t.inviting_office, state: t.state, location: t.location,
+      corridor: t.corridor, nh: t.nh, km_from: t.km_from, km_to: t.km_to,
+      km_length: t.km_length, tender_value_cr: t.tender_value_cr,
+      emd_amount: t.emd_amount, emd_pct: t.emd_pct, emd_odd: t.emd_odd,
+      form_of_contract: t.form_of_contract, product_category: t.product_category,
+      period_of_work_days: t.period_of_work_days, published_date: t.published_date,
+      bid_submission_end: t.bid_submission_end, status: t.status,
+    },
+    value: (t.gabion_value_cr != null || (sched[t.tender_id] || []).length) ? {
+      award_cr: t.award_cr, gabion_value_cr: t.gabion_value_cr,
+      gabion_share_pct: t.gabion_share_pct, direct_value_cr: t.direct_value_cr,
+      possible_value_cr: t.possible_value_cr, cement_value_cr: t.cement_value_cr,
+      gabion_linked: t.gabion_linked || [],
+      schedule: (sched[t.tender_id] || []).map(i => ({
+        group: i.grp, group_pct: i.group_pct, item: i.item, item_pct: i.item_pct,
+        share_pct: i.share_pct, value_cr: i.value_cr, supply: i.supply,
+        gabion: i.is_gabion, bundled: i.bundled, list_ok: i.list_ok })),
+    } : null,
+    award: awards[t.tender_id] || null,
+    supply: boq[t.tender_id] || [],
+    geo: geo[t.tender_id] || null,
+    model: { supply: (findings[t.tender_id] || []).filter(f => f.verdict === 'supply').length,
+             adjacent: (findings[t.tender_id] || []).filter(f => f.verdict === 'adjacent').length,
+             rows: (findings[t.tender_id] || []).map(f => ({
+               source: f.source_file, page: f.page, text: f.snippet, kind: f.kind,
+               supply: f.supply_score, adjacency: f.adjacency_score,
+               verdict: f.verdict, entities: f.entities || [], cite: null })) },
+    evidence: t.evidence || [], evidence_total: t.evidence_total || 0,
+    boq: t.boq || [], quantities: t.quantities || [],
+    portal_url: t.portal_url || null,
   }));
 }
 
-/* ---------- tenders ---------- */
+async function loadCloud() {
+  const SB = window.__SB__;
+  const [t, s, f, g, a, b, fi] = await Promise.all([
+    SB.from('in_tenders').select('*').order('score', { ascending: false }),
+    SB.from('in_schedule_h').select('*'),
+    SB.from('in_contractors').select('*').order('wins', { ascending: false }),
+    SB.from('in_geo').select('*'),
+    SB.from('in_awards').select('*'),
+    SB.from('in_boq_items').select('*'),
+    SB.from('in_findings').select('*'),
+  ]);
+  if (t.error) throw t.error;
+  const by = (rows, key) => (rows || []).reduce((m, r) => ((m[r[key]] ||= []).push(r), m), {});
+  const one = (rows, key) => (rows || []).reduce((m, r) => (m[r[key]] = r, m), {});
+  D = {
+    tenders: adapt(t.data || [], {
+      sched: by(s.data, 'tender_id'), awards: one(a.data, 'tender_id'),
+      boq: by(b.data, 'tender_id'), geo: one(g.data, 'tender_id'),
+      findings: by(fi.data, 'tender_id') }),
+    firms: f.data || [],
+  };
+}
+
+function loadLocal() {
+  // Already canonical - dashboard.py builds this shape directly.
+  D = BOOT.data;
+  D.firms = D.firms || [];
+}
+const STORE = 'agi-tender-reviewed';
+const order = { TRACK: 0, REVIEW: 1, RESULT: 2, SKIP: 3 };
+
+function loadDone() {
+  try { return new Set(JSON.parse(localStorage.getItem(STORE) || '[]')); }
+  catch (e) { return new Set(); }
+}
+function saveDone(s) {
+  try { localStorage.setItem(STORE, JSON.stringify([...s])); } catch (e) {}
+}
+
+const state = {
+  q: '', verdicts: new Set(['TRACK', 'REVIEW', 'SKIP', 'RESULT']),
+  sort: 'verdict', hideDone: false, sel: null, done: loadDone(), view: 'board'
+};
+
+const esc = s => String(s).replace(/[&<>"]/g, c =>
+  ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+// Every route to the same page. `primary` is whichever the filename should link
+// to in this mode - the portal document if we have it, else the local PDF (which
+// a hosted page cannot follow, so sourcelink suppresses it there). The `page`
+// pill is the rendered image, the one route that works from any origin.
+function cite(c, fallback) {
+  if (!c) return fallback ? `<span class=paths>${esc(fallback)}</span>` : '';
+  // Served over https, a file:// link fails silently and looks like a broken
+  // feature. Show where the text came from instead of pretending to link to it.
+  if (!CAPS.citations) {
+    const label = c.label || fallback || '';
+    return label ? `<span class=paths>${esc(label)}</span>` : '';
+  }
+  const main = c.primary || c.url;
+  let h = main
+    ? `<a class=cite href="${esc(main)}" target="_blank" rel="noopener">${esc(c.label)}</a>`
+    : `<span class=paths>${esc(c.label || fallback || '')}</span>`;
+  if (c.image) h += ` <a class=pagelink href="${esc(c.image)}" target="_blank"
+    rel="noopener" title="This page as an image \u2014 works anywhere">page</a>`;
+  // Both available: offer the local PDF too, since it is the real document.
+  if (c.portal && c.url) h += ` <a class=pagelink href="${esc(c.url)}"
+    target="_blank" rel="noopener" title="The PDF on this machine">pdf</a>`;
+  return h;
+}
+
+function hl(text, term) {
+  const t = esc(text);
+  if (!term) return t;
+  const re = new RegExp('(' + term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'ig');
+  return t.replace(re, '<mark>$1</mark>');
+}
+
+/* ---------- filtering / sorting ---------- */
 function visible() {
   const q = state.q.toLowerCase();
-  return D.tenders.filter(t => state.verdicts.has(t.verdict) &&
-    (!q || t.tender_id.toLowerCase().includes(q)))
-    .sort((a,b) => order[a.verdict]-order[b.verdict] || (b.score||0)-(a.score||0));
+  let rows = D.tenders.filter(t => {
+    if (!state.verdicts.has(t.verdict)) return false;
+    if (state.hideDone && state.done.has(t.tender_id)) return false;
+    if (!q) return true;
+    if (t.tender_id.toLowerCase().includes(q)) return true;
+    if ((t.award && t.award.winner || '').toLowerCase().includes(q)) return true;
+    return ['core', 'spec', 'application', 'adjacent'].some(tier =>
+      Object.keys(t.hits[tier] || {}).some(k => k.toLowerCase().includes(q)));
+  });
+  const cmp = {
+    verdict: (a, b) => order[a.verdict] - order[b.verdict] || b.score - a.score,
+    score: (a, b) => b.score - a.score,
+    core: (a, b) => b.hit_totals.core - a.hit_totals.core || b.score - a.score,
+    qty: (a, b) => (boqQty(b) ? 1 : 0) - (boqQty(a) ? 1 : 0) || b.score - a.score,
+    name: (a, b) => a.tender_id.localeCompare(b.tender_id),
+  }[state.sort];
+  return rows.slice().sort(cmp);
 }
+
+function boqQty(t) {
+  return (t.boq || []).find(b => b.core_match && b.quantity !== null) || null;
+}
+
+/* ---------- list ---------- */
 function renderList() {
   const rows = visible();
-  $('tcount').textContent = `${rows.length} of ${D.tenders.length}`;
-  if (!rows.length) { $('list').innerHTML = '<div class=empty>Nothing matches.</div>';
-    $('detail').innerHTML = ''; return; }
+  const list = document.getElementById('list');
+  document.getElementById('tcount').textContent =
+    rows.length + ' of ' + D.tenders.length + ' shown · ' + state.done.size + ' reviewed';
+
+  if (!rows.length) {
+    list.innerHTML = '<div class="empty-state">Nothing matches.</div>';
+    document.getElementById('detail').innerHTML =
+      '<div class="empty-state">Nothing matches.</div>';
+    return;
+  }
   if (!rows.some(t => t.tender_id === state.sel)) state.sel = rows[0].tender_id;
-  $('list').innerHTML = rows.map(t => `
-    <div class=lrow role=option aria-selected="${t.tender_id===state.sel}" data-id="${esc(t.tender_id)}">
-      <span class="ldot d-${t.verdict}"></span>
+
+  list.innerHTML = rows.map(t => {
+    const q = boqQty(t);
+    const m = t.model || {};
+    const bits = [];
+    if (t.hit_totals.core) bits.push(t.hit_totals.core + ' core');
+    if (m.adjacent) bits.push(m.adjacent + ' adj');
+    if (t.award && t.award.winner) bits.push(t.award.winner.split(/\s+/)[0]);
+    const gap = (t.needs_ocr || t.failed)
+      ? `<span class=lwarn>${t.needs_ocr + t.failed} unread</span>` : '';
+    return `<div class="lrow${state.done.has(t.tender_id) ? ' done' : ''}"
+      role=option aria-selected="${t.tender_id === state.sel}" data-id="${esc(t.tender_id)}">
+      <span class="ldot d-${t.verdict}" title="${t.verdict}"></span>
       <span><span class=lname>${esc(t.tender_id)}</span>
-        <span class=lmeta>${t.core_hits||0} core${
-          t.alignment_km ? ' · ' + Number(t.alignment_km).toLocaleString() + ' km' : ''}</span></span>
-      <span class=lright>${t.gabion_value_cr ? '<b>'+cr(t.gabion_value_cr)+'</b>' : ''}
-        <span class=lmeta>${t.doc_count||0} docs</span></span>
-    </div>`).join('');
-  $('list').querySelectorAll('.lrow').forEach(el =>
-    el.addEventListener('click', () => { state.sel = el.dataset.id; renderList(); }));
+        <span class=lmeta>${bits.join(' · ') || t.verdict.toLowerCase()}</span></span>
+      <span class=lright>${q ? '<b>' + Number(q.quantity).toLocaleString() + '</b> '
+        + esc(q.unit || '') : ''}<span class=lmeta>${gap || t.md_files + ' docs'}</span></span>
+    </div>`;
+  }).join('');
+
+  list.querySelectorAll('.lrow').forEach(el => {
+    el.addEventListener('click', () => select(el.dataset.id));
+  });
   renderDetail();
 }
-/* Built once, shown in two places: the Tenders tab and the board's panel. Keeping
-   one builder means the two cannot drift as sections are added. */
-function detailHTML(t, withHead = true) {
-  let h = !withHead ? '' : `<div class=dhead><span class="verdict v-${t.verdict}"><i></i>${t.verdict}</span>
-    <h2>${esc(t.tender_id)}</h2></div>
-    <div class=dsub>${t.doc_count||0} documents · ${(t.total_chars||0).toLocaleString()} chars
-      · score ${(t.score||0).toLocaleString()}${
-      t.source ? ' · ' + esc(t.source) : ''}</div>`;
 
-  if (t.gabion_value_cr) {
-    h += `<h3 class=s>Gabion value at awarded rates</h3><div class=mrow>
-      <div class=bigval>${cr(t.gabion_value_cr)}</div>
-      <div class=mtext>${Number(t.gabion_share_pct).toFixed(3)}% of ${cr(t.award_cr)} awarded</div></div>`;
+function select(id) {
+  state.sel = id;
+  renderList();
+  const el = document.querySelector('.lrow[aria-selected="true"]');
+  if (el) el.scrollIntoView({ block: 'nearest' });
+  document.getElementById('detail').scrollTop = 0;
+}
+
+function move(delta) {
+  const rows = visible();
+  const i = rows.findIndex(t => t.tender_id === state.sel);
+  const next = rows[Math.min(rows.length - 1, Math.max(0, i + delta))];
+  if (next) select(next.tender_id);
+}
+
+function toggleDone(id) {
+  if (state.done.has(id)) state.done.delete(id); else state.done.add(id);
+  saveDone(state.done);
+  renderList();
+}
+
+/* ---------- detail ---------- */
+function tierBlock(t) {
+  return ['core', 'spec', 'application', 'adjacent'].map(tier => {
+    const hits = t.hits[tier] || {};
+    const total = t.hit_totals[tier] || 0;
+    const list = Object.entries(hits).slice(0, 14)
+      .map(([k, v]) => `${esc(k)} \u00d7${v}`).join(' \u00b7 ');
+    return `<div class="tierrow${total ? '' : ' empty'}">
+      <b>${tier}</b><span class="n">${total}</span>
+      <span class="terms">${list || '\u2014'}</span></div>`;
+  }).join('');
+}
+
+/* Builds the full tender detail for one tender. Split out of renderDetail so the
+   board's panel can show exactly the same thing - one source, so the two panels
+   cannot drift apart as sections are added. */
+function detailHTML(t, withHead = true) {
+  const isDone = state.done.has(t.tender_id);
+  // The head carries `id=mark`, so it must appear once in the document. The board
+  // renders its own title and passes withHead=false rather than duplicating it.
+  let h = !withHead ? '<div class="dd">' : `<div class=dhead>
+      <span class="verdict v-${t.verdict}"><i></i>${t.verdict}</span>
+      <h2>${esc(t.tender_id)}</h2></div>
+    <div class=dsub>${t.md_files} documents \u00b7 ${t.total_chars.toLocaleString()} chars
+      \u00b7 score ${t.score.toLocaleString()}
+      ${(t.needs_ocr || t.failed) ? ' \u00b7 <span class=lwarn>'
+        + (t.needs_ocr + t.failed) + ' unread file(s)</span>' : ''}</div>
+    <div class=dactions>
+      ${CAPS.review ? `<button class="btn${isDone ? ' on' : ''}" id=mark>${
+        isDone ? '\u2713 Reviewed' : 'Mark reviewed'}</button>` : ''}
+      ${t.portal_url ? `<a class="btn portal" href="${esc(t.portal_url)}" target="_blank"
+        rel="noopener">Open on Nexizo \u2197</a>` : ''}
+    </div><div class="dd">`;
+
+  // Once a contract is awarded the ranked bidder list is history. The winner is
+  // the only name that matters; the rest stays one click away in the source doc.
+  const a = t.award;
+  if (a) {
+    h += '<h3>Award \u2014 who to call</h3><div class="mrow m-sup">';
+    if (a.winner) h += `<div class=mhead><span class="verdict v-TRACK"><i></i>WON BY
+      ${esc(a.winner)}</span><span class=mscore>${a.winning_amount
+        ? '\u20b9' + Number(a.winning_amount).toLocaleString() : ''}</span></div>`;
+    const bits = [];
+    if (a.contract_amount) bits.push('contract ' + esc(a.contract_amount));
+    if (a.contract_date) bits.push('dated ' + esc(a.contract_date));
+    if (a.contract_period) bits.push(esc(a.contract_period));
+    if (bits.length) h += `<div class=mtext>${bits.join(' \u00b7 ')}</div>`;
+    if (a.description) h += `<div class=mtext>${esc(a.description)}</div>`;
+    if (a.bidder_count) {
+      const src = a.bidders_doc
+        ? `<a class=cite href="${esc(a.bidders_doc)}" target="_blank" rel="noopener">bidder details</a>`
+        : 'the result package';
+      h += `<div class=mtext style="margin-top:6px;color:var(--muted)">
+        ${a.bidder_count} bidders evaluated \u2014 see ${src}</div>`;
+    }
+    h += '</div>';
   }
-  const sc = D.sched[t.tender_id] || [];
-  if (sc.length) {
-    const tag = { direct:'sup-direct', possible:'sup-possible', no:'' };
-    h += `<h3 class=s>Schedule-H — contract price weightages</h3><table><thead><tr>
-      <th>Payment item</th><th class=num>Group</th><th class=num>Item</th>
-      <th class=num>Share</th><th class=num>Value</th><th>Supply</th></tr></thead><tbody>` +
-      sc.slice().sort((a,b)=>(b.value_cr||0)-(a.value_cr||0)).map(i => `<tr class="${tag[i.supply]||''}">
-        <td>${esc(i.item)}</td><td class=num>${Number(i.group_pct).toFixed(2)}%</td>
-        <td class=num>${Number(i.item_pct).toFixed(2)}%</td>
-        <td class=num>${Number(i.share_pct).toFixed(3)}%</td>
-        <td class=num>${i.value_cr==null?'—':Number(i.value_cr).toFixed(2)}</td>
-        <td>${i.supply==='no'?'':esc(i.supply)}</td></tr>`).join('') + '</tbody></table>';
+
+  // The commercial headline: payment weightage x award = what this work is worth.
+  const v = t.value;
+  if (v && v.gabion_value_cr) {
+    h += '<h3>Gabion value at awarded rates</h3><div class="mrow m-sup">';
+    h += `<div class=mhead><span class=bigval>\u20b9${v.gabion_value_cr.toFixed(2)} Cr</span>
+      <span class=mscore>${v.gabion_share_pct.toFixed(3)}% of \u20b9${
+        v.award_cr ? v.award_cr.toLocaleString() : '?'} Cr awarded</span></div>`;
+    h += '<table class=qty><thead><tr><th>Payment item</th><th class=num>Group</th>' +
+      '<th class=num>Item</th><th class=num>Share</th><th class=num>Value</th></tr></thead><tbody>' +
+      v.items.map(i => `<tr><td>${esc(i.item)}</td>
+        <td class=num>${i.group_pct.toFixed(2)}%</td>
+        <td class=num>${i.item_pct.toFixed(2)}%</td>
+        <td class=num>${i.share_pct.toFixed(3)}%</td>
+        <td class=num>${i.value_cr === null ? '\u2014' : '\u20b9' + i.value_cr.toFixed(2)}</td>
+        </tr>`).join('') + '</tbody></table>';
+    const notes = [];
+    if (v.any_bundled) notes.push('the line item bundles gabion with muck disposal or soil nailing, so this is an upper bound');
+    notes.push('nested share: group weightage \u00d7 item weightage, inner list verified to sum to 100%');
+    h += `<div class=mtext style="margin-top:7px;color:var(--muted)">${notes.join(' \u00b7 ')}</div>`;
+    h += '</div>';
   }
-  const g = D.geo[t.tender_id];
-  if (g) h += `<h3 class=s>Location</h3><div class=mtext>
-    ${Number(g.centre_lat).toFixed(4)}N ${Number(g.centre_lon).toFixed(4)}E ·
-    ${Number(g.total_line_km).toLocaleString()} km of alignment · ${esc((g.files||[]).join(', '))}</div>`;
+
+  // The whole of Schedule-H. Once you are supplying this contractor gabion boxes,
+  // every other line here is something to push - so all of it is kept, valued and
+  // tagged rather than filtered down to the gabion row.
+  if (v && (v.schedule || []).length) {
+    const cls = { direct: 'sup-direct', possible: 'sup-possible', no: '' };
+    const tag = { direct: 'direct', possible: 'possible', no: '' };
+    h += `<h3>Schedule-H \u2014 contract price weightages</h3>
+      <table class=qty><thead><tr><th>Payment item</th><th class=num>Group</th>
+      <th class=num>Item</th><th class=num>Share</th><th class=num>Value Cr</th>
+      <th>Supply</th></tr></thead><tbody>` +
+      v.schedule.map(i => `<tr class="${cls[i.supply] || ''}">
+        <td>${esc(i.item)}</td>
+        <td class=num>${i.group_pct.toFixed(2)}%</td>
+        <td class=num>${i.item_pct.toFixed(2)}%</td>
+        <td class=num>${i.share_pct.toFixed(3)}%</td>
+        <td class=num>${i.value_cr === null ? '\u2014' : i.value_cr.toFixed(2)}</td>
+        <td class=supcell>${tag[i.supply] || ''}</td></tr>`).join('') +
+      '</tbody></table>';
+    const bits = [];
+    if (v.direct_value_cr) bits.push(`<b>\u20b9${v.direct_value_cr.toFixed(2)} Cr</b> direct`);
+    if (v.possible_value_cr) bits.push(`<b>\u20b9${v.possible_value_cr.toFixed(2)} Cr</b> possible`);
+    h += `<div class=mtext style="margin-top:7px;color:var(--muted)">
+      ${bits.join(' \u00b7 ')} \u00b7 <i>possible</i> = a wall that may be built from
+      gabion or from concrete; check that tender's structural drawings.
+      Source: ${esc(v.source || 'Schedule-H')}</div>`;
+  }
+
+  // Reference material: present when wanted, out of the way by default.
+  const fold = (title, body, n) => `<details class=fold><summary>${title}${
+    n ? ` <span class=lmeta>${n}</span>` : ''}</summary><div class=foldbody>${body}</div></details>`;
+
+  // Distinct supply items, prose stripped and wire specs lifted into columns.
+  // The raw extraction is a candidate pile - one tender gave 58 rows of which the
+  // "core" entries were the same item four times plus two payment clauses.
+  const sup = t.supply || [];
+  if (sup.length) {
+    let supBody = `<table class=qty><thead><tr><th class=num>Qty</th><th>Unit</th>
+      <th>Item</th><th>Specification</th><th>Source</th></tr></thead><tbody>` +
+      sup.map(b => {
+        const spec = [
+          b.wire_dia ? b.wire_dia + ' mm wire' : '',
+          b.swg ? b.swg + ' swg' : '',
+          b.mesh ? 'mesh ' + b.mesh : '',
+          b.coating || '', b.is_code ? 'IS ' + b.is_code : ''
+        ].filter(Boolean).map(esc).join(' \u00b7 ');
+        const rep = (b.seen_count > 1) ? ` <span class=lmeta>\u00d7${b.seen_count}</span>` : '';
+        return `<tr class="${b.core_match ? 'is-core' : ''}">
+          <td class=num>${b.quantity === null ? '\u2014' : Number(b.quantity).toLocaleString()}</td>
+          <td>${esc(b.unit || '')}</td>
+          <td>${esc(b.description)}${rep}</td>
+          <td class=spec>${spec || '\u2014'}</td>
+          <td>${cite(b.url ? { url: b.url, label: b.cell || b.file } : null, b.cell || b.file)}</td>
+        </tr>`;
+      }).join('') + '</tbody></table>';
+    if (t.boq_total > sup.length)
+      supBody += `<p class=more>${sup.length} distinct item(s) from ${t.boq_total} extracted rows
+        \u2014 full set in tenders/${esc(t.tender_id)}/boq.json</p>`;
+    h += fold('Supply items', supBody,
+              `${sup.length}${sup.some(x => x.core_match) ? ' \u00b7 gabion' : ''}`);
+  }
+
+  h += fold('Keyword hits', '<div class=tierlist>' + tierBlock(t) + '</div>',
+            ['core', 'spec', 'application', 'adjacent']
+              .map(x => t.hit_totals[x] || 0).filter(Boolean).join(' / ') || '0');
+
+
+  if ((t.evidence || []).length) {
+    let ev = t.evidence.map(e =>
+      `<p class=snip><span class=src>${cite(e.cite, e.file)} \u2014 ${esc(e.tier)}</span>
+       \u2026${hl(e.snippet, e.term)}\u2026</p>`).join('');
+    if (t.evidence_truncated)
+      ev += `<p class=more>Showing ${t.evidence.length} of ${t.evidence_total} hits \u2014
+        full set in tenders/${esc(t.tender_id)}/screen.md</p>`;
+    h += fold('Evidence', ev, t.evidence_total || t.evidence.length);
+  }
+
+  if ((t.geo_files || []).length)
+    h += fold('Geospatial', '<p class=paths>' + t.geo_files.map(esc).join('<br>') + '</p>',
+              t.geo_files.length);
+
+  h += fold('On disk', `<p class=paths>tenders/${esc(t.tender_id)}/</p>`, '');
+
+  // Last, and folded: the model pass is supporting evidence for the deterministic
+  // numbers above, not the headline. It is also the stage most often not yet run.
+  const m = t.model || { rows: [] };
+  if ((m.rows || []).length) {
+    const body = m.rows.map(r => {
+      const sup = r.verdict === 'supply';
+      const ents = (r.entities || []).map(e =>
+        `<span class=ent><b>${esc(e.label)}</b> ${esc(e.text)}</span>`).join(' ');
+      return `<div class="mrow ${sup ? 'm-sup' : 'm-adj'}">
+        <div class=mhead>
+          <span class="verdict v-${sup ? 'TRACK' : 'REVIEW'}"><i></i>${sup ? 'SUPPLY' : 'ADJACENT'}</span>
+          <span class=mscore>supply ${r.supply.toFixed(3)} \u00b7 adjacency ${r.adjacency.toFixed(3)}</span>
+          ${cite(r.cite, r.source + (r.page ? ', p' + r.page : ''))}
+        </div>
+        <div class=mtext>${esc(r.text)}</div>
+        ${ents ? `<div class=ents>${ents}</div>` : ''}</div>`;
+    }).join('');
+    h += fold('Model findings', body,
+              `${m.supply || 0} supply \u00b7 ${m.adjacent || 0} adjacent`);
+  }
+  h += '</div>';
   return h;
+}
+
+/* The "mark reviewed" button carries an id, so only one copy of the detail may
+   be in the DOM at a time. Both panels render into their own pane and only the
+   visible one is ever populated - see renderReq. */
+function wireDetail(pane, t) {
+  const b = pane.querySelector('#mark');
+  if (b) b.addEventListener('click', () => toggleDone(t.tender_id));
 }
 
 function renderDetail() {
   const t = D.tenders.find(x => x.tender_id === state.sel);
-  if (!t) { $('detail').innerHTML = '<div class=empty>Select a tender.</div>'; return; }
-  $('detail').innerHTML = detailHTML(t);
+  const pane = document.getElementById('detail');
+  if (!t) { pane.innerHTML = '<div class="empty-state">Select a tender.</div>'; return; }
+  pane.innerHTML = detailHTML(t);
+  wireDetail(pane, t);
 }
 
-/* ---------- uploads ---------- */
-/* Hands an archive to the laptop. The browser only puts the file in the bucket
-   and adds a queue row; watch.py picks it up, and the pipeline still runs at
-   home. Nothing is processed here. */
+/* ---------- uploads (cloud only) ---------- */
+/* Hands an archive to the pipeline machine, or asks it to process what is
+   already in its inbox. Nothing is processed in the browser either way - the
+   queue is a letterbox that watch.py empties. */
 async function upload(files) {
-  const out = $('uplog');
+  const out = document.getElementById('uplog');
   for (const f of files) {
     const path = `${Date.now()}_${f.name.replace(/[^\w.\-]/g, '_')}`;
     const line = document.createElement('div');
     line.className = 'mtext';
     line.textContent = `${f.name} — uploading ${(f.size/1e6).toFixed(1)} MB…`;
     out.prepend(line);
-    const up = await SB.storage.from('tender-inbox').upload(path, f, { upsert:false });
+    const up = await window.__SB__.storage.from('tender-inbox').upload(path, f);
     if (up.error) { line.innerHTML = `${esc(f.name)} — <span class=warn>${esc(up.error.message)}</span>`; continue; }
-    const ins = await SB.from('in_uploads').insert(
-      { filename:f.name, size_bytes:f.size, storage_path:path });
+    const ins = await window.__SB__.from('in_uploads').insert(
+      { filename: f.name, size_bytes: f.size, storage_path: path });
     line.innerHTML = ins.error
       ? `${esc(f.name)} — <span class=warn>${esc(ins.error.message)}</span>`
-      : `${esc(f.name)} — queued. It will be picked up next time the pipeline machine checks in.`;
+      : `${esc(f.name)} — queued.`;
   }
   renderQueue();
 }
-/* Ask the laptop to process whatever is already sitting in its inbox/ folder.
-   For archives copied onto the machine directly - no upload, just a nudge. */
+
 async function runInbox() {
-  const btn = $('runinbox');
+  const btn = document.getElementById('runinbox');
   btn.disabled = true; btn.textContent = 'Queued…';
-  const { error } = await SB.from('in_uploads').insert(
-    { kind:'run', filename:'(process inbox)', storage_path:null });
+  const { error } = await window.__SB__.from('in_uploads').insert(
+    { kind: 'run', filename: '(process inbox)', storage_path: null });
   const line = document.createElement('div');
   line.className = 'mtext';
-  line.innerHTML = error
-    ? `<span class=warn>${esc(error.message)}</span>`
-    : 'Asked the pipeline machine to process its inbox folder. It picks this up on its next check.';
-  $('uplog').prepend(line);
+  line.innerHTML = error ? `<span class=warn>${esc(error.message)}</span>`
+    : 'Asked the pipeline machine to process its inbox folder.';
+  document.getElementById('uplog').prepend(line);
   btn.disabled = false; btn.textContent = 'Process inbox now';
   renderQueue();
 }
 
 async function renderQueue() {
-  const { data, error } = await SB.from('in_uploads').select('*')
-    .order('uploaded_at', { ascending:false }).limit(25);
-  if (error) { $('queue').innerHTML = `<div class=mtext>Queue unavailable: ${esc(error.message)}</div>`; return; }
-  if (!data.length) { $('queue').innerHTML = '<div class=mtext>Nothing uploaded yet.</div>'; return; }
-  $('queue').innerHTML = `<table><thead><tr><th>File</th><th class=num>Size</th>
-    <th>Uploaded</th><th>Status</th><th>Note</th></tr></thead><tbody>` +
-    data.map(r => `<tr><td>${esc(r.filename)}</td>
-      <td class=num>${r.size_bytes ? (r.size_bytes/1e6).toFixed(1)+' MB' : '—'}</td>
-      <td>${day(r.uploaded_at)}</td>
-      <td><span class="tagv ${r.status==='done'?'TRACK':r.status==='failed'?'REVIEW':'SKIP'}">${esc(r.status)}</span></td>
-      <td class=mtext>${esc((r.note||'').slice(0,110))}</td></tr>`).join('') + '</tbody></table>';
+  const el = document.getElementById('queue');
+  if (!el || !CAPS.upload) return;
+  const { data, error } = await window.__SB__.from('in_uploads').select('*')
+    .order('uploaded_at', { ascending: false }).limit(25);
+  if (error) { el.innerHTML = `<div class=mtext>Queue unavailable: ${esc(error.message)}</div>`; return; }
+  if (!data.length) { el.innerHTML = '<div class=mtext>Nothing uploaded yet.</div>'; return; }
+  el.innerHTML = `<table><thead><tr><th>File</th><th class=num>Size</th><th>Uploaded</th>
+    <th>Status</th><th>Note</th></tr></thead><tbody>` + data.map(r => `<tr>
+      <td>${r.kind === 'run' ? '<i>process inbox folder</i>' : esc(r.filename)}</td>
+      <td class=num>${r.size_bytes ? (r.size_bytes/1e6).toFixed(1) + ' MB' : '—'}</td>
+      <td>${dayv(r.uploaded_at)}</td>
+      <td><span class="tagv ${r.status === 'done' ? 'TRACK' : r.status === 'failed' ? 'REVIEW' : 'SKIP'}">${esc(r.status)}</span></td>
+      <td class=mtext>${esc((r.note || '').slice(0, 110))}</td></tr>`).join('') + '</tbody></table>';
+}
+
+/* ---------- contact details on the call list ---------- */
+/* Writes straight back to in_contractors. Only where there is somewhere to write
+   to - the local copy has no connection, so the fields render read-only. */
+async function saveContact(name, field, value) {
+  if (!window.__SB__) return false;
+  const { error } = await window.__SB__.from('in_contractors')
+    .update({ [field]: value, updated_at: new Date().toISOString() }).eq('name', name);
+  const f = (D.firms || []).find(x => x.name === name);
+  if (f && !error) f[field] = value;
+  return !error;
 }
 
 /* ---------- board ---------- */
-/* The view that replaces the tender board: everything grouped under the heading
-   you care about that day, with one tender's requirements open beside it. */
+/* The selling view. A tender is only a way of finding the contractor who won it,
+   so this groups by that contractor and ranks by the gabion in the job - not by
+   contract size, and not by any of the bidding paperwork we never use. */
+const board = { by: 'winner', sort: 'gabion', q: '', sel: null };
 const GROUPS = {
-  winner:          ['Contractor to call', t => D.awards[t.tender_id]?.winner],
-  state:           ['State',            t => t.state],
-  corridor:        ['Corridor',         t => t.corridor],
-  status:          ['Where it stands',  t => bstatus(t)],
-  nh:              ['Highway',          t => t.nh],
-  inviting_office: ['Bid inviting office', t => t.inviting_office],
+  winner:   ['Contractor to call', t => t.award && t.award.winner],
+  state:    ['State',              t => t.detail && t.detail.state],
+  corridor: ['Corridor',           t => t.detail && t.detail.corridor],
+  status:   ['Where it stands',    t => bstatus(t)],
+  nh:       ['Highway',            t => t.detail && t.detail.nh],
+  office:   ['Bid inviting office', t => t.detail && t.detail.inviting_office],
 };
-const day = s => !s ? '—' : new Date(s).toLocaleDateString('en-IN',
-  { day:'2-digit', month:'short', year:'numeric' });
-const rupee = v => v == null ? '—'
-  : Number(v) >= 1e7 ? cr(Number(v)/1e7)
-  : '₹' + (Number(v)/1e5).toLocaleString('en-IN', { maximumFractionDigits:2 }) + ' L';
+const crv = v => v == null ? '\u2014' : '\u20b9' + Number(v).toLocaleString('en-IN',
+  { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' Cr';
+const dayv = s => { if (!s) return '\u2014';
+  const d = new Date(s); return isNaN(d) ? String(s)
+    : d.toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' }); };
+const gabOf   = t => (t.value && t.value.gabion_value_cr) || 0;
+// `direct` already contains the gabion line, so subtract it to avoid counting the
+// same money twice. Concrete (`cement_value_cr`) is excluded entirely - AGI does
+// not supply cement, and retaining/toe/breast walls are concrete unless a document
+// says gabion.
+const otherOf = t => Math.max(0, ((t.value && t.value.direct_value_cr) || 0) -
+                                 ((t.value && t.value.gabion_value_cr) || 0)) +
+                     ((t.value && t.value.possible_value_cr) || 0);
+const cementOf = t => (t.value && t.value.cement_value_cr) || 0;
 
-/* A tender's state, phrased as what to do about it. We do not bid, so a closing
-   date is not a deadline - it is only the point after which a winner exists to
-   sell to. The three states that matter are: there is a contractor to ring,
-   there will be one soon, or it is still open. */
 /* Where no rupee value can be derived, fall back to the quantity - it is the
-   order size, which is the number that actually matters when ringing someone.
-   Only lines that name the product count; a breast-wall length is not our tonnage. */
-function bestQty(tid) {
-  const rows = (D.boq[tid] || []).filter(r => r.core_match && r.quantity != null);
+   order size, which is the number that matters when ringing someone. Only lines
+   naming the product count; a breast-wall length is not our tonnage. */
+function bestQty(t) {
+  const rows = (t.supply || []).filter(r => r.core_match && r.quantity != null);
   if (!rows.length) return null;
-  const r = rows.sort((a, b) => (b.quantity || 0) - (a.quantity || 0))[0];
+  const r = rows.slice().sort((a, b) => (b.quantity || 0) - (a.quantity || 0))[0];
   return Number(r.quantity).toLocaleString('en-IN') + ' ' + (r.unit || '');
 }
 
 function bstatus(t) {
-  if (D.awards[t.tender_id]) return 'Won — call them';
-  if (t.status === 'live') return 'Still open';
-  return t.status === 'closed' ? 'Awaiting result' : 'Unknown';
+  if (t.award && t.award.winner) return 'Won \u2014 call them';
+  const st = t.detail && t.detail.status;
+  return st === 'live' ? 'Still open' : st === 'closed' ? 'Awaiting result' : 'Unknown';
 }
-
-/* Roughly when the material is wanted. Gabion and protection work sit early in a
-   road contract - the walls go up before the pavement - so the first stretch of
-   the build period is the window to be selling into. */
-function window_(t) {
-  const aw = D.awards[t.tender_id];
-  if (!aw || !aw.contract_date) return null;
-  const start = new Date(aw.contract_date);
+/* Roughly when the material is wanted: protection work sits early in a road
+   contract, so the first stretch of the build period is the window to sell into. */
+function windowOf(t) {
+  if (!t.award || !t.award.contract_date) return null;
+  const start = new Date(t.award.contract_date);
   if (isNaN(start)) return null;
-  const end = new Date(start); end.setDate(end.getDate() + (t.period_of_work_days || 0));
+  const days = (t.detail && t.detail.period_of_work_days) || 0;
+  const end = new Date(start); end.setDate(end.getDate() + days);
   const months = Math.round((Date.now() - start) / 2.63e9);
-  return { start, end, months,
+  return { start, end,
     phase: months < 0 ? 'not started' : months <= 18 ? 'in the build window' : 'later stage' };
 }
 
-function boardRows() {
+function boardGroups() {
   const q = board.q.toLowerCase();
-  const rows = D.tenders.filter(t => !q ||
-    (t.tender_id + ' ' + (t.title||'') + ' ' + (t.corridor||'') + ' ' +
-     (t.inviting_office||'') + ' ' + (D.awards[t.tender_id]?.winner||'')).toLowerCase().includes(q));
+  const rows = D.tenders.filter(t => t.verdict !== 'RESULT' && (!q ||
+    (t.tender_id + ' ' + ((t.detail && t.detail.title) || '') + ' ' +
+     ((t.detail && t.detail.corridor) || '') + ' ' +
+     ((t.award && t.award.winner) || '')).toLowerCase().includes(q)));
   const key = GROUPS[board.by][1];
   const cmp = {
-    gabion:(a,b) => (b.gabion_value_cr||0) - (a.gabion_value_cr||0),
-    total: (a,b) => ((b.direct_value_cr||0)+(b.possible_value_cr||0)) -
-                    ((a.direct_value_cr||0)+(a.possible_value_cr||0)),
-    value: (a,b) => (b.tender_value_cr||0) - (a.tender_value_cr||0),
-    date:  (a,b) => String(D.awards[b.tender_id]?.contract_date||'')
-                      .localeCompare(String(D.awards[a.tender_id]?.contract_date||'')),
-    chain: (a,b) => (a.km_from ?? 1e9) - (b.km_from ?? 1e9),
+    gabion: (a, b) => gabOf(b) - gabOf(a),
+    total:  (a, b) => otherOf(b) - otherOf(a),
+    value:  (a, b) => ((b.detail && b.detail.tender_value_cr) || 0) -
+                      ((a.detail && a.detail.tender_value_cr) || 0),
+    chain:  (a, b) => ((a.detail && a.detail.km_from) ?? 1e9) -
+                      ((b.detail && b.detail.km_from) ?? 1e9),
   }[board.sort];
+  const blank = board.by === 'winner'
+    ? 'No contractor yet \u2014 result not published' : 'Not stated';
   const g = new Map();
-  const blank = board.by === 'winner' ? 'No contractor yet — result not published'
-                                      : 'Not stated';
-  rows.forEach(t => {
-    const k = key(t) || blank;
-    if (!g.has(k)) g.set(k, []);
-    g.get(k).push(t);
-  });
+  rows.forEach(t => { const k = key(t) || blank;
+    if (!g.has(k)) g.set(k, []); g.get(k).push(t); });
   g.forEach(v => v.sort(cmp));
-  // Groups ordered by the gabion in them, not by contract size. A ₹1,100 Cr road
-  // with no protection work is worth less to us than a small one full of walls.
-  const gab = v => v.reduce((s,t) => s + (t.gabion_value_cr||0) +
-                                     (t.direct_value_cr||0)*.001, 0);
-  return [...g.entries()].sort((a,b) => gab(b[1]) - gab(a[1]) || b[1].length - a[1].length);
+  return [...g.entries()].sort((a, b) =>
+    b[1].reduce((s, t) => s + gabOf(t), 0) - a[1].reduce((s, t) => s + gabOf(t), 0)
+    || b[1].length - a[1].length);
 }
 
 function renderBoard() {
-  const groups = boardRows();
-  const n = groups.reduce((s,[,v]) => s + v.length, 0);
-  $('bcount').textContent = `${n} of ${D.tenders.length} · ${groups.length} ${
-    groups.length === 1 ? 'group' : 'groups'}`;
-  if (!n) { $('boardlist').innerHTML = '<div class=empty>Nothing matches.</div>';
-    $('req').innerHTML = ''; return; }
-  const all = groups.flatMap(([,v]) => v);
+  const groups = boardGroups();
+  const n = groups.reduce((s, [, v]) => s + v.length, 0);
+  const cEl = document.getElementById('bcount');
+  if (cEl) cEl.textContent = n + ' jobs \u00b7 ' + groups.length +
+    (groups.length === 1 ? ' group' : ' groups');
+  const list = document.getElementById('boardlist');
+  if (!list) return;
+  if (!n) { list.innerHTML = '<div class=empty>Nothing matches.</div>';
+    document.getElementById('req').innerHTML = ''; return; }
+  const all = groups.flatMap(([, v]) => v);
   if (!all.some(t => t.tender_id === board.sel)) board.sel = all[0].tender_id;
 
   let h = `<table class=board><thead><tr><th>Job</th><th>Who to call</th>
-    <th class=num>Gabion</th><th class=num>Other supply</th>
-    <th>Where</th><th>Build window</th></tr></thead><tbody>`;
+    <th class=num>Gabion</th><th class=num>Other supply</th><th>Where</th>
+    <th>Build window</th></tr></thead><tbody>`;
   for (const [name, items] of groups) {
-    const gsum = items.reduce((s,t)=>s+(t.gabion_value_cr||0),0);
-    const osum = items.reduce((s,t)=>s+Math.max(0,(t.direct_value_cr||0)-(t.gabion_value_cr||0))
-                                      +(t.possible_value_cr||0),0);
+    const gs = items.reduce((s, t) => s + gabOf(t), 0);
+    const os = items.reduce((s, t) => s + otherOf(t), 0);
     h += `<tr class=grp><th colspan=6>${esc(name)}
-      <span class=gcount>${items.length} job${items.length===1?'':'s'}</span>
-      <span class=gval>${gsum ? cr(gsum) + ' gabion' : ''}${
-        osum ? ' · ' + cr(osum) + ' other' : ''}</span></th></tr>`;
+      <span class=gcount>${items.length} job${items.length === 1 ? '' : 's'}</span>
+      <span class=gval>${gs ? crv(gs) + ' gabion' : ''}${os ? ' \u00b7 ' + crv(os) + ' other' : ''}</span></th></tr>`;
     for (const t of items) {
-      const aw = D.awards[t.tender_id], w = window_(t);
-      // direct already includes the gabion line; concrete is excluded entirely.
-      const other = Math.max(0, (t.direct_value_cr||0) - (t.gabion_value_cr||0))
-                    + (t.possible_value_cr||0);
-      h += `<tr class=brow data-id="${esc(t.tender_id)}" aria-selected="${t.tender_id===board.sel}">
-        <td><span class=btitle>${esc(t.title || t.tender_id)}</span>
-          <span class=bsub>${esc(t.tender_id)}${
-            t.km_length ? ' · ' + t.km_length + ' km' : ''}${
-            t.tender_value_cr ? ' · ' + cr(t.tender_value_cr) + ' contract' : ''}</span></td>
-        <td>${aw ? '<b>'+esc(aw.winner)+'</b>' : '<span class=bsub>'+bstatus(t)+'</span>'}</td>
-        <td class=num>${t.gabion_value_cr ? '<b>'+cr(t.gabion_value_cr)+'</b>'
-          : bestQty(t.tender_id) ? '<b>'+esc(bestQty(t.tender_id))+'</b>'
-              + '<span class=bsub>quantity, no price</span>'
-          : t.core_hits ? '<span class=bsub>named ×'+t.core_hits+'<br>not priced</span>'
-          : '—'}</td>
-        <td class=num>${other ? cr(other) : '—'}</td>
-        <td>${esc(t.corridor || t.nh || '—')}<span class=bsub>${esc(t.state||'')}</span></td>
-        <td>${w ? day(w.start) + '<span class=bsub>' + w.phase + '</span>'
-                : '<span class=bsub>—</span>'}</td></tr>`;
+      const d = t.detail || {}, w = windowOf(t);
+      h += `<tr class=brow data-id="${esc(t.tender_id)}" aria-selected="${t.tender_id === board.sel}">
+        <td><span class=btitle>${esc(d.title || t.tender_id)}</span>
+          <span class=bsub>${esc(t.tender_id)}${d.km_length ? ' \u00b7 ' + d.km_length + ' km' : ''}${
+            d.tender_value_cr ? ' \u00b7 ' + crv(d.tender_value_cr) + ' contract' : ''}</span></td>
+        <td>${t.award && t.award.winner ? '<b>' + esc(t.award.winner) + '</b>'
+              : '<span class=bsub>' + bstatus(t) + '</span>'}</td>
+        <td class=num>${gabOf(t) ? '<b>' + crv(gabOf(t)) + '</b>'
+          : bestQty(t)
+            ? '<b>' + esc(bestQty(t)) + '</b><span class=bsub>quantity, no price</span>'
+          : (t.hit_totals && t.hit_totals.core)
+            ? '<span class=bsub>named \u00d7' + t.hit_totals.core + '<br>not priced</span>'
+            : '\u2014'}</td>
+        <td class=num>${otherOf(t) ? crv(otherOf(t)) : '\u2014'}</td>
+        <td>${esc(d.corridor || d.nh || '\u2014')}<span class=bsub>${esc(d.state || '')}</span></td>
+        <td>${w ? dayv(w.start) + '<span class=bsub>' + w.phase + '</span>'
+                : '<span class=bsub>\u2014</span>'}</td></tr>`;
     }
   }
-  $('boardlist').innerHTML = h + '</tbody></table>';
-  $('boardlist').querySelectorAll('.brow').forEach(el =>
-    el.addEventListener('click', () => { board.sel = el.dataset.id; renderBoard(); }));
+  list.innerHTML = h + '</tbody></table>';
+  list.querySelectorAll('.brow').forEach(el => el.addEventListener('click', () => {
+    board.sel = el.dataset.id; renderBoard();
+  }));
   renderReq();
 }
 
 function renderReq() {
   const t = D.tenders.find(x => x.tender_id === board.sel);
-  if (!t) { $('req').innerHTML = '<div class=empty>Select a tender.</div>'; return; }
-  const aw = D.awards[t.tender_id], g = D.geo[t.tender_id];
-  const row = (k, v) => v == null || v === '' ? '' : `<dt>${k}</dt><dd>${v}</dd>`;
+  const el = document.getElementById('req');
+  if (!el) return;
+  if (!t) { el.innerHTML = '<div class=empty>Select a job.</div>'; return; }
+  const d = t.detail || {}, w = windowOf(t);
+  const row = (k, val) => val == null || val === '' ? '' : `<dt>${k}</dt><dd>${val}</dd>`;
 
-  let h = `<div class=reqhead>${esc(t.title || t.tender_id)}</div>
-    <div class=reqid>${esc(t.tender_id)}${t.reference_no ? ' · ' + esc(t.reference_no) : ''}</div>`;
+  // The panel opens with the three things that decide a call - which job, when the
+  // material is wanted, and where it goes - and then hands over to the full tender
+  // detail, which is the same markup the Tenders tab renders.
+  let h = `<div class=reqhead>${esc(d.title || t.tender_id)}</div>
+    <div class=reqid>${esc(t.tender_id)}${d.reference_no ? ' · ' + esc(d.reference_no) : ''}</div>`;
 
-  // Who to ring comes first. Everything else on this panel is context for that
-  // call - not tender paperwork, which is a bidder's problem and sits at the end.
-  if (aw) {
-    const w = window_(t);
-    h += `<h3 class=s>Call</h3><div class=mrow>
-      <div style="font-size:14px;font-weight:600">${esc(aw.winner)}</div>
-      <div class=mtext>won ${aw.winning_amount ? cr(aw.winning_amount/1e7) : 'this job'}
-        on ${esc(aw.contract_date || '—')}${
-        aw.bidder_count ? ` · beat ${aw.bidder_count - 1} other${aw.bidder_count===2?'':'s'}` : ''}</div>
-      ${w ? `<div class=mtext>Build window ${day(w.start)} → ${day(w.end)} —
-        <b>${w.phase}</b></div>` : ''}</div>`;
-    const f = D.firms.find(x => x.name === aw.winner);
-    if (f) h += `<div class=mtext>${f.wins} win${f.wins===1?'':'s'} of ${f.bids} bids
-      across everything we have read${f.won_value ? ' · ' + cr(f.won_value/1e7) + ' won' : ''}.</div>`;
-  } else {
-    h += `<h3 class=s>Call</h3><div class=mtext>${bstatus(t)} — no contractor to
-      approach yet. Load the result package when it is published.</div>`;
-  }
+  if (w) h += `<div class=mrow><div class=mtext>Build window <b>${dayv(w.start)}</b>
+    → ${dayv(w.end)} — <b>${w.phase}</b></div></div>`;
 
-  const otherDirect = Math.max(0, (t.direct_value_cr||0) - (t.gabion_value_cr||0));
-  // Maintenance, strengthening and STMC contracts carry no Schedule-H, so there
-  // is no weightage to price the product from. That is not the same as the
-  // product being absent, and showing a bare dash for both read as "nothing
-  // here" on jobs whose documents name it outright.
-  if (!t.gabion_value_cr && t.core_hits)
-    h += `<h3 class=s>What we could supply</h3><div class=mrow>
-      <div class=mtext>${bestQty(t.tender_id)
-        ? 'The documents give a quantity of <b>' + esc(bestQty(t.tender_id)) + '</b>. '
-        : ''}The documents name it <b>${t.core_hits} times</b>, but this
-      package ships <b>no Schedule-H</b>, so there is no weightage to price it from.
-      <b>The absence is of a number, not of the work.</b> Read the billed lines below
-      and ask ${esc(D.awards[t.tender_id]?.winner || 'the contractor')} directly.</div></div>`;
-  if (t.gabion_value_cr || !t.core_hits)
-  h += `<h3 class=s>What we could supply</h3><dl class=kv>` +
-    row('Gabion', t.gabion_value_cr ? `<b>${cr(t.gabion_value_cr)}</b>` : null) +
-    row('Wire / geosynthetics', otherDirect ? cr(otherDirect) : null) +
-    row('Wall called gabion', t.possible_value_cr ? cr(t.possible_value_cr) : null) +
-    row('Gabion share', t.gabion_share_pct ? Number(t.gabion_share_pct).toFixed(3) + '%' : null) +
-    row('Named in docs', t.core_hits ? t.core_hits + ' times' : null) + '</dl>';
-  if (otherDirect && t.gabion_value_cr)
-    h += `<div class=mtext>Cross-sell after the gabion order lands.</div>`;
-  // Concrete is shown so the schedule still reconciles, and so it is obvious how
-  // much of the contract is simply not ours to quote.
-  if (t.cement_value_cr)
-    h += `<div class=mtext><b>${cr(t.cement_value_cr)}</b> of this contract is
-      concrete work — retaining, toe and breast walls, RCC drains and parapets.
-      Not supplyable unless a drawing calls for gabion.</div>`;
+  if (!gabOf(t) && t.hit_totals && t.hit_totals.core)
+    h += `<div class=mrow><div class=mtext>The documents name it
+      <b>${t.hit_totals.core} times</b>, but this package ships <b>no Schedule-H</b>,
+      so there is no weightage to price it from. <b>The absence is of a number, not
+      of the work.</b> Ask ${esc((t.award && t.award.winner) || 'the contractor')} directly.</div></div>`;
 
-  // The lines the documents actually bill. A quantity here is an order size, so
-  // the ones that name the product and carry a number come first.
-  const bq = (D.boq[t.tender_id] || []).slice().sort((x, y) =>
-    (y.core_match && y.quantity != null) - (x.core_match && x.quantity != null) ||
-    (y.core_match - x.core_match) || ((y.quantity != null) - (x.quantity != null)));
-  if (bq.length) {
-    h += `<h3 class=s>Billed lines</h3><table><tbody>` + bq.slice(0, 14).map(i => `
-      <tr><td>${i.core_match ? '<b>' : ''}${esc(String(i.description).slice(0, 80))}${
-        i.core_match ? '</b>' : ''}<span class=bsub>${esc(i.source_file || '')} ${
-        esc(i.sheet || '')}</span></td>
-      <td class=num>${i.quantity != null
-        ? Number(i.quantity).toLocaleString('en-IN') + ' ' + esc(i.unit || '') : ''}</td></tr>`)
-      .join('') + '</tbody></table>';
-    const spec = bq.find(i => i.spec);
-    if (spec) h += `<div class=mtext>Spec called for: ${
-      Object.entries(spec.spec).map(([k, v]) => esc(k.replace('_', ' ') + ' ' + v)).join(' · ')}</div>`;
-  }
+  if (cementOf(t))
+    h += `<div class=mrow><div class=mtext><b>${crv(cementOf(t))}</b> of this contract
+      is concrete work — retaining, toe and breast walls, RCC drains and parapets.
+      Not supplyable unless a drawing calls for gabion.${
+      (t.value && t.value.gabion_linked && t.value.gabion_linked.length)
+        ? ' This tender does name gabion for: ' + t.value.gabion_linked.join(', ') + '.'
+        : ''}</div></div>`;
 
   h += `<h3 class=s>Where to deliver</h3><dl class=kv>` +
-    row('State', esc(t.state)) +
-    row('Corridor', esc(t.corridor)) +
-    row('Highway', esc(t.nh)) +
-    row('Chainage', t.km_from != null ? `km ${t.km_from} – ${t.km_to}` : null) +
-    row('Length', t.km_length ? t.km_length + ' km' : null) +
-    row('Alignment', g ? Number(g.total_line_km).toLocaleString() + ' km' : null) + '</dl>';
+    row('State', esc(d.state || '')) + row('Corridor', esc(d.corridor || '')) +
+    row('Highway', esc(d.nh || '')) +
+    row('Chainage', d.km_from != null ? 'km ' + d.km_from + ' – ' + d.km_to : null) +
+    row('Length', d.km_length ? d.km_length + ' km' : null) +
+    row('Contract value', d.tender_value_cr ? crv(d.tender_value_cr) : null) +
+    row('Build period', d.period_of_work_days ? d.period_of_work_days + ' days' : null) +
+    '</dl>';
 
-  h += `<details><summary class=s style="cursor:pointer;margin:22px 0 8px">Tender paperwork</summary>
-    <dl class=kv>` +
-    row('Reference', esc(t.reference_no)) +
-    row('Inviting office', esc(t.inviting_office)) +
-    row('Contract type', esc(t.form_of_contract)) +
-    row('Published', day(t.published_date)) +
-    row('Bids closed', day(t.bid_submission_end)) +
-    row('EMD', t.emd_amount ? rupee(t.emd_amount) +
-      (t.emd_pct ? ` (${t.emd_pct}%)` : '') : null) +
-    row('Documents', t.doc_count || null) + '</dl></details>';
-
-  // Everything the Tenders tab shows, from the same builder. Head omitted - the
-  // board has already named the job at the top of this panel.
+  // Everything the Tenders tab shows, from the same builder - award, gabion value,
+  // Schedule-H, and the collapsible supply items, keyword hits, evidence,
+  // geospatial, on-disk and model sections. Head omitted: it carries id=mark.
   h += detailHTML(t, false);
-  $('req').innerHTML = h;
+  el.innerHTML = h;
+  wireDetail(el, t);
 }
 
-/* ---------- contractors ---------- */
-/* The call list. A contractor is the customer, so they are ranked by the gabion
-   sitting in the work they have actually won - not by how often they bid. Firms
-   that keep bidding and losing stay on the list underneath: they are the next
-   job's winner, and worth knowing before then. */
-function customers() {
+/* The call list: firms ranked by the gabion in what they actually won. Firms that
+   keep bidding and losing stay underneath - they win the next package. */
+const firmOf = name => (D.firms || []).find(f => f.name === name) || {};
+
+function renderCallList() {
+  const el = document.getElementById('calllist');
+  if (!el) return;
   const m = new Map();
   D.tenders.forEach(t => {
-    const aw = D.awards[t.tender_id];
-    if (!aw?.winner) return;
-    const e = m.get(aw.winner) || { name:aw.winner, jobs:[], gabion:0, other:0, won:0 };
-    e.jobs.push(t);
-    e.gabion += t.gabion_value_cr || 0;
-    e.other  += (t.direct_value_cr || 0) + (t.possible_value_cr || 0);
-    e.won    += (aw.winning_amount || 0) / 1e7;
-    m.set(aw.winner, e);
+    const w = t.award && t.award.winner;
+    if (!w) return;
+    const e = m.get(w) || { name: w, jobs: [], gabion: 0, other: 0, won: 0 };
+    e.jobs.push(t); e.gabion += gabOf(t); e.other += otherOf(t);
+    e.won += (t.award.winning_amount || 0) / 1e7;
+    m.set(w, e);
   });
-  return [...m.values()].sort((a,b) => b.gabion - a.gabion || b.other - a.other);
-}
-
-async function saveContact(name, field, value) {
-  const { error } = await SB.from('in_contractors')
-    .update({ [field]: value, updated_at: new Date().toISOString() }).eq('name', name);
-  const f = D.firms.find(x => x.name === name);
-  if (f && !error) f[field] = value;
-  return !error;
-}
-
-function renderFirms() {
-  const cust = customers();
-  const wonNames = new Set(cust.map(c => c.name));
-  // A firm can be an L1 winner in the bid tables while the tender it won is not
-  // among the ones we have read. It is still someone to call, so it belongs in
-  // the top list - with no jobs listed - rather than filed under "not winning".
-  D.firms.filter(f => f.wins > 0 && !wonNames.has(f.name)).forEach(f => {
-    cust.push({ name:f.name, jobs:[], gabion:0, other:0, won:(f.won_value||0)/1e7 });
-    wonNames.add(f.name);
-  });
-  const prospects = D.firms.filter(f => !wonNames.has(f.name))
-    .sort((a,b) => b.bids - a.bids || (a.best_rank||99) - (b.best_rank||99));
-  const contact = f => `
-    <td><input class=cin data-name="${esc(f.name)}" data-field=phone
-      value="${esc(f?.phone||'')}" placeholder="phone"></td>
-    <td><input class=cin data-name="${esc(f.name)}" data-field=notes
-      value="${esc(f?.notes||'')}" placeholder="last spoke / who / outcome"></td>`;
-
-  let h = `<h3 class=s>Won work — call these</h3>
-    <table><thead><tr><th>Contractor</th><th class=num>Jobs</th><th class=num>Gabion</th>
-    <th class=num>Other supply</th><th class=num>Contract value</th>
-    <th>Phone</th><th>Notes</th></tr></thead><tbody>` +
-    cust.map(c => {
-      const f = D.firms.find(x => x.name === c.name) || { name:c.name };
-      return `<tr><td><b>${esc(c.name)}</b><span class=bsub>${
-        c.jobs.map(t => esc(t.corridor || t.nh || t.tender_id)).join(', ')}</span></td>
-        <td class=num>${c.jobs.length}</td>
-        <td class=num>${c.gabion ? '<b>'+cr(c.gabion)+'</b>' : '—'}</td>
-        <td class=num>${c.other ? cr(c.other) : '—'}</td>
-        <td class=num>${cr(c.won)}</td>${contact(f)}</tr>`;
-    }).join('') + '</tbody></table>';
-
-  h += `<h3 class=s>Bidding but not winning yet — ${prospects.length} firms</h3>
-    <table><thead><tr><th>Contractor</th><th class=num>Bids</th><th class=num>Best</th>
-    <th>Phone</th><th>Notes</th></tr></thead><tbody>` +
-    prospects.map(f => `<tr><td>${esc(f.name)}</td><td class=num>${f.bids}</td>
-      <td class=num>${f.best_rank ? 'L'+f.best_rank : ''}</td>${contact(f)}</tr>`).join('') +
-    '</tbody></table>';
-  $('firms').innerHTML = h;
-
-  $('firms').querySelectorAll('.cin').forEach(el => el.addEventListener('change', async () => {
-    el.style.opacity = '.5';
-    const ok = await saveContact(el.dataset.name, el.dataset.field, el.value);
-    el.style.opacity = '1';
-    el.style.borderColor = ok ? '' : '#d03b3b';
-  }));
-}
-
-/* ---------- map ---------- */
-let MAP = null;
-function renderMap() {
-  const rows = Object.values(D.geo);
-  if (!rows.length || !window.L) return;
-  if (!MAP) {
-    MAP = L.map('map');
-    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-      { maxZoom:19, attribution:'&copy; OpenStreetMap' }).addTo(MAP);
-    L.control.scale({ imperial:false }).addTo(MAP);
-  }
-  rows.forEach(r => L.circleMarker([r.centre_lat, r.centre_lon],
-    { radius:7, color:'#fff', weight:2, fillColor:'#2a78d6', fillOpacity:1 })
-    .bindPopup(`<b>${esc(r.tender_id)}</b><br>${Number(r.total_line_km).toLocaleString()} km`)
-    .addTo(MAP));
-  $('maplist').innerHTML = rows.map(r => `<div class=lrow data-id="${esc(r.tender_id)}">
-    <span class="ldot d-TRACK"></span><span><span class=lname>${esc(r.tender_id)}</span>
-    <span class=lmeta>${Number(r.total_line_km).toLocaleString()} km</span></span><span></span></div>`).join('');
-  $('maplist').querySelectorAll('.lrow').forEach(el => el.addEventListener('click', () => {
-    const r = D.geo[el.dataset.id];
-    if (r?.bbox) MAP.fitBounds([[r.bbox[1],r.bbox[0]],[r.bbox[3],r.bbox[2]]], {padding:[40,40],maxZoom:14});
-  }));
-  homeMap();
-}
-// Opens on the alignments. The regional box below is the fallback when nothing has
-// a bounding box yet, and is the right default again once the corpus reaches
-// beyond the North East.
-const REGION = [[17.5, 81.0], [29.9, 97.7]];
-function homeMap() {
-  if (!MAP) return;
-  MAP.invalidateSize();
-  const rows = Object.values(D.geo).filter(r => r.bbox && r.bbox.length === 4);
-  if (!rows.length) { MAP.fitBounds(REGION, { padding:[10,10] }); return; }
-  const lats = rows.flatMap(r => [r.bbox[1], r.bbox[3]]);
-  const lons = rows.flatMap(r => [r.bbox[0], r.bbox[2]]);
-  MAP.fitBounds([[Math.min(...lats), Math.min(...lons)],
-                 [Math.max(...lats), Math.max(...lons)]], { padding:[30,30] });
+  const cust = [...m.values()].sort((a, b) => b.gabion - a.gabion || b.other - a.other);
+  if (!cust.length) { el.innerHTML = '<div class=empty>No awards read yet.</div>'; return; }
+  el.innerHTML = `<table><thead><tr><th>Contractor</th><th class=num>Jobs</th>
+    <th class=num>Gabion</th><th class=num>Other supply</th><th class=num>Contract value</th>
+    <th>GSTIN</th><th>Where</th></tr></thead><tbody>` + cust.map(c => {
+    // The GSTIN is the one unambiguous identifier in these packs - two firms can
+    // share a trading name, none share a GSTIN - and its first two digits say
+    // where the firm is registered, which is rarely where the work is.
+    const f = firmOf(c.name);
+    return `<tr><td><b>${esc(c.name)}</b></td><td class=num>${c.jobs.length}</td>
+      <td class=num>${c.gabion ? '<b>' + crv(c.gabion) + '</b>' : '\u2014'}</td>
+      <td class=num>${c.other ? crv(c.other) : '\u2014'}</td>
+      <td class=num>${crv(c.won)}</td>
+      <td>${f.gstin ? '<code>' + esc(f.gstin) + '</code><span class=bsub>'
+             + esc(f.gst_state || '') + '</span>' : '<span class=bsub>\u2014</span>'}</td>
+      <td class=bsub>${esc(c.jobs.map(t => (t.detail && (t.detail.corridor || t.detail.nh))
+        || t.tender_id).join(', '))}</td></tr>`;
+  }).join('') + '</tbody></table>';
 }
 
 /* ---------- tabs ---------- */
 function showView(v) {
   state.view = v;
-  ['board','tenders','map','contractors','upload'].forEach(n => {
-    const el = $('view-'+n); if (el) el.hidden = n !== v;
-    const tb = document.querySelector(`.tab[data-view="${n}"]`);
-    if (tb) tb.setAttribute('aria-selected', String(n === v));
+  ['board', 'tenders', 'map', 'contractors'].forEach(name => {
+    const el = document.getElementById('view-' + name);
+    if (el) el.hidden = (name !== v);
+    const tb = document.querySelector(`.tab[data-view="${name}"]`);
+    if (tb) tb.setAttribute('aria-selected', String(name === v));
   });
-  if (v === 'map') setTimeout(homeMap, 60);
+  // Leaflet measured a 0x0 container while this pane was hidden, so re-measure AND
+  // re-apply the view. invalidateSize() on its own keeps the bogus zoom.
   if (v === 'upload') renderQueue();
+  if (v === 'map') setTimeout(() => {
+    if (window.__MAP_HOME__) window.__MAP_HOME__();
+    else if (window.__MAP__) window.__MAP__.invalidateSize();
+  }, 60);
 }
 
 /* ---------- wiring ---------- */
-$('gate').addEventListener('submit', async ev => {
-  ev.preventDefault();
-  const e = $('gerr'); e.textContent = '';
-  try {
-    await signIn($('email').value.trim(), $('pw').value);
-    await boot();
-  } catch (err) {
-    e.textContent = (err && err.message) || 'Could not sign in.';
-  }
+document.getElementById('q').addEventListener('input', e => {
+  state.q = e.target.value; renderList();
 });
-const on = (id, ev, fn) => { const el = $(id); if (el) el.addEventListener(ev, fn);
-  else console.warn('missing element:', id); };
-on('q', 'input', e => { state.q = e.target.value; renderList(); });
-on('bq', 'input', e => { board.q = e.target.value; renderBoard(); });
-on('groupby', 'change', e => { board.by = e.target.value; renderBoard(); });
-on('sortby', 'change', e => { board.sort = e.target.value; renderBoard(); });
-on('file', 'change', e => { if (e.target.files.length) upload([...e.target.files]); e.target.value=''; });
-on('refreshq', 'click', renderQueue);
-on('runinbox', 'click', runInbox);
-document.querySelectorAll('.tab[data-view]').forEach(tb =>
-  tb.addEventListener('click', () => showView(tb.dataset.view)));
+document.getElementById('sort').addEventListener('change', e => {
+  state.sort = e.target.value; renderList();
+});
+document.querySelectorAll('.chip[data-v]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const v = btn.dataset.v;
+    if (state.verdicts.has(v)) state.verdicts.delete(v); else state.verdicts.add(v);
+    btn.setAttribute('aria-pressed', String(state.verdicts.has(v)));
+    renderList();
+  });
+});
+const hd = document.getElementById('hidedone');
+if (hd) hd.addEventListener('click', () => {
+  state.hideDone = !state.hideDone;
+  hd.setAttribute('aria-pressed', String(state.hideDone));
+  renderList();
+});
+document.querySelectorAll('.tab[data-view]').forEach(tb => {
+  tb.addEventListener('click', () => showView(tb.dataset.view));
+});
+const bind = (id, ev, fn) => { const el = document.getElementById(id);
+  if (el) el.addEventListener(ev, fn); else console.warn('missing element:', id); };
+bind('bq', 'input', e => { board.q = e.target.value; renderBoard(); });
+bind('groupby', 'change', e => { board.by = e.target.value; renderBoard(); });
+bind('bsort', 'change', e => { board.sort = e.target.value; renderBoard(); });
+if (CAPS.upload) {
+  bind('file', 'change', e => { if (e.target.files.length) upload([...e.target.files]); e.target.value = ''; });
+  bind('runinbox', 'click', runInbox);
+  bind('refreshq', 'click', renderQueue);
+}
 
+document.addEventListener('keydown', e => {
+  if (e.target.matches('input, textarea, select')) return;
+  if (state.view !== 'tenders') return;
+  if (e.key === 'j' || e.key === 'ArrowDown') { e.preventDefault(); move(1); }
+  else if (e.key === 'k' || e.key === 'ArrowUp') { e.preventDefault(); move(-1); }
+  else if (e.key === 'x' && state.sel) { e.preventDefault(); toggleDone(state.sel); }
+  else if (e.key === '/') { e.preventDefault(); document.getElementById('q').focus(); }
+});
+
+async function start() {
+  if (BOOT.mode === 'cloud') await loadCloud(); else loadLocal();
+  const app = document.getElementById('app');
+  if (app) app.hidden = false;
+  const gate = document.getElementById('gate');
+  if (gate) gate.hidden = true;
+  showView(state.view || 'board');
+  renderList(); renderBoard(); renderCallList();
+  if (typeof renderPills === 'function') renderPills();
+  if (typeof renderMapView === 'function') renderMapView();
+}
+
+// Local has its data already; cloud waits for a successful sign-in.
+if (BOOT.mode === 'local') start();
+else window.__START__ = start;
+</script>
+<script>
+// RLS does the gating: an unauthenticated read returns zero rows, not an error,
+// so a successful query with data is itself proof of authorisation.
+document.getElementById('gate').addEventListener('submit', async ev => {
+  ev.preventDefault();
+  const e = document.getElementById('gerr'); e.textContent = '';
+  try {
+    const { error } = await window.__SB__.auth.signInWithPassword({
+      email: document.getElementById('email').value.trim(),
+      password: document.getElementById('pw').value });
+    if (error) throw error;
+    await window.__START__();
+  } catch (err) { e.textContent = (err && err.message) || 'Could not sign in.'; }
+});
 // Resume an existing session so a refresh does not ask again.
-SB.auth.getSession().then(({ data }) => { if (data.session) boot().catch(()=>{}); });
+window.__SB__.auth.getSession().then(({ data }) => {
+  if (data.session) window.__START__().catch(() => {});
+});
 </script>
 </body></html>
