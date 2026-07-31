@@ -1121,16 +1121,28 @@ function adapt(rows, extra) {
       period_of_work_days: t.period_of_work_days, published_date: t.published_date,
       bid_submission_end: t.bid_submission_end, status: t.status,
     },
-    value: (t.gabion_value_cr != null || (sched[t.tender_id] || []).length) ? {
-      award_cr: t.award_cr, gabion_value_cr: t.gabion_value_cr,
-      gabion_share_pct: t.gabion_share_pct, direct_value_cr: t.direct_value_cr,
-      possible_value_cr: t.possible_value_cr, cement_value_cr: t.cement_value_cr,
-      gabion_linked: t.gabion_linked || [],
-      schedule: (sched[t.tender_id] || []).map(i => ({
-        group: i.grp, group_pct: i.group_pct, item: i.item, item_pct: i.item_pct,
-        share_pct: i.share_pct, value_cr: i.value_cr, supply: i.supply,
-        gabion: i.is_gabion, bundled: i.bundled, list_ok: i.list_ok })),
-    } : null,
+    value: (t.gabion_value_cr != null || (sched[t.tender_id] || []).length)
+      ? (() => {
+          const all = (sched[t.tender_id] || []).map(i => ({
+            group: i.grp, group_pct: i.group_pct, item: i.item, item_pct: i.item_pct,
+            share_pct: i.share_pct, value_cr: i.value_cr, supply: i.supply,
+            gabion: i.is_gabion, bundled: i.bundled,
+            list_sums_to: i.list_sums_to, list_ok: i.list_ok }));
+          // value.json carries BOTH: `items` is the gabion rows alone (what the
+          // headline table shows) and `schedule` is the whole weightage list.
+          // Producing only `schedule` here is what broke the hosted detail panel -
+          // `v.items.map` threw and took the entire page down with it.
+          const items = all.filter(i => i.gabion);
+          return {
+            award_cr: t.award_cr, gabion_value_cr: t.gabion_value_cr,
+            gabion_share_pct: t.gabion_share_pct, direct_value_cr: t.direct_value_cr,
+            possible_value_cr: t.possible_value_cr, cement_value_cr: t.cement_value_cr,
+            gabion_linked: t.gabion_linked || [],
+            any_bundled: items.some(i => i.bundled),
+            all_lists_ok: all.every(i => i.list_ok !== false),
+            items, schedule: all };
+        })()
+      : null,
     award: awards[t.tender_id] || null,
     supply: boq[t.tender_id] || [],
     geo: geo[t.tender_id] || null,
@@ -1140,8 +1152,15 @@ function adapt(rows, extra) {
                source: f.source_file, page: f.page, text: f.snippet, kind: f.kind,
                supply: f.supply_score, adjacency: f.adjacency_score,
                verdict: f.verdict, entities: f.entities || [], cite: null })) },
+    // Supabase holds no per-term keyword counts, no evidence snippets and no
+    // raw BoQ rows - by design, that is bulk we deliberately do not ship. The
+    // sections that read them hide themselves when these are empty.
+    hits: t.hits || {},
     evidence: t.evidence || [], evidence_total: t.evidence_total || 0,
-    boq: t.boq || [], quantities: t.quantities || [],
+    evidence_truncated: false,
+    boq: t.boq || [], boq_total: (boq[t.tender_id] || []).length,
+    geo_files: (geo[t.tender_id] || {}).files || [],
+    quantities: t.quantities || [],
     portal_url: t.portal_url || null,
   }));
 }
@@ -1314,8 +1333,8 @@ function toggleDone(id) {
 /* ---------- detail ---------- */
 function tierBlock(t) {
   return ['core', 'spec', 'application', 'adjacent'].map(tier => {
-    const hits = t.hits[tier] || {};
-    const total = t.hit_totals[tier] || 0;
+    const hits = (t.hits || {})[tier] || {};
+    const total = (t.hit_totals || {})[tier] || 0;
     const list = Object.entries(hits).slice(0, 14)
       .map(([k, v]) => `${esc(k)} \u00d7${v}`).join(' \u00b7 ');
     return `<div class="tierrow${total ? '' : ' empty'}">
@@ -1378,7 +1397,7 @@ function detailHTML(t, withHead = true) {
         v.award_cr ? v.award_cr.toLocaleString() : '?'} Cr awarded</span></div>`;
     h += '<table class=qty><thead><tr><th>Payment item</th><th class=num>Group</th>' +
       '<th class=num>Item</th><th class=num>Share</th><th class=num>Value</th></tr></thead><tbody>' +
-      v.items.map(i => `<tr><td>${esc(i.item)}</td>
+      (v.items || []).map(i => `<tr><td>${esc(i.item)}</td>
         <td class=num>${i.group_pct.toFixed(2)}%</td>
         <td class=num>${i.item_pct.toFixed(2)}%</td>
         <td class=num>${i.share_pct.toFixed(3)}%</td>
