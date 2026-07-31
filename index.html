@@ -1229,10 +1229,10 @@ function renderReq() {
   // here" on jobs whose documents name it outright.
   if (!t.gabion_value_cr && t.core_hits)
     h += `<h3 class=s>What we could supply</h3><div class=mrow>
-      <div class=mtext>The documents name gabion <b>${t.core_hits} times</b>, but this
-      contract has no Schedule-H weightages — it is ${esc(t.form_of_contract || 'not an EPC contract')},
-      priced per item. <b>No rupee value can be derived.</b> Read the BoQ lines below
-      and ask the contractor directly.</div></div>`;
+      <div class=mtext>The documents name it <b>${t.core_hits} times</b>, but this
+      package ships <b>no Schedule-H</b>, so there is no weightage to price it from.
+      <b>The absence is of a number, not of the work.</b> Read the billed lines below
+      and ask ${esc(D.awards[t.tender_id]?.winner || 'the contractor')} directly.</div></div>`;
   if (t.gabion_value_cr || !t.core_hits)
   h += `<h3 class=s>What we could supply</h3><dl class=kv>` +
     row('Gabion', t.gabion_value_cr ? `<b>${cr(t.gabion_value_cr)}</b>` : null) +
