@@ -757,8 +757,42 @@ tr.sup-possible td{background:color-mix(in srgb,var(--review) 12%,transparent)}
 .panel{flex:1;min-height:0;overflow-y:auto;padding:18px}
 footer.hint{flex:none;padding:8px 18px;border-top:1px solid var(--border);
  color:var(--muted);font-size:11.5px;background:var(--surface)}
+/* ---- board ---- */
+/* Three quarters list, one quarter summary. The list is the working surface;
+   the summary only has to answer "what does this one need from me". */
+.boardsplit{flex:1;min-height:0;display:grid;grid-template-columns:3fr 1fr}
+.boardlist{overflow:auto;min-height:0;border-right:1px solid var(--border);background:var(--surface)}
+.reqpane{overflow-y:auto;min-height:0;padding:16px 18px 60px}
+table.board{border:none;border-radius:0}
+table.board th{position:sticky;top:0;z-index:2;background:var(--surface);
+ box-shadow:inset 0 -1px 0 var(--grid);white-space:nowrap}
+table.board td{border-top:1px solid var(--grid);vertical-align:top}
+tr.grp th{position:sticky;top:26px;z-index:1;background:color-mix(in srgb,var(--accent) 9%,var(--surface));
+ color:var(--ink);font-size:11.5px;text-transform:none;letter-spacing:0;font-weight:600;
+ padding:7px 9px;box-shadow:inset 0 -1px 0 var(--grid)}
+tr.grp th .gcount{color:var(--muted);font-weight:400;margin-left:8px}
+tr.grp th .gval{float:right;font-variant-numeric:tabular-nums;color:var(--ink-2);font-weight:500}
+tr.brow{cursor:pointer}
+tr.brow:hover td{background:color-mix(in srgb,var(--accent) 7%,transparent)}
+tr.brow[aria-selected=true] td{background:color-mix(in srgb,var(--accent) 14%,transparent)}
+tr.brow[aria-selected=true] td:first-child{box-shadow:inset 3px 0 0 var(--accent)}
+.btitle{display:block;max-width:46ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bsub{display:block;color:var(--muted);font-size:11px;margin-top:1px}
+.tagv{display:inline-block;padding:1px 6px;border-radius:999px;font-size:10.5px;font-weight:600}
+.tagv.TRACK{background:color-mix(in srgb,var(--track) 20%,transparent);color:var(--track)}
+.tagv.REVIEW{background:color-mix(in srgb,var(--review) 24%,transparent);color:#8a6200}
+.tagv.SKIP{background:color-mix(in srgb,var(--skip) 20%,transparent);color:var(--muted)}
+.warn{color:#d03b3b;font-weight:600}
+.toolbar select{padding:7px 9px;font:inherit;font-size:12.5px;background:var(--plane);
+ color:var(--ink);border:1px solid var(--rule);border-radius:7px}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:3px 10px;font-size:12.5px;margin:0 0 4px}
+.kv dt{color:var(--muted);white-space:nowrap}
+.kv dd{margin:0;font-variant-numeric:tabular-nums;text-align:right;word-break:break-word}
+.reqhead{font-size:13.5px;font-weight:600;line-height:1.35;margin:0 0 2px}
+.reqid{font-size:11.5px;color:var(--muted);margin-bottom:12px}
 @media(max-width:860px){.split{grid-template-columns:1fr}.listpane{max-height:46vh}
- body{overflow:auto;height:auto}.mapsplit{grid-template-columns:1fr}}
+ body{overflow:auto;height:auto}.mapsplit{grid-template-columns:1fr}
+ .boardsplit{grid-template-columns:1fr}.boardlist{max-height:55vh}}
 </style>
 </head><body>
 
@@ -778,13 +812,41 @@ footer.hint{flex:none;padding:8px 18px;border-top:1px solid var(--border);
       <span class=pills id=pills></span>
     </div>
     <div class=tabs>
-      <button class=tab data-view=tenders aria-selected=true>Tenders</button>
+      <button class=tab data-view=board aria-selected=true>Board</button>
+      <button class=tab data-view=tenders aria-selected=false>Tenders</button>
       <button class=tab data-view=map aria-selected=false>Map</button>
       <button class=tab data-view=contractors aria-selected=false>Contractors</button>
+      <button class=tab data-view=upload aria-selected=false>Add tenders</button>
     </div>
   </div>
 
-  <section class=view id=view-tenders>
+  <section class=view id=view-board>
+    <div class=toolbar>
+      <label for=groupby class=tcount style="margin:0">Group by</label>
+      <select id=groupby>
+        <option value=state selected>State</option>
+        <option value=inviting_office>Bid inviting office</option>
+        <option value=corridor>Corridor</option>
+        <option value=nh>Highway</option>
+        <option value=status>Status</option>
+        <option value=verdict>Screen verdict</option>
+      </select>
+      <select id=sortby>
+        <option value=value selected>Sort by value</option>
+        <option value=gabion>Sort by gabion value</option>
+        <option value=date>Sort by closing date</option>
+        <option value=chain>Sort by chainage</option>
+      </select>
+      <input type=search id=bq placeholder="Search title, corridor, office, winner…">
+      <span class=tcount id=bcount></span>
+    </div>
+    <div class=boardsplit>
+      <div class=boardlist id=boardlist></div>
+      <div class=reqpane id=req></div>
+    </div>
+  </section>
+
+  <section class=view id=view-tenders hidden>
     <div class=toolbar>
       <input type=search id=q placeholder="Search tender…">
       <span id=chips class=chipwrap></span>
@@ -807,6 +869,23 @@ footer.hint{flex:none;padding:8px 18px;border-top:1px solid var(--border);
 
   <section class=view id=view-contractors hidden>
     <div class=panel id=firms></div>
+  </section>
+
+  <section class=view id=view-upload hidden>
+    <div class=panel>
+      <h3 class=s>Add tenders</h3>
+      <p class=mtext style="max-width:62ch">Drop the tender ZIP here and it joins the
+        queue. The pipeline machine collects it on its next check and runs the full
+        pass at home — unzip, screen, quantities, Schedule-H, map. Nothing is
+        processed in the browser, so a large archive is fine; it only has to upload.</p>
+      <p><input type=file id=file multiple accept=".zip,.rar,.7z"></p>
+      <h3 class=s>Queue <button class=chip id=refreshq style="margin-left:8px">Refresh</button></h3>
+      <div id=uplog></div>
+      <div id=queue style="margin-top:10px"></div>
+      <p class=mtext style="margin-top:14px">Status stays <b>queued</b> until the
+        pipeline machine is running <code>watch.py --cloud</code>. If it sits there,
+        that machine is off.</p>
+    </div>
   </section>
 </div>
 
@@ -836,9 +915,10 @@ const esc = s => String(s ?? '').replace(/[&<>"]/g, c =>
 const cr = v => v == null ? '—' : '₹' + Number(v).toLocaleString('en-IN',
   {minimumFractionDigits:2, maximumFractionDigits:2}) + ' Cr';
 
-const D = { tenders: [], sched: {}, firms: [], geo: {} };
-const state = { q:'', verdicts:new Set(['TRACK','REVIEW','SKIP','RESULT']), sel:null, view:'tenders' };
+const D = { tenders: [], sched: {}, firms: [], geo: {}, awards: {} };
+const state = { q:'', verdicts:new Set(['TRACK','REVIEW','SKIP','RESULT']), sel:null, view:'board' };
 const order = { TRACK:0, REVIEW:1, RESULT:2, SKIP:3 };
+const board = { by:'state', sort:'value', q:'', sel:null };
 
 /* ---------- auth ---------- */
 async function signIn(email, password) {
@@ -849,21 +929,23 @@ async function signIn(email, password) {
 async function boot() {
   // RLS does the gating: an unauthenticated read returns zero rows, not an error,
   // so a successful query with data is itself proof of authorisation.
-  const [t, s, f, g] = await Promise.all([
+  const [t, s, f, g, a] = await Promise.all([
     SB.from('in_tenders').select('*').order('score', { ascending:false }),
     SB.from('in_schedule_h').select('*'),
     SB.from('in_contractors').select('*').order('wins', { ascending:false }).order('bids', { ascending:false }),
     SB.from('in_geo').select('*'),
+    SB.from('in_awards').select('*'),
   ]);
   if (t.error) throw t.error;
   D.tenders = t.data || [];
   D.firms = f.data || [];
   (s.data || []).forEach(r => (D.sched[r.tender_id] ||= []).push(r));
   (g.data || []).forEach(r => D.geo[r.tender_id] = r);
+  (a.data || []).forEach(r => D.awards[r.tender_id] = r);
 
   $('gate').hidden = true;
   $('app').hidden = false;
-  renderPills(); renderChips(); renderList(); renderFirms(); renderMap();
+  renderPills(); renderChips(); renderList(); renderFirms(); renderMap(); renderBoard();
 }
 
 /* ---------- header ---------- */
@@ -949,6 +1031,185 @@ function renderDetail() {
   $('detail').innerHTML = h;
 }
 
+/* ---------- uploads ---------- */
+/* Hands an archive to the laptop. The browser only puts the file in the bucket
+   and adds a queue row; watch.py picks it up, and the pipeline still runs at
+   home. Nothing is processed here. */
+async function upload(files) {
+  const out = $('uplog');
+  for (const f of files) {
+    const path = `${Date.now()}_${f.name.replace(/[^\w.\-]/g, '_')}`;
+    const line = document.createElement('div');
+    line.className = 'mtext';
+    line.textContent = `${f.name} — uploading ${(f.size/1e6).toFixed(1)} MB…`;
+    out.prepend(line);
+    const up = await SB.storage.from('tender-inbox').upload(path, f, { upsert:false });
+    if (up.error) { line.innerHTML = `${esc(f.name)} — <span class=warn>${esc(up.error.message)}</span>`; continue; }
+    const ins = await SB.from('in_uploads').insert(
+      { filename:f.name, size_bytes:f.size, storage_path:path });
+    line.innerHTML = ins.error
+      ? `${esc(f.name)} — <span class=warn>${esc(ins.error.message)}</span>`
+      : `${esc(f.name)} — queued. It will be picked up next time the pipeline machine checks in.`;
+  }
+  renderQueue();
+}
+async function renderQueue() {
+  const { data, error } = await SB.from('in_uploads').select('*')
+    .order('uploaded_at', { ascending:false }).limit(25);
+  if (error) { $('queue').innerHTML = `<div class=mtext>Queue unavailable: ${esc(error.message)}</div>`; return; }
+  if (!data.length) { $('queue').innerHTML = '<div class=mtext>Nothing uploaded yet.</div>'; return; }
+  $('queue').innerHTML = `<table><thead><tr><th>File</th><th class=num>Size</th>
+    <th>Uploaded</th><th>Status</th><th>Note</th></tr></thead><tbody>` +
+    data.map(r => `<tr><td>${esc(r.filename)}</td>
+      <td class=num>${r.size_bytes ? (r.size_bytes/1e6).toFixed(1)+' MB' : '—'}</td>
+      <td>${day(r.uploaded_at)}</td>
+      <td><span class="tagv ${r.status==='done'?'TRACK':r.status==='failed'?'REVIEW':'SKIP'}">${esc(r.status)}</span></td>
+      <td class=mtext>${esc((r.note||'').slice(0,110))}</td></tr>`).join('') + '</tbody></table>';
+}
+
+/* ---------- board ---------- */
+/* The view that replaces the tender board: everything grouped under the heading
+   you care about that day, with one tender's requirements open beside it. */
+const GROUPS = {
+  state:           ['State',            t => t.state],
+  inviting_office: ['Bid inviting office', t => t.inviting_office],
+  corridor:        ['Corridor',         t => t.corridor],
+  nh:              ['Highway',          t => t.nh],
+  status:          ['Status',           t => bstatus(t)],
+  verdict:         ['Screen verdict',   t => t.verdict],
+};
+const day = s => !s ? '—' : new Date(s).toLocaleDateString('en-IN',
+  { day:'2-digit', month:'short', year:'numeric' });
+// EMD runs from a few lakh to over eleven crore across these packages. Pinning it
+// to one unit makes the big ones unreadable ("₹1,125.5 L"), so it switches at 1 Cr.
+const rupee = v => v == null ? '—'
+  : Number(v) >= 1e7 ? cr(Number(v)/1e7)
+  : '₹' + (Number(v)/1e5).toLocaleString('en-IN', { maximumFractionDigits:2 }) + ' L';
+// An award decides the status regardless of the calendar: a tender whose date has
+// passed but which nobody has won yet is still worth chasing, and one that is
+// awarded is a contractor to call, not a deadline to watch.
+function bstatus(t) {
+  if (D.awards[t.tender_id]) return 'Awarded';
+  if (t.status === 'live') return 'Live';
+  return t.status === 'closed' ? 'Closed' : 'Unknown';
+}
+
+function boardRows() {
+  const q = board.q.toLowerCase();
+  const rows = D.tenders.filter(t => !q ||
+    (t.tender_id + ' ' + (t.title||'') + ' ' + (t.corridor||'') + ' ' +
+     (t.inviting_office||'') + ' ' + (D.awards[t.tender_id]?.winner||'')).toLowerCase().includes(q));
+  const key = GROUPS[board.by][1];
+  const cmp = {
+    value: (a,b) => (b.tender_value_cr||0) - (a.tender_value_cr||0),
+    gabion:(a,b) => (b.gabion_value_cr||0) - (a.gabion_value_cr||0),
+    date:  (a,b) => String(b.bid_submission_end||'').localeCompare(String(a.bid_submission_end||'')),
+    chain: (a,b) => (a.km_from ?? 1e9) - (b.km_from ?? 1e9),
+  }[board.sort];
+  const g = new Map();
+  rows.forEach(t => {
+    const k = key(t) || 'Not stated';
+    if (!g.has(k)) g.set(k, []);
+    g.get(k).push(t);
+  });
+  g.forEach(v => v.sort(cmp));
+  // Biggest pot of money first, so the group worth reading is at the top.
+  return [...g.entries()].sort((a,b) =>
+    b[1].reduce((s,t)=>s+(t.tender_value_cr||0),0) -
+    a[1].reduce((s,t)=>s+(t.tender_value_cr||0),0));
+}
+
+function renderBoard() {
+  const groups = boardRows();
+  const n = groups.reduce((s,[,v]) => s + v.length, 0);
+  $('bcount').textContent = `${n} of ${D.tenders.length} · ${groups.length} ${
+    groups.length === 1 ? 'group' : 'groups'}`;
+  if (!n) { $('boardlist').innerHTML = '<div class=empty>Nothing matches.</div>';
+    $('req').innerHTML = ''; return; }
+  const all = groups.flatMap(([,v]) => v);
+  if (!all.some(t => t.tender_id === board.sel)) board.sel = all[0].tender_id;
+
+  let h = `<table class=board><thead><tr><th>Tender</th><th class=num>Value</th>
+    <th class=num>EMD</th><th class=num>Gabion</th><th class=num>Bids close</th>
+    <th>Status / winner</th></tr></thead><tbody>`;
+  for (const [name, items] of groups) {
+    const sum = items.reduce((s,t)=>s+(t.tender_value_cr||0),0);
+    h += `<tr class=grp><th colspan=6>${esc(name)}
+      <span class=gcount>${items.length}</span>
+      <span class=gval>${sum ? cr(sum) : ''}</span></th></tr>`;
+    for (const t of items) {
+      const aw = D.awards[t.tender_id];
+      h += `<tr class=brow data-id="${esc(t.tender_id)}" aria-selected="${t.tender_id===board.sel}">
+        <td><span class=btitle>${esc(t.title || t.tender_id)}</span>
+          <span class=bsub><span class="tagv ${t.verdict}">${t.verdict}</span>
+          ${esc(t.tender_id)}${t.km_length ? ' · ' + t.km_length + ' km' : ''}</span></td>
+        <td class=num>${t.tender_value_cr ? cr(t.tender_value_cr) : '—'}</td>
+        <td class="num${t.emd_odd?' warn':''}">${rupee(t.emd_amount)}</td>
+        <td class=num>${t.gabion_value_cr ? cr(t.gabion_value_cr) : '—'}</td>
+        <td class=num>${day(t.bid_submission_end)}</td>
+        <td>${aw ? esc(aw.winner) : bstatus(t)}</td></tr>`;
+    }
+  }
+  $('boardlist').innerHTML = h + '</tbody></table>';
+  $('boardlist').querySelectorAll('.brow').forEach(el =>
+    el.addEventListener('click', () => { board.sel = el.dataset.id; renderBoard(); }));
+  renderReq();
+}
+
+function renderReq() {
+  const t = D.tenders.find(x => x.tender_id === board.sel);
+  if (!t) { $('req').innerHTML = '<div class=empty>Select a tender.</div>'; return; }
+  const aw = D.awards[t.tender_id], g = D.geo[t.tender_id];
+  const row = (k, v) => v == null || v === '' ? '' : `<dt>${k}</dt><dd>${v}</dd>`;
+
+  let h = `<div class=reqhead>${esc(t.title || t.tender_id)}</div>
+    <div class=reqid>${esc(t.tender_id)}${t.reference_no ? ' · ' + esc(t.reference_no) : ''}</div>`;
+
+  h += `<h3 class=s>Requirement</h3><dl class=kv>` +
+    row('Estimated value', t.tender_value_cr ? cr(t.tender_value_cr) : null) +
+    row('EMD', t.emd_amount ? rupee(t.emd_amount) +
+      (t.emd_pct ? ` <span class="${t.emd_odd?'warn':''}">(${t.emd_pct}%)</span>` : '') : null) +
+    row('Completion', t.period_of_work_days ? t.period_of_work_days + ' days' : null) +
+    row('Bid validity', t.bid_validity_days ? t.bid_validity_days + ' days' : null) +
+    row('Contract', esc(t.form_of_contract)) +
+    row('Category', esc(t.product_category)) +
+    row('Type', esc(t.tender_type)) + '</dl>';
+  // The portal's EMD and its own estimate should agree at about 1%. Where they
+  // do not, the figure on the page is wrong, and quoting it would be wrong too.
+  if (t.emd_odd) h += `<div class=mtext><span class=warn>EMD is ${t.emd_pct}% of the
+    estimate</span>, not the usual 1% — check the corrigenda before relying on it.</div>`;
+
+  h += `<h3 class=s>Dates</h3><dl class=kv>` +
+    row('Published', day(t.published_date)) +
+    row('Docs close', day(t.doc_download_end)) +
+    row('Bids close', day(t.bid_submission_end)) +
+    row('Opening', day(t.bid_opening_date)) +
+    row('Status', bstatus(t)) + '</dl>';
+
+  h += `<h3 class=s>Where</h3><dl class=kv>` +
+    row('State', esc(t.state)) +
+    row('Office', esc(t.inviting_office)) +
+    row('Location', esc(t.location)) +
+    row('Highway', esc(t.nh)) +
+    row('Corridor', esc(t.corridor)) +
+    row('Chainage', t.km_from != null ? `km ${t.km_from} – ${t.km_to}` : null) +
+    row('Alignment', g ? Number(g.total_line_km).toLocaleString() + ' km' : null) + '</dl>';
+
+  h += `<h3 class=s>For us</h3><dl class=kv>` +
+    row('Gabion', t.gabion_value_cr ? cr(t.gabion_value_cr) : null) +
+    row('Direct supply', t.direct_value_cr ? cr(t.direct_value_cr) : null) +
+    row('Possible', t.possible_value_cr ? cr(t.possible_value_cr) : null) +
+    row('Core mentions', t.core_hits || null) +
+    row('Documents', t.doc_count || null) + '</dl>';
+
+  if (aw) h += `<h3 class=s>Awarded to</h3><dl class=kv>` +
+    row('Contractor', esc(aw.winner)) +
+    row('Amount', aw.winning_amount ? cr(aw.winning_amount/1e7) : null) +
+    row('Date', esc(aw.contract_date)) +
+    row('Bidders', aw.bidder_count) + '</dl>';
+  $('req').innerHTML = h;
+}
+
 /* ---------- contractors ---------- */
 function renderFirms() {
   $('firms').innerHTML = `<table><thead><tr><th>Contractor</th><th class=num>Bids</th>
@@ -992,12 +1253,13 @@ function homeMap() {
 /* ---------- tabs ---------- */
 function showView(v) {
   state.view = v;
-  ['tenders','map','contractors'].forEach(n => {
+  ['board','tenders','map','contractors','upload'].forEach(n => {
     const el = $('view-'+n); if (el) el.hidden = n !== v;
     const tb = document.querySelector(`.tab[data-view="${n}"]`);
     if (tb) tb.setAttribute('aria-selected', String(n === v));
   });
   if (v === 'map') setTimeout(homeMap, 60);
+  if (v === 'upload') renderQueue();
 }
 
 /* ---------- wiring ---------- */
@@ -1014,6 +1276,11 @@ $('gate').addEventListener('submit', async ev => {
 const on = (id, ev, fn) => { const el = $(id); if (el) el.addEventListener(ev, fn);
   else console.warn('missing element:', id); };
 on('q', 'input', e => { state.q = e.target.value; renderList(); });
+on('bq', 'input', e => { board.q = e.target.value; renderBoard(); });
+on('groupby', 'change', e => { board.by = e.target.value; renderBoard(); });
+on('sortby', 'change', e => { board.sort = e.target.value; renderBoard(); });
+on('file', 'change', e => { if (e.target.files.length) upload([...e.target.files]); e.target.value=''; });
+on('refreshq', 'click', renderQueue);
 document.querySelectorAll('.tab[data-view]').forEach(tb =>
   tb.addEventListener('click', () => showView(tb.dataset.view)));
 
