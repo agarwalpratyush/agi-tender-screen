@@ -1086,7 +1086,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
 <script>
 window.__SB__ = supabase.createClient("https://qqzkqaedroeehuewmiic.supabase.co", "sb_publishable_2kQnRCAIxSyOfi4wsQrKDA_KHFHOJsr");
 window.__BOOT__ = { mode: "cloud",
-  caps: { citations: false, review: false, upload: true } };
+  caps: { citations: false, review: true, upload: true } };
 </script>
 <script>
 /* ---------- boot ---------- */
@@ -1196,12 +1196,34 @@ function loadLocal() {
 const STORE = 'agi-tender-reviewed';
 const order = { TRACK: 0, REVIEW: 1, RESULT: 2, SKIP: 3 };
 
+/* Reviewed state. Online it lives in `in_reviews` keyed by account, so a job
+   marked on the phone is marked on the laptop; RLS scopes rows to the signer, so
+   one person's triage never overwrites another's. Offline there is no account to
+   key on, so it stays in this browser's localStorage. Same button either way. */
 function loadDone() {
   try { return new Set(JSON.parse(localStorage.getItem(STORE) || '[]')); }
   catch (e) { return new Set(); }
 }
 function saveDone(s) {
+  if (BOOT.mode === 'cloud') return;          // the write happens per-toggle
   try { localStorage.setItem(STORE, JSON.stringify([...s])); } catch (e) {}
+}
+async function loadReviews() {
+  if (BOOT.mode !== 'cloud' || !window.__SB__) return;
+  const { data, error } = await window.__SB__.from('in_reviews')
+    .select('tender_id').eq('reviewed', true);
+  if (!error && data) state.done = new Set(data.map(r => r.tender_id));
+}
+async function pushReview(tid, reviewed) {
+  if (BOOT.mode !== 'cloud' || !window.__SB__) return;
+  const sb = window.__SB__;
+  if (reviewed) {
+    await sb.from('in_reviews').upsert(
+      { tender_id: tid, reviewed: true, updated_at: new Date().toISOString() },
+      { onConflict: 'tender_id,user_id' });
+  } else {
+    await sb.from('in_reviews').delete().eq('tender_id', tid);
+  }
 }
 
 const state = {
@@ -1325,9 +1347,14 @@ function move(delta) {
 }
 
 function toggleDone(id) {
-  if (state.done.has(id)) state.done.delete(id); else state.done.add(id);
+  const now = !state.done.has(id);
+  if (now) state.done.add(id); else state.done.delete(id);
   saveDone(state.done);
+  // Fire and forget: the UI must not wait on the network to tick a box. A failed
+  // write is recoverable - the mark simply is not there on the next device.
+  pushReview(id, now).catch(() => {});
   renderList();
+  renderBoard();
 }
 
 /* ---------- detail ---------- */
@@ -1977,7 +2004,7 @@ document.addEventListener('keydown', e => {
 });
 
 async function start() {
-  if (BOOT.mode === 'cloud') await loadCloud(); else loadLocal();
+  if (BOOT.mode === 'cloud') { await loadCloud(); await loadReviews(); } else loadLocal();
   const app = document.getElementById('app');
   if (app) app.hidden = false;
   const gate = document.getElementById('gate');
