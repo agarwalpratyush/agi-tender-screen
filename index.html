@@ -783,6 +783,11 @@ tr.brow[aria-selected=true] td:first-child{box-shadow:inset 3px 0 0 var(--accent
 .tagv.REVIEW{background:color-mix(in srgb,var(--review) 24%,transparent);color:#8a6200}
 .tagv.SKIP{background:color-mix(in srgb,var(--skip) 20%,transparent);color:var(--muted)}
 .warn{color:#d03b3b;font-weight:600}
+.cin{width:100%;min-width:90px;padding:3px 6px;font:inherit;font-size:12px;
+ background:transparent;color:var(--ink);border:1px solid transparent;border-radius:5px}
+.cin:hover{border-color:var(--grid)}
+.cin:focus{border-color:var(--accent);background:var(--plane);outline:none}
+details summary::-webkit-details-marker{color:var(--muted)}
 .toolbar select{padding:7px 9px;font:inherit;font-size:12.5px;background:var(--plane);
  color:var(--ink);border:1px solid var(--rule);border-radius:7px}
 .kv{display:grid;grid-template-columns:auto 1fr;gap:3px 10px;font-size:12.5px;margin:0 0 4px}
@@ -815,7 +820,7 @@ tr.brow[aria-selected=true] td:first-child{box-shadow:inset 3px 0 0 var(--accent
       <button class=tab data-view=board aria-selected=true>Board</button>
       <button class=tab data-view=tenders aria-selected=false>Tenders</button>
       <button class=tab data-view=map aria-selected=false>Map</button>
-      <button class=tab data-view=contractors aria-selected=false>Contractors</button>
+      <button class=tab data-view=contractors aria-selected=false>Call list</button>
       <button class=tab data-view=upload aria-selected=false>Add tenders</button>
     </div>
   </div>
@@ -824,17 +829,18 @@ tr.brow[aria-selected=true] td:first-child{box-shadow:inset 3px 0 0 var(--accent
     <div class=toolbar>
       <label for=groupby class=tcount style="margin:0">Group by</label>
       <select id=groupby>
-        <option value=state selected>State</option>
-        <option value=inviting_office>Bid inviting office</option>
+        <option value=winner selected>Contractor to call</option>
+        <option value=state>State</option>
         <option value=corridor>Corridor</option>
+        <option value=status>Where it stands</option>
         <option value=nh>Highway</option>
-        <option value=status>Status</option>
-        <option value=verdict>Screen verdict</option>
+        <option value=inviting_office>Bid inviting office</option>
       </select>
       <select id=sortby>
-        <option value=value selected>Sort by value</option>
-        <option value=gabion>Sort by gabion value</option>
-        <option value=date>Sort by closing date</option>
+        <option value=gabion selected>Sort by gabion</option>
+        <option value=total>Sort by total supply</option>
+        <option value=date>Sort by award date</option>
+        <option value=value>Sort by contract size</option>
         <option value=chain>Sort by chainage</option>
       </select>
       <input type=search id=bq placeholder="Search title, corridor, office, winner…">
@@ -918,7 +924,7 @@ const cr = v => v == null ? '—' : '₹' + Number(v).toLocaleString('en-IN',
 const D = { tenders: [], sched: {}, firms: [], geo: {}, awards: {} };
 const state = { q:'', verdicts:new Set(['TRACK','REVIEW','SKIP','RESULT']), sel:null, view:'board' };
 const order = { TRACK:0, REVIEW:1, RESULT:2, SKIP:3 };
-const board = { by:'state', sort:'value', q:'', sel:null };
+const board = { by:'winner', sort:'gabion', q:'', sel:null };
 
 /* ---------- auth ---------- */
 async function signIn(email, password) {
@@ -954,9 +960,9 @@ function renderPills() {
   const gab = D.tenders.reduce((a,t) => a + (Number(t.gabion_value_cr)||0), 0);
   const poss = D.tenders.reduce((a,t) => a + (Number(t.possible_value_cr)||0), 0);
   $('pills').innerHTML =
-    `<span><b>${n('TRACK')}</b> track</span><span><b>${n('REVIEW')}</b> review</span>` +
-    `<span><b>${cr(gab)}</b> gabion</span><span><b>${cr(poss)}</b> possible</span>` +
-    `<span><b>${D.tenders.length}</b> tenders</span>`;
+    `<span><b>${Object.keys(D.awards).length}</b> to call</span>` +
+    `<span><b>${cr(gab)}</b> gabion</span><span><b>${cr(poss)}</b> cross-sell</span>` +
+    `<span><b>${n('TRACK')}</b> track</span><span><b>${D.tenders.length}</b> jobs</span>`;
 }
 function renderChips() {
   $('chips').innerHTML = ['TRACK','REVIEW','SKIP','RESULT']
@@ -1071,27 +1077,41 @@ async function renderQueue() {
 /* The view that replaces the tender board: everything grouped under the heading
    you care about that day, with one tender's requirements open beside it. */
 const GROUPS = {
+  winner:          ['Contractor to call', t => D.awards[t.tender_id]?.winner],
   state:           ['State',            t => t.state],
-  inviting_office: ['Bid inviting office', t => t.inviting_office],
   corridor:        ['Corridor',         t => t.corridor],
+  status:          ['Where it stands',  t => bstatus(t)],
   nh:              ['Highway',          t => t.nh],
-  status:          ['Status',           t => bstatus(t)],
-  verdict:         ['Screen verdict',   t => t.verdict],
+  inviting_office: ['Bid inviting office', t => t.inviting_office],
 };
 const day = s => !s ? '—' : new Date(s).toLocaleDateString('en-IN',
   { day:'2-digit', month:'short', year:'numeric' });
-// EMD runs from a few lakh to over eleven crore across these packages. Pinning it
-// to one unit makes the big ones unreadable ("₹1,125.5 L"), so it switches at 1 Cr.
 const rupee = v => v == null ? '—'
   : Number(v) >= 1e7 ? cr(Number(v)/1e7)
   : '₹' + (Number(v)/1e5).toLocaleString('en-IN', { maximumFractionDigits:2 }) + ' L';
-// An award decides the status regardless of the calendar: a tender whose date has
-// passed but which nobody has won yet is still worth chasing, and one that is
-// awarded is a contractor to call, not a deadline to watch.
+
+/* A tender's state, phrased as what to do about it. We do not bid, so a closing
+   date is not a deadline - it is only the point after which a winner exists to
+   sell to. The three states that matter are: there is a contractor to ring,
+   there will be one soon, or it is still open. */
 function bstatus(t) {
-  if (D.awards[t.tender_id]) return 'Awarded';
-  if (t.status === 'live') return 'Live';
-  return t.status === 'closed' ? 'Closed' : 'Unknown';
+  if (D.awards[t.tender_id]) return 'Won — call them';
+  if (t.status === 'live') return 'Still open';
+  return t.status === 'closed' ? 'Awaiting result' : 'Unknown';
+}
+
+/* Roughly when the material is wanted. Gabion and protection work sit early in a
+   road contract - the walls go up before the pavement - so the first stretch of
+   the build period is the window to be selling into. */
+function window_(t) {
+  const aw = D.awards[t.tender_id];
+  if (!aw || !aw.contract_date) return null;
+  const start = new Date(aw.contract_date);
+  if (isNaN(start)) return null;
+  const end = new Date(start); end.setDate(end.getDate() + (t.period_of_work_days || 0));
+  const months = Math.round((Date.now() - start) / 2.63e9);
+  return { start, end, months,
+    phase: months < 0 ? 'not started' : months <= 18 ? 'in the build window' : 'later stage' };
 }
 
 function boardRows() {
@@ -1101,22 +1121,28 @@ function boardRows() {
      (t.inviting_office||'') + ' ' + (D.awards[t.tender_id]?.winner||'')).toLowerCase().includes(q));
   const key = GROUPS[board.by][1];
   const cmp = {
-    value: (a,b) => (b.tender_value_cr||0) - (a.tender_value_cr||0),
     gabion:(a,b) => (b.gabion_value_cr||0) - (a.gabion_value_cr||0),
-    date:  (a,b) => String(b.bid_submission_end||'').localeCompare(String(a.bid_submission_end||'')),
+    total: (a,b) => ((b.direct_value_cr||0)+(b.possible_value_cr||0)) -
+                    ((a.direct_value_cr||0)+(a.possible_value_cr||0)),
+    value: (a,b) => (b.tender_value_cr||0) - (a.tender_value_cr||0),
+    date:  (a,b) => String(D.awards[b.tender_id]?.contract_date||'')
+                      .localeCompare(String(D.awards[a.tender_id]?.contract_date||'')),
     chain: (a,b) => (a.km_from ?? 1e9) - (b.km_from ?? 1e9),
   }[board.sort];
   const g = new Map();
+  const blank = board.by === 'winner' ? 'No contractor yet — result not published'
+                                      : 'Not stated';
   rows.forEach(t => {
-    const k = key(t) || 'Not stated';
+    const k = key(t) || blank;
     if (!g.has(k)) g.set(k, []);
     g.get(k).push(t);
   });
   g.forEach(v => v.sort(cmp));
-  // Biggest pot of money first, so the group worth reading is at the top.
-  return [...g.entries()].sort((a,b) =>
-    b[1].reduce((s,t)=>s+(t.tender_value_cr||0),0) -
-    a[1].reduce((s,t)=>s+(t.tender_value_cr||0),0));
+  // Groups ordered by the gabion in them, not by contract size. A ₹1,100 Cr road
+  // with no protection work is worth less to us than a small one full of walls.
+  const gab = v => v.reduce((s,t) => s + (t.gabion_value_cr||0) +
+                                     (t.direct_value_cr||0)*.001, 0);
+  return [...g.entries()].sort((a,b) => gab(b[1]) - gab(a[1]) || b[1].length - a[1].length);
 }
 
 function renderBoard() {
@@ -1129,25 +1155,30 @@ function renderBoard() {
   const all = groups.flatMap(([,v]) => v);
   if (!all.some(t => t.tender_id === board.sel)) board.sel = all[0].tender_id;
 
-  let h = `<table class=board><thead><tr><th>Tender</th><th class=num>Value</th>
-    <th class=num>EMD</th><th class=num>Gabion</th><th class=num>Bids close</th>
-    <th>Status / winner</th></tr></thead><tbody>`;
+  let h = `<table class=board><thead><tr><th>Job</th><th>Who to call</th>
+    <th class=num>Gabion</th><th class=num>Other supply</th>
+    <th>Where</th><th>Build window</th></tr></thead><tbody>`;
   for (const [name, items] of groups) {
-    const sum = items.reduce((s,t)=>s+(t.tender_value_cr||0),0);
+    const gsum = items.reduce((s,t)=>s+(t.gabion_value_cr||0),0);
+    const osum = items.reduce((s,t)=>s+(t.direct_value_cr||0)+(t.possible_value_cr||0),0);
     h += `<tr class=grp><th colspan=6>${esc(name)}
-      <span class=gcount>${items.length}</span>
-      <span class=gval>${sum ? cr(sum) : ''}</span></th></tr>`;
+      <span class=gcount>${items.length} job${items.length===1?'':'s'}</span>
+      <span class=gval>${gsum ? cr(gsum) + ' gabion' : ''}${
+        osum ? ' · ' + cr(osum) + ' other' : ''}</span></th></tr>`;
     for (const t of items) {
-      const aw = D.awards[t.tender_id];
+      const aw = D.awards[t.tender_id], w = window_(t);
+      const other = (t.direct_value_cr||0) + (t.possible_value_cr||0);
       h += `<tr class=brow data-id="${esc(t.tender_id)}" aria-selected="${t.tender_id===board.sel}">
         <td><span class=btitle>${esc(t.title || t.tender_id)}</span>
-          <span class=bsub><span class="tagv ${t.verdict}">${t.verdict}</span>
-          ${esc(t.tender_id)}${t.km_length ? ' · ' + t.km_length + ' km' : ''}</span></td>
-        <td class=num>${t.tender_value_cr ? cr(t.tender_value_cr) : '—'}</td>
-        <td class="num${t.emd_odd?' warn':''}">${rupee(t.emd_amount)}</td>
-        <td class=num>${t.gabion_value_cr ? cr(t.gabion_value_cr) : '—'}</td>
-        <td class=num>${day(t.bid_submission_end)}</td>
-        <td>${aw ? esc(aw.winner) : bstatus(t)}</td></tr>`;
+          <span class=bsub>${esc(t.tender_id)}${
+            t.km_length ? ' · ' + t.km_length + ' km' : ''}${
+            t.tender_value_cr ? ' · ' + cr(t.tender_value_cr) + ' contract' : ''}</span></td>
+        <td>${aw ? '<b>'+esc(aw.winner)+'</b>' : '<span class=bsub>'+bstatus(t)+'</span>'}</td>
+        <td class=num>${t.gabion_value_cr ? '<b>'+cr(t.gabion_value_cr)+'</b>' : '—'}</td>
+        <td class=num>${other ? cr(other) : '—'}</td>
+        <td>${esc(t.corridor || t.nh || '—')}<span class=bsub>${esc(t.state||'')}</span></td>
+        <td>${w ? day(w.start) + '<span class=bsub>' + w.phase + '</span>'
+                : '<span class=bsub>—</span>'}</td></tr>`;
     }
   }
   $('boardlist').innerHTML = h + '</tbody></table>';
@@ -1165,59 +1196,133 @@ function renderReq() {
   let h = `<div class=reqhead>${esc(t.title || t.tender_id)}</div>
     <div class=reqid>${esc(t.tender_id)}${t.reference_no ? ' · ' + esc(t.reference_no) : ''}</div>`;
 
-  h += `<h3 class=s>Requirement</h3><dl class=kv>` +
-    row('Estimated value', t.tender_value_cr ? cr(t.tender_value_cr) : null) +
-    row('EMD', t.emd_amount ? rupee(t.emd_amount) +
-      (t.emd_pct ? ` <span class="${t.emd_odd?'warn':''}">(${t.emd_pct}%)</span>` : '') : null) +
-    row('Completion', t.period_of_work_days ? t.period_of_work_days + ' days' : null) +
-    row('Bid validity', t.bid_validity_days ? t.bid_validity_days + ' days' : null) +
-    row('Contract', esc(t.form_of_contract)) +
-    row('Category', esc(t.product_category)) +
-    row('Type', esc(t.tender_type)) + '</dl>';
-  // The portal's EMD and its own estimate should agree at about 1%. Where they
-  // do not, the figure on the page is wrong, and quoting it would be wrong too.
-  if (t.emd_odd) h += `<div class=mtext><span class=warn>EMD is ${t.emd_pct}% of the
-    estimate</span>, not the usual 1% — check the corrigenda before relying on it.</div>`;
+  // Who to ring comes first. Everything else on this panel is context for that
+  // call - not tender paperwork, which is a bidder's problem and sits at the end.
+  if (aw) {
+    const w = window_(t);
+    h += `<h3 class=s>Call</h3><div class=mrow>
+      <div style="font-size:14px;font-weight:600">${esc(aw.winner)}</div>
+      <div class=mtext>won ${aw.winning_amount ? cr(aw.winning_amount/1e7) : 'this job'}
+        on ${esc(aw.contract_date || '—')}${
+        aw.bidder_count ? ` · beat ${aw.bidder_count - 1} other${aw.bidder_count===2?'':'s'}` : ''}</div>
+      ${w ? `<div class=mtext>Build window ${day(w.start)} → ${day(w.end)} —
+        <b>${w.phase}</b></div>` : ''}</div>`;
+    const f = D.firms.find(x => x.name === aw.winner);
+    if (f) h += `<div class=mtext>${f.wins} win${f.wins===1?'':'s'} of ${f.bids} bids
+      across everything we have read${f.won_value ? ' · ' + cr(f.won_value/1e7) + ' won' : ''}.</div>`;
+  } else {
+    h += `<h3 class=s>Call</h3><div class=mtext>${bstatus(t)} — no contractor to
+      approach yet. Load the result package when it is published.</div>`;
+  }
 
-  h += `<h3 class=s>Dates</h3><dl class=kv>` +
-    row('Published', day(t.published_date)) +
-    row('Docs close', day(t.doc_download_end)) +
-    row('Bids close', day(t.bid_submission_end)) +
-    row('Opening', day(t.bid_opening_date)) +
-    row('Status', bstatus(t)) + '</dl>';
+  h += `<h3 class=s>What we could supply</h3><dl class=kv>` +
+    row('Gabion', t.gabion_value_cr ? `<b>${cr(t.gabion_value_cr)}</b>` : null) +
+    row('Other direct', t.direct_value_cr ? cr(t.direct_value_cr) : null) +
+    row('Possible', t.possible_value_cr ? cr(t.possible_value_cr) : null) +
+    row('Gabion share', t.gabion_share_pct ? Number(t.gabion_share_pct).toFixed(3) + '%' : null) +
+    row('Named in docs', t.core_hits ? t.core_hits + ' times' : null) + '</dl>';
+  // "Other direct" and "Possible" are only worth ringing about once the gabion is
+  // sold - they are the second conversation, not the first.
+  if ((t.direct_value_cr || t.possible_value_cr) && t.gabion_value_cr)
+    h += `<div class=mtext>Cross-sell after the gabion order lands.</div>`;
 
-  h += `<h3 class=s>Where</h3><dl class=kv>` +
+  h += `<h3 class=s>Where to deliver</h3><dl class=kv>` +
     row('State', esc(t.state)) +
-    row('Office', esc(t.inviting_office)) +
-    row('Location', esc(t.location)) +
-    row('Highway', esc(t.nh)) +
     row('Corridor', esc(t.corridor)) +
+    row('Highway', esc(t.nh)) +
     row('Chainage', t.km_from != null ? `km ${t.km_from} – ${t.km_to}` : null) +
+    row('Length', t.km_length ? t.km_length + ' km' : null) +
     row('Alignment', g ? Number(g.total_line_km).toLocaleString() + ' km' : null) + '</dl>';
 
-  h += `<h3 class=s>For us</h3><dl class=kv>` +
-    row('Gabion', t.gabion_value_cr ? cr(t.gabion_value_cr) : null) +
-    row('Direct supply', t.direct_value_cr ? cr(t.direct_value_cr) : null) +
-    row('Possible', t.possible_value_cr ? cr(t.possible_value_cr) : null) +
-    row('Core mentions', t.core_hits || null) +
-    row('Documents', t.doc_count || null) + '</dl>';
-
-  if (aw) h += `<h3 class=s>Awarded to</h3><dl class=kv>` +
-    row('Contractor', esc(aw.winner)) +
-    row('Amount', aw.winning_amount ? cr(aw.winning_amount/1e7) : null) +
-    row('Date', esc(aw.contract_date)) +
-    row('Bidders', aw.bidder_count) + '</dl>';
+  h += `<details><summary class=s style="cursor:pointer;margin:22px 0 8px">Tender paperwork</summary>
+    <dl class=kv>` +
+    row('Contract value', t.tender_value_cr ? cr(t.tender_value_cr) : null) +
+    row('Reference', esc(t.reference_no)) +
+    row('Inviting office', esc(t.inviting_office)) +
+    row('Contract type', esc(t.form_of_contract)) +
+    row('Build period', t.period_of_work_days ? t.period_of_work_days + ' days' : null) +
+    row('Published', day(t.published_date)) +
+    row('Bids closed', day(t.bid_submission_end)) +
+    row('EMD', t.emd_amount ? rupee(t.emd_amount) +
+      (t.emd_pct ? ` (${t.emd_pct}%)` : '') : null) +
+    row('Documents', t.doc_count || null) + '</dl></details>';
   $('req').innerHTML = h;
 }
 
 /* ---------- contractors ---------- */
+/* The call list. A contractor is the customer, so they are ranked by the gabion
+   sitting in the work they have actually won - not by how often they bid. Firms
+   that keep bidding and losing stay on the list underneath: they are the next
+   job's winner, and worth knowing before then. */
+function customers() {
+  const m = new Map();
+  D.tenders.forEach(t => {
+    const aw = D.awards[t.tender_id];
+    if (!aw?.winner) return;
+    const e = m.get(aw.winner) || { name:aw.winner, jobs:[], gabion:0, other:0, won:0 };
+    e.jobs.push(t);
+    e.gabion += t.gabion_value_cr || 0;
+    e.other  += (t.direct_value_cr || 0) + (t.possible_value_cr || 0);
+    e.won    += (aw.winning_amount || 0) / 1e7;
+    m.set(aw.winner, e);
+  });
+  return [...m.values()].sort((a,b) => b.gabion - a.gabion || b.other - a.other);
+}
+
+async function saveContact(name, field, value) {
+  const { error } = await SB.from('in_contractors')
+    .update({ [field]: value, updated_at: new Date().toISOString() }).eq('name', name);
+  const f = D.firms.find(x => x.name === name);
+  if (f && !error) f[field] = value;
+  return !error;
+}
+
 function renderFirms() {
-  $('firms').innerHTML = `<table><thead><tr><th>Contractor</th><th class=num>Bids</th>
-    <th class=num>Wins</th><th class=num>Best</th><th class=num>Won</th></tr></thead><tbody>` +
-    D.firms.map(f => `<tr><td>${esc(f.name)}</td><td class=num>${f.bids}</td>
-      <td class=num>${f.wins||''}</td><td class=num>${f.best_rank?'L'+f.best_rank:''}</td>
-      <td class=num>${f.won_value?cr(f.won_value/1e7):''}</td></tr>`).join('') +
+  const cust = customers();
+  const wonNames = new Set(cust.map(c => c.name));
+  // A firm can be an L1 winner in the bid tables while the tender it won is not
+  // among the ones we have read. It is still someone to call, so it belongs in
+  // the top list - with no jobs listed - rather than filed under "not winning".
+  D.firms.filter(f => f.wins > 0 && !wonNames.has(f.name)).forEach(f => {
+    cust.push({ name:f.name, jobs:[], gabion:0, other:0, won:(f.won_value||0)/1e7 });
+    wonNames.add(f.name);
+  });
+  const prospects = D.firms.filter(f => !wonNames.has(f.name))
+    .sort((a,b) => b.bids - a.bids || (a.best_rank||99) - (b.best_rank||99));
+  const contact = f => `
+    <td><input class=cin data-name="${esc(f.name)}" data-field=phone
+      value="${esc(f?.phone||'')}" placeholder="phone"></td>
+    <td><input class=cin data-name="${esc(f.name)}" data-field=notes
+      value="${esc(f?.notes||'')}" placeholder="last spoke / who / outcome"></td>`;
+
+  let h = `<h3 class=s>Won work — call these</h3>
+    <table><thead><tr><th>Contractor</th><th class=num>Jobs</th><th class=num>Gabion</th>
+    <th class=num>Other supply</th><th class=num>Contract value</th>
+    <th>Phone</th><th>Notes</th></tr></thead><tbody>` +
+    cust.map(c => {
+      const f = D.firms.find(x => x.name === c.name) || { name:c.name };
+      return `<tr><td><b>${esc(c.name)}</b><span class=bsub>${
+        c.jobs.map(t => esc(t.corridor || t.nh || t.tender_id)).join(', ')}</span></td>
+        <td class=num>${c.jobs.length}</td>
+        <td class=num>${c.gabion ? '<b>'+cr(c.gabion)+'</b>' : '—'}</td>
+        <td class=num>${c.other ? cr(c.other) : '—'}</td>
+        <td class=num>${cr(c.won)}</td>${contact(f)}</tr>`;
+    }).join('') + '</tbody></table>';
+
+  h += `<h3 class=s>Bidding but not winning yet — ${prospects.length} firms</h3>
+    <table><thead><tr><th>Contractor</th><th class=num>Bids</th><th class=num>Best</th>
+    <th>Phone</th><th>Notes</th></tr></thead><tbody>` +
+    prospects.map(f => `<tr><td>${esc(f.name)}</td><td class=num>${f.bids}</td>
+      <td class=num>${f.best_rank ? 'L'+f.best_rank : ''}</td>${contact(f)}</tr>`).join('') +
     '</tbody></table>';
+  $('firms').innerHTML = h;
+
+  $('firms').querySelectorAll('.cin').forEach(el => el.addEventListener('change', async () => {
+    el.style.opacity = '.5';
+    const ok = await saveContact(el.dataset.name, el.dataset.field, el.value);
+    el.style.opacity = '1';
+    el.style.borderColor = ok ? '' : '#d03b3b';
+  }));
 }
 
 /* ---------- map ---------- */
