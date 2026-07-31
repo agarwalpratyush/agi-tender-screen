@@ -1597,6 +1597,106 @@ async function saveContact(name, field, value) {
   return !error;
 }
 
+/* ---------- map ---------- */
+/* One renderer, two fidelities. The local build embeds the real alignment
+   geometry (3,632 features on one tender); Supabase deliberately holds only a
+   centre and a bounding box per tender, because shipping the geometry is bulk
+   this project does not ship. So: draw the lines when we have them, fall back to
+   a marker per tender when we do not. The interface is identical either way -
+   the map itself used to exist ONLY in the local build, which is why the hosted
+   Map tab was an empty box. */
+let MAP = null;
+
+function renderMapView() {
+  const pane = document.getElementById('map');
+  if (!pane || !window.L || MAP) return;
+
+  const osm = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+    { maxZoom: 19, attribution: '&copy; OpenStreetMap' });
+  const sat = L.tileLayer(
+    'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+    { maxZoom: 19, attribution: 'Esri' });
+  const topo = L.tileLayer('https://tile.opentopomap.org/{z}/{x}/{y}.png',
+    { maxZoom: 17, attribution: 'OpenTopoMap' });
+
+  MAP = L.map('map', { layers: [osm] });
+  L.control.layers({ 'Streets': osm, 'Satellite': sat, 'Topographic': topo }).addTo(MAP);
+  L.control.scale({ imperial: false }).addTo(MAP);
+
+  const drawn = L.featureGroup().addTo(MAP);
+  const gj = BOOT.data && BOOT.data.geojson;
+  if (gj) {
+    L.geoJSON(gj, {
+      style: f => ({ color: f.properties.colour || '#2a78d6', weight: 3, opacity: 0.9 }),
+      pointToLayer: (f, ll) => L.circleMarker(ll, { radius: 7, color: '#fff', weight: 2,
+        fillColor: f.properties.colour || '#2a78d6', fillOpacity: 1 }),
+      onEachFeature: (f, l) => l.bindPopup(mapPopup(f.properties.tender))
+    }).addTo(drawn);
+  } else {
+    D.tenders.filter(t => t.geo && t.geo.centre_lat != null).forEach(t => {
+      L.circleMarker([t.geo.centre_lat, t.geo.centre_lon],
+        { radius: 7, color: '#fff', weight: 2, fillColor: '#2a78d6', fillOpacity: 1 })
+        .bindPopup(mapPopup(t.tender_id)).addTo(drawn);
+    });
+  }
+
+  // Opens on the alignments, not the region - the corpus is one corridor, so the
+  // regional view spent its pixels on states with no tenders in them.
+  const REGION = L.latLngBounds([17.5, 81.0], [29.9, 97.7]);
+  function home() {
+    MAP.invalidateSize();
+    const b = drawn.getBounds();
+    MAP.fitBounds(b && b.isValid() ? b : REGION, { padding: [30, 30] });
+  }
+  home();
+
+  function btn(label, title, fn) {
+    return L.Control.extend({ options: { position: 'topleft' }, onAdd: function () {
+      const c = L.DomUtil.create('div', 'leaflet-bar');
+      const a = L.DomUtil.create('a', '', c);
+      a.href = '#'; a.title = title; a.innerHTML = label;
+      a.style.cssText = 'font-size:14px;text-align:center;line-height:26px';
+      L.DomEvent.on(a, 'click', e => { L.DomEvent.preventDefault(e); fn(); });
+      return c; } });
+  }
+  MAP.addControl(new (btn('&#9635;', 'Zoom to the alignments', home))());
+  MAP.addControl(new (btn('&#8962;', 'Out to the whole region', () => {
+    MAP.invalidateSize(); MAP.fitBounds(REGION, { padding: [10, 10] }); }))());
+
+  window.__MAP__ = MAP;
+  window.__MAP_HOME__ = home;
+  renderMapList();
+}
+
+function mapPopup(tid) {
+  const t = D.tenders.find(x => x.tender_id === tid);
+  if (!t) return esc(tid || '');
+  const d = t.detail || {}, bits = ['<b>' + esc(d.title || tid) + '</b>'];
+  if (t.award && t.award.winner) bits.push('Won by <b>' + esc(t.award.winner) + '</b>');
+  if (gabOf(t)) bits.push(crv(gabOf(t)) + ' gabion');
+  if (d.km_length) bits.push(d.km_length + ' km');
+  return bits.join('<br>');
+}
+
+function renderMapList() {
+  const el = document.getElementById('maplist');
+  if (!el) return;
+  const rows = D.tenders.filter(t => t.geo && t.geo.centre_lat != null)
+    .sort((a, b) => gabOf(b) - gabOf(a));
+  if (!rows.length) { el.innerHTML = '<div class=empty>No alignments read yet.</div>'; return; }
+  el.innerHTML = rows.map(t => `<div class=lrow data-id="${esc(t.tender_id)}">
+    <span class="ldot d-${t.verdict}"></span>
+    <span><span class=lname>${esc((t.detail && t.detail.corridor) || t.tender_id)}</span>
+      <span class=lmeta>${t.geo.total_line_km
+        ? Number(t.geo.total_line_km).toLocaleString() + ' km' : ''}${
+        gabOf(t) ? ' · ' + crv(gabOf(t)) : ''}</span></span><span></span></div>`).join('');
+  el.querySelectorAll('.lrow').forEach(e => e.addEventListener('click', () => {
+    const t = D.tenders.find(x => x.tender_id === e.dataset.id);
+    const bb = t && t.geo && t.geo.bbox;
+    if (bb && MAP) MAP.fitBounds([[bb[1], bb[0]], [bb[3], bb[2]]], { padding: [40, 40], maxZoom: 14 });
+  }));
+}
+
 /* ---------- board ---------- */
 /* The selling view. A tender is only a way of finding the contractor who won it,
    so this groups by that contractor and ranks by the gabion in the job - not by
@@ -1824,9 +1924,11 @@ function showView(v) {
   // Leaflet measured a 0x0 container while this pane was hidden, so re-measure AND
   // re-apply the view. invalidateSize() on its own keeps the bogus zoom.
   if (v === 'upload') renderQueue();
+  // Leaflet measures its container at creation; in a hidden tab that is 0x0, so
+  // the map is built on first show and re-homed on every show after.
   if (v === 'map') setTimeout(() => {
+    renderMapView();
     if (window.__MAP_HOME__) window.__MAP_HOME__();
-    else if (window.__MAP__) window.__MAP__.invalidateSize();
   }, 60);
 }
 
