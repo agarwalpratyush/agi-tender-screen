@@ -1398,10 +1398,19 @@ function renderMap() {
   }));
   homeMap();
 }
+// Opens on the alignments. The regional box below is the fallback when nothing has
+// a bounding box yet, and is the right default again once the corpus reaches
+// beyond the North East.
+const REGION = [[17.5, 81.0], [29.9, 97.7]];
 function homeMap() {
   if (!MAP) return;
   MAP.invalidateSize();
-  MAP.fitBounds([[17.5,81.0],[29.9,97.7]], { padding:[10,10] });
+  const rows = Object.values(D.geo).filter(r => r.bbox && r.bbox.length === 4);
+  if (!rows.length) { MAP.fitBounds(REGION, { padding:[10,10] }); return; }
+  const lats = rows.flatMap(r => [r.bbox[1], r.bbox[3]]);
+  const lons = rows.flatMap(r => [r.bbox[0], r.bbox[2]]);
+  MAP.fitBounds([[Math.min(...lats), Math.min(...lons)],
+                 [Math.max(...lats), Math.max(...lons)]], { padding:[30,30] });
 }
 
 /* ---------- tabs ---------- */
