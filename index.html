@@ -1005,10 +1005,10 @@ function renderList() {
     el.addEventListener('click', () => { state.sel = el.dataset.id; renderList(); }));
   renderDetail();
 }
-function renderDetail() {
-  const t = D.tenders.find(x => x.tender_id === state.sel);
-  if (!t) { $('detail').innerHTML = '<div class=empty>Select a tender.</div>'; return; }
-  let h = `<div class=dhead><span class="verdict v-${t.verdict}"><i></i>${t.verdict}</span>
+/* Built once, shown in two places: the Tenders tab and the board's panel. Keeping
+   one builder means the two cannot drift as sections are added. */
+function detailHTML(t, withHead = true) {
+  let h = !withHead ? '' : `<div class=dhead><span class="verdict v-${t.verdict}"><i></i>${t.verdict}</span>
     <h2>${esc(t.tender_id)}</h2></div>
     <div class=dsub>${t.doc_count||0} documents · ${(t.total_chars||0).toLocaleString()} chars
       · score ${(t.score||0).toLocaleString()}${
@@ -1036,7 +1036,13 @@ function renderDetail() {
   if (g) h += `<h3 class=s>Location</h3><div class=mtext>
     ${Number(g.centre_lat).toFixed(4)}N ${Number(g.centre_lon).toFixed(4)}E ·
     ${Number(g.total_line_km).toLocaleString()} km of alignment · ${esc((g.files||[]).join(', '))}</div>`;
-  $('detail').innerHTML = h;
+  return h;
+}
+
+function renderDetail() {
+  const t = D.tenders.find(x => x.tender_id === state.sel);
+  if (!t) { $('detail').innerHTML = '<div class=empty>Select a tender.</div>'; return; }
+  $('detail').innerHTML = detailHTML(t);
 }
 
 /* ---------- uploads ---------- */
@@ -1277,16 +1283,18 @@ function renderReq() {
 
   h += `<details><summary class=s style="cursor:pointer;margin:22px 0 8px">Tender paperwork</summary>
     <dl class=kv>` +
-    row('Contract value', t.tender_value_cr ? cr(t.tender_value_cr) : null) +
     row('Reference', esc(t.reference_no)) +
     row('Inviting office', esc(t.inviting_office)) +
     row('Contract type', esc(t.form_of_contract)) +
-    row('Build period', t.period_of_work_days ? t.period_of_work_days + ' days' : null) +
     row('Published', day(t.published_date)) +
     row('Bids closed', day(t.bid_submission_end)) +
     row('EMD', t.emd_amount ? rupee(t.emd_amount) +
       (t.emd_pct ? ` (${t.emd_pct}%)` : '') : null) +
     row('Documents', t.doc_count || null) + '</dl></details>';
+
+  // Everything the Tenders tab shows, from the same builder. Head omitted - the
+  // board has already named the job at the top of this panel.
+  h += detailHTML(t, false);
   $('req').innerHTML = h;
 }
 
