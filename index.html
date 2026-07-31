@@ -885,6 +885,11 @@ details summary::-webkit-details-marker{color:var(--muted)}
         pass at home — unzip, screen, quantities, Schedule-H, map. Nothing is
         processed in the browser, so a large archive is fine; it only has to upload.</p>
       <p><input type=file id=file multiple accept=".zip,.rar,.7z"></p>
+      <h3 class=s>Already copied onto the machine?</h3>
+      <p class=mtext style="max-width:62ch">If the archives are already in the
+        pipeline machine's <code>inbox</code> folder, nothing needs uploading —
+        just tell it to start.</p>
+      <p><button class=chip id=runinbox>Process inbox now</button></p>
       <h3 class=s>Queue <button class=chip id=refreshq style="margin-left:8px">Refresh</button></h3>
       <div id=uplog></div>
       <div id=queue style="margin-top:10px"></div>
@@ -1067,6 +1072,23 @@ async function upload(files) {
   }
   renderQueue();
 }
+/* Ask the laptop to process whatever is already sitting in its inbox/ folder.
+   For archives copied onto the machine directly - no upload, just a nudge. */
+async function runInbox() {
+  const btn = $('runinbox');
+  btn.disabled = true; btn.textContent = 'Queued…';
+  const { error } = await SB.from('in_uploads').insert(
+    { kind:'run', filename:'(process inbox)', storage_path:null });
+  const line = document.createElement('div');
+  line.className = 'mtext';
+  line.innerHTML = error
+    ? `<span class=warn>${esc(error.message)}</span>`
+    : 'Asked the pipeline machine to process its inbox folder. It picks this up on its next check.';
+  $('uplog').prepend(line);
+  btn.disabled = false; btn.textContent = 'Process inbox now';
+  renderQueue();
+}
+
 async function renderQueue() {
   const { data, error } = await SB.from('in_uploads').select('*')
     .order('uploaded_at', { ascending:false }).limit(25);
@@ -1102,6 +1124,16 @@ const rupee = v => v == null ? '—'
    date is not a deadline - it is only the point after which a winner exists to
    sell to. The three states that matter are: there is a contractor to ring,
    there will be one soon, or it is still open. */
+/* Where no rupee value can be derived, fall back to the quantity - it is the
+   order size, which is the number that actually matters when ringing someone.
+   Only lines that name the product count; a breast-wall length is not our tonnage. */
+function bestQty(tid) {
+  const rows = (D.boq[tid] || []).filter(r => r.core_match && r.quantity != null);
+  if (!rows.length) return null;
+  const r = rows.sort((a, b) => (b.quantity || 0) - (a.quantity || 0))[0];
+  return Number(r.quantity).toLocaleString('en-IN') + ' ' + (r.unit || '');
+}
+
 function bstatus(t) {
   if (D.awards[t.tender_id]) return 'Won — call them';
   if (t.status === 'live') return 'Still open';
@@ -1186,6 +1218,8 @@ function renderBoard() {
             t.tender_value_cr ? ' · ' + cr(t.tender_value_cr) + ' contract' : ''}</span></td>
         <td>${aw ? '<b>'+esc(aw.winner)+'</b>' : '<span class=bsub>'+bstatus(t)+'</span>'}</td>
         <td class=num>${t.gabion_value_cr ? '<b>'+cr(t.gabion_value_cr)+'</b>'
+          : bestQty(t.tender_id) ? '<b>'+esc(bestQty(t.tender_id))+'</b>'
+              + '<span class=bsub>quantity, no price</span>'
           : t.core_hits ? '<span class=bsub>named ×'+t.core_hits+'<br>not priced</span>'
           : '—'}</td>
         <td class=num>${other ? cr(other) : '—'}</td>
@@ -1235,7 +1269,9 @@ function renderReq() {
   // here" on jobs whose documents name it outright.
   if (!t.gabion_value_cr && t.core_hits)
     h += `<h3 class=s>What we could supply</h3><div class=mrow>
-      <div class=mtext>The documents name it <b>${t.core_hits} times</b>, but this
+      <div class=mtext>${bestQty(t.tender_id)
+        ? 'The documents give a quantity of <b>' + esc(bestQty(t.tender_id)) + '</b>. '
+        : ''}The documents name it <b>${t.core_hits} times</b>, but this
       package ships <b>no Schedule-H</b>, so there is no weightage to price it from.
       <b>The absence is of a number, not of the work.</b> Read the billed lines below
       and ask ${esc(D.awards[t.tender_id]?.winner || 'the contractor')} directly.</div></div>`;
@@ -1444,6 +1480,7 @@ on('groupby', 'change', e => { board.by = e.target.value; renderBoard(); });
 on('sortby', 'change', e => { board.sort = e.target.value; renderBoard(); });
 on('file', 'change', e => { if (e.target.files.length) upload([...e.target.files]); e.target.value=''; });
 on('refreshq', 'click', renderQueue);
+on('runinbox', 'click', runInbox);
 document.querySelectorAll('.tab[data-view]').forEach(tb =>
   tb.addEventListener('click', () => showView(tb.dataset.view)));
 
