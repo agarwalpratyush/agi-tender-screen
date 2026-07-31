@@ -960,10 +960,10 @@ async function boot() {
 function renderPills() {
   const n = v => D.tenders.filter(t => t.verdict === v).length;
   const gab = D.tenders.reduce((a,t) => a + (Number(t.gabion_value_cr)||0), 0);
-  const poss = D.tenders.reduce((a,t) => a + (Number(t.possible_value_cr)||0), 0);
+  const poss = D.tenders.reduce((a,t) => a + (Number(t.direct_value_cr)||0), 0);
   $('pills').innerHTML =
     `<span><b>${Object.keys(D.awards).length}</b> to call</span>` +
-    `<span><b>${cr(gab)}</b> gabion</span><span><b>${cr(poss)}</b> cross-sell</span>` +
+    `<span><b>${cr(gab)}</b> gabion</span><span><b>${cr(poss)}</b> supplyable</span>` +
     `<span><b>${n('TRACK')}</b> track</span><span><b>${D.tenders.length}</b> jobs</span>`;
 }
 function renderChips() {
@@ -1162,14 +1162,17 @@ function renderBoard() {
     <th>Where</th><th>Build window</th></tr></thead><tbody>`;
   for (const [name, items] of groups) {
     const gsum = items.reduce((s,t)=>s+(t.gabion_value_cr||0),0);
-    const osum = items.reduce((s,t)=>s+(t.direct_value_cr||0)+(t.possible_value_cr||0),0);
+    const osum = items.reduce((s,t)=>s+Math.max(0,(t.direct_value_cr||0)-(t.gabion_value_cr||0))
+                                      +(t.possible_value_cr||0),0);
     h += `<tr class=grp><th colspan=6>${esc(name)}
       <span class=gcount>${items.length} job${items.length===1?'':'s'}</span>
       <span class=gval>${gsum ? cr(gsum) + ' gabion' : ''}${
         osum ? ' · ' + cr(osum) + ' other' : ''}</span></th></tr>`;
     for (const t of items) {
       const aw = D.awards[t.tender_id], w = window_(t);
-      const other = (t.direct_value_cr||0) + (t.possible_value_cr||0);
+      // direct already includes the gabion line; concrete is excluded entirely.
+      const other = Math.max(0, (t.direct_value_cr||0) - (t.gabion_value_cr||0))
+                    + (t.possible_value_cr||0);
       h += `<tr class=brow data-id="${esc(t.tender_id)}" aria-selected="${t.tender_id===board.sel}">
         <td><span class=btitle>${esc(t.title || t.tender_id)}</span>
           <span class=bsub>${esc(t.tender_id)}${
@@ -1217,16 +1220,21 @@ function renderReq() {
       approach yet. Load the result package when it is published.</div>`;
   }
 
+  const otherDirect = Math.max(0, (t.direct_value_cr||0) - (t.gabion_value_cr||0));
   h += `<h3 class=s>What we could supply</h3><dl class=kv>` +
     row('Gabion', t.gabion_value_cr ? `<b>${cr(t.gabion_value_cr)}</b>` : null) +
-    row('Other direct', t.direct_value_cr ? cr(t.direct_value_cr) : null) +
-    row('Possible', t.possible_value_cr ? cr(t.possible_value_cr) : null) +
+    row('Wire / geosynthetics', otherDirect ? cr(otherDirect) : null) +
+    row('Wall called gabion', t.possible_value_cr ? cr(t.possible_value_cr) : null) +
     row('Gabion share', t.gabion_share_pct ? Number(t.gabion_share_pct).toFixed(3) + '%' : null) +
     row('Named in docs', t.core_hits ? t.core_hits + ' times' : null) + '</dl>';
-  // "Other direct" and "Possible" are only worth ringing about once the gabion is
-  // sold - they are the second conversation, not the first.
-  if ((t.direct_value_cr || t.possible_value_cr) && t.gabion_value_cr)
+  if (otherDirect && t.gabion_value_cr)
     h += `<div class=mtext>Cross-sell after the gabion order lands.</div>`;
+  // Concrete is shown so the schedule still reconciles, and so it is obvious how
+  // much of the contract is simply not ours to quote.
+  if (t.cement_value_cr)
+    h += `<div class=mtext><b>${cr(t.cement_value_cr)}</b> of this contract is
+      concrete work — retaining, toe and breast walls, RCC drains and parapets.
+      Not supplyable unless a drawing calls for gabion.</div>`;
 
   // The lines the documents actually bill. A quantity here is an order size, so
   // the ones that name the product and carry a number come first.
