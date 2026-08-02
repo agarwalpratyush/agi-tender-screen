@@ -871,8 +871,10 @@ a.pagelink:hover { border-color: var(--accent); color: var(--accent); }
   max-width: none; }
 #view-map .mapwrap { flex: 1; min-height: 0; display: flex; flex-direction: column;
   margin-bottom: 0; }
-#view-map .mapsplit { flex: 1; min-height: 0; }
-#view-map #map { flex: 1; min-height: 260px; height: auto !important; }
+#view-map /* One quarter list, three quarters map, both filling the pane's height. */
+.mapsplit{flex:1;min-height:0;display:grid;grid-template-columns:1fr 3fr;
+ gap:12px;padding:14px 18px}
+#view-map #map{height:100%;min-height:320px;border-radius:8px;border:1px solid var(--border)}
 .panel h2 { font-size: 13px; font-weight: 600; margin: 0 0 4px; color: var(--ink-2); }
 .kbd { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 11px;
   border: 1px solid var(--rule); border-radius: 4px; padding: 1px 5px;
@@ -883,6 +885,13 @@ footer.hint { flex: none; padding: 8px 18px; border-top: 1px solid var(--border)
 @media (max-width: 860px) {
   body { overflow: auto; height: auto; }
   .view { min-height: 0; }
+  /* Below this width the page scrolls instead of filling the window, so the map
+     loses the flex chain that sized it and falls back to its 320px floor - small
+     enough that the whole corpus sits in one unreadable clump. Give it a slice of
+     the viewport instead, and stack the list under it rather than beside it. */
+  .mapsplit { grid-template-columns: 1fr; }
+  #view-map .panel { height: auto; }
+  #view-map #map { min-height: 62vh; }
   .split { grid-template-columns: 1fr; }
   .listpane { max-height: 48vh; border-right: none;
     border-bottom: 1px solid var(--border); }
@@ -890,10 +899,36 @@ footer.hint { flex: none; padding: 8px 18px; border-top: 1px solid var(--border)
   .pills { margin-left: 0; width: 100%; }
 }
 /* ---- board ---- */
-.boardsplit{flex:1;min-height:0;display:grid;grid-template-columns:3fr 1fr}
-.boardlist{overflow:auto;min-height:0;border-right:1px solid var(--border);background:var(--surface)}
+/* Three columns, the middle one a drag handle. The split is a CSS variable so
+   dragging only rewrites --split rather than restyling the grid, and the width
+   survives a reload via localStorage. */
+.boardsplit{flex:1;min-height:0;display:grid;
+ grid-template-columns:var(--split,3fr) 6px minmax(240px,1fr)}
+.boardlist{overflow:auto;min-height:0;background:var(--surface)}
 .reqpane{overflow-y:auto;min-height:0;padding:16px 18px 60px}
-table.board{border:none;border-radius:0;width:100%;border-collapse:collapse;font-size:12.5px}
+.gutter{cursor:col-resize;background:var(--border);position:relative;
+ border:none;padding:0;touch-action:none}
+/* The visible line is 6px but the grab area is wider, or it is a fight to hit. */
+.gutter::before{content:'';position:absolute;inset:0 -5px;}
+.gutter:hover,.gutter:focus-visible{background:var(--accent);outline:none}
+.gutter::after{content:'';position:absolute;top:50%;left:50%;width:2px;height:26px;
+ transform:translate(-50%,-50%);border-radius:2px;
+ background:color-mix(in srgb,var(--muted) 55%,transparent)}
+.gutter:hover::after,.gutter:focus-visible::after{background:#fff}
+body.dragging{cursor:col-resize;user-select:none}
+body.dragging iframe{pointer-events:none}
+/* Fixed layout so the Job column absorbs whatever the divider gives it and its
+   title ellipsis tracks the real width. With auto layout a nowrap title just
+   widened the table instead, so `.btitle` needed a hard character cap and
+   dragging the divider wider revealed no more of the title - which is most of
+   the reason for dragging it. */
+table.board{border:none;border-radius:0;width:100%;border-collapse:collapse;
+ font-size:12.5px;table-layout:fixed}
+table.board col.c-dept{width:180px}
+table.board col.c-who{width:170px}
+table.board col.c-gab{width:96px}
+table.board col.c-where{width:140px}
+table.board col.c-when{width:116px}
 table.board th{position:sticky;top:0;z-index:2;background:var(--surface);white-space:nowrap;
  box-shadow:inset 0 -1px 0 var(--grid);text-align:left;font-size:10.5px;padding:6px 9px;
  color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
@@ -908,14 +943,16 @@ tr.brow{cursor:pointer}
 tr.brow:hover td{background:color-mix(in srgb,var(--accent) 7%,transparent)}
 tr.brow[aria-selected=true] td{background:color-mix(in srgb,var(--accent) 14%,transparent)}
 tr.brow[aria-selected=true] td:first-child{box-shadow:inset 3px 0 0 var(--accent)}
-.btitle{display:block;max-width:46ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.btitle{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .bsub{display:block;color:var(--muted);font-size:11px;margin-top:1px}
 .kv{display:grid;grid-template-columns:auto 1fr;gap:3px 10px;font-size:12.5px;margin:0 0 4px}
 .kv dt{color:var(--muted);white-space:nowrap}
 .kv dd{margin:0;font-variant-numeric:tabular-nums;text-align:right;word-break:break-word}
 .reqhead{font-size:13.5px;font-weight:600;line-height:1.35;margin:0 0 2px}
 .reqid{font-size:11.5px;color:var(--muted);margin-bottom:12px}
-@media(max-width:860px){.boardsplit{grid-template-columns:1fr}.boardlist{max-height:55vh}}
+/* Stacked below this width, so a horizontal drag has nothing to divide. */
+@media(max-width:860px){.boardsplit{grid-template-columns:1fr}.boardlist{max-height:55vh}
+ .gutter{display:none}}
 
 /* ---- carried over from the hosted-only stylesheet ---- */
 @media(prefers-color-scheme:dark){:root{--surface:#1a1a19;--plane:#0d0d0d;--ink:#fff;
@@ -942,6 +979,137 @@ h1.t{font-size:15px;font-weight:600;margin:0}
 h3.s{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);
  margin:22px 0 8px;font-weight:600}
 .maplist{overflow-y:auto;min-height:0;border:1px solid var(--border);border-radius:8px;background:var(--surface)}
+/* Mute the basemap so the tenders sit on top of it rather than competing with it.
+   Applied to the tile pane only - the markers and lines live in other panes and
+   keep their full saturation, which is the whole point. */
+.leaflet-tile-pane{filter:grayscale(0.62) brightness(1.06) contrast(0.9)}
+.leaflet-container.sat .leaflet-tile-pane{filter:grayscale(0.35) brightness(0.95)}
+/* map side list - the panel you pick a job from, so it carries what a call needs:
+   the job, who to ring, where it is, how much gabion, when it is built, and how
+   well we actually know the position. The coloured bar is the same colour the
+   tender is drawn in, which is what ties a row to a line on the map. */
+.mlrow{display:grid;grid-template-columns:4px 1fr;gap:10px;padding:9px 11px 9px 0;
+ border-bottom:1px solid var(--grid);cursor:pointer;align-items:stretch}
+.mlrow:hover{background:color-mix(in srgb,var(--accent) 7%,transparent)}
+.mlrow[aria-selected=true]{background:color-mix(in srgb,var(--accent) 14%,transparent)}
+.mlbar{border-radius:0 3px 3px 0}
+.mlbody{min-width:0}
+.mltitle{font-size:12.5px;font-weight:600;line-height:1.3;
+ display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.mlwho{font-size:12px;margin-top:2px;color:var(--ink-2);overflow:hidden;
+ text-overflow:ellipsis;white-space:nowrap}
+.mlmeta{font-size:11px;color:var(--muted);margin-top:1px;overflow:hidden;
+ text-overflow:ellipsis;white-space:nowrap}
+.mlfoot{display:flex;flex-wrap:wrap;gap:4px 10px;margin-top:5px;font-size:11px;
+ color:var(--ink-2);font-variant-numeric:tabular-nums;align-items:center}
+.mlfoot b{font-weight:600}
+/* Precision is stated on every row - a surveyed alignment and a 150 km state
+   centroid must never read the same in a list you are choosing from. */
+.mlhow{margin-left:auto;padding:1px 6px;border-radius:999px;font-size:10px;
+ background:color-mix(in srgb,var(--muted) 16%,transparent);color:var(--muted)}
+.mlhow.exact{background:color-mix(in srgb,var(--track) 20%,transparent);color:var(--track)}
+/* A GSTIN is read character by character when it is checked against a bill, so
+   it is set in a monospace face where 0/O and 1/I are told apart. */
+td.gst{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11.5px;
+ letter-spacing:.02em;white-space:nowrap;user-select:all}
+tr.won td{background:color-mix(in srgb,var(--track) 12%,transparent);font-weight:600}
+/* ---- operations ---- */
+.opsrow{display:grid;grid-template-columns:minmax(230px,auto) 1fr auto;gap:12px;
+ align-items:center;padding:7px 0;border-bottom:1px solid var(--grid)}
+.opsrow .opswhat{color:var(--muted);font-size:12px}
+.opscmd{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11.5px;
+ background:var(--plane);border:1px solid var(--grid);border-radius:5px;
+ padding:3px 7px;user-select:all;white-space:nowrap;overflow-x:auto}
+.pbox2{max-width:340px}
+.pbox2 .prow{display:flex;justify-content:space-between;padding:3px 0;
+ border-bottom:1px solid var(--grid);font-size:12.5px}
+.pbox2 .prow span{color:var(--muted)}
+@media(max-width:860px){.opsrow{grid-template-columns:1fr;gap:4px}}
+/* Quietly says the page has newer data than what is on screen. */
+.livedot{display:inline-block;width:7px;height:7px;border-radius:50%;
+ background:var(--track);margin-left:7px;vertical-align:middle;opacity:0}
+.livedot.on{opacity:1;animation:pulse 1.6s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+/* ---- print / share sheet ----
+   One page you can put in front of someone: who won, what they need, when, and
+   what to ask. Hidden on screen; on paper it is the ONLY thing that prints. */
+#printarea{display:none}
+@media print{
+  @page{size:A4;margin:14mm 13mm}
+  body{height:auto!important;overflow:visible!important;display:block!important;
+   background:#fff!important;color:#000!important;font-size:10.5pt}
+  .appbar,.toolbar,.view,.drawer,.drawerback,.mapdrawer,footer.hint{display:none!important}
+  #printarea{display:block!important}
+  .psheet{font:10.5pt/1.42 system-ui,-apple-system,"Segoe UI",sans-serif;color:#000}
+  .phead{display:flex;justify-content:space-between;align-items:flex-start;
+   border-bottom:2px solid #000;padding-bottom:6px;margin-bottom:10px}
+  .pfirm{font-size:13pt;font-weight:700;letter-spacing:-.01em}
+  .pfirm span{display:block;font-size:8.5pt;font-weight:400;color:#444;letter-spacing:.06em}
+  .pdate{font-size:8.5pt;color:#444;text-align:right}
+  .ptitle2{font-size:12pt;font-weight:600;line-height:1.28;margin:0 0 2px}
+  .pref{font-size:8.5pt;color:#444;margin-bottom:10px}
+  .pgrid{display:grid;grid-template-columns:1fr 1fr;gap:0 18px;margin-bottom:10px}
+  .pbox{border:1px solid #bbb;border-radius:4px;padding:7px 9px;margin-bottom:8px;
+   break-inside:avoid}
+  .pbox h4{margin:0 0 5px;font-size:8.5pt;text-transform:uppercase;
+   letter-spacing:.07em;color:#555;font-weight:600}
+  .prow{display:flex;justify-content:space-between;gap:12px;padding:1.5px 0}
+  .prow span{color:#555}
+  .prow b{text-align:right}
+  .pbig{font-size:14pt;font-weight:700}
+  .pask{border:1px solid #bbb;border-left:3px solid #000;border-radius:4px;
+   padding:7px 9px;break-inside:avoid}
+  .pask li{margin:2px 0}
+  .pnotes{border:1px solid #bbb;border-radius:4px;padding:7px 9px;min-height:52px;
+   white-space:pre-wrap;break-inside:avoid}
+  .pfoot{margin-top:10px;padding-top:5px;border-top:1px solid #ccc;
+   font-size:8pt;color:#666;display:flex;justify-content:space-between}
+  table.pbid{width:100%;border-collapse:collapse;font-size:9pt}
+  table.pbid th{text-align:left;font-size:8pt;text-transform:uppercase;
+   letter-spacing:.05em;color:#555;border-bottom:1px solid #999;padding:3px 4px}
+  table.pbid td{border-bottom:1px solid #e3e3e3;padding:3px 4px}
+  table.pbid td.n{text-align:right;font-variant-numeric:tabular-nums}
+  table.pbid tr.w td{font-weight:700}
+}
+/* slide-over detail */
+.drawerback{position:fixed;inset:0;background:rgba(0,0,0,.28);z-index:1200;
+ opacity:0;transition:opacity .18s ease}
+.drawerback.show{opacity:1}
+.drawerback[hidden]{display:none}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:min(560px,92vw);z-index:1201;
+ background:var(--surface);border-left:1px solid var(--border);
+ box-shadow:-12px 0 32px rgba(0,0,0,.18);display:flex;flex-direction:column;
+ transform:translateX(100%);transition:transform .22s cubic-bezier(.22,.61,.36,1)}
+.drawer.show{transform:translateX(0)}
+.drawer[hidden]{display:none}
+.drawerhead{flex:none;display:flex;align-items:center;gap:12px;padding:12px 16px;
+ border-bottom:1px solid var(--border);font-weight:600;font-size:13px}
+.drawerhead span{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.drawerhead button{cursor:pointer;flex:none}
+.drawerbody{flex:1;min-height:0;overflow-y:auto;padding:16px 18px 60px}
+.minimapwrap{flex:1;min-height:0;padding:12px}
+#minimap{width:100%;height:100%;border-radius:8px;border:1px solid var(--border)}
+.minifoot{flex:none;padding:10px 16px 16px;font-size:12px;color:var(--ink-2);
+ border-top:1px solid var(--border)}
+.minifoot .mlhow{margin-left:0}
+/* The Location cell is a button so it can be clicked and tabbed to, but it must
+   still read as a table cell - no chrome until you point at it. */
+.loccell{display:block;width:100%;text-align:left;background:none;border:none;
+ padding:0;font:inherit;color:inherit;cursor:pointer;border-radius:4px}
+.loccell:hover{color:var(--accent);text-decoration:underline}
+.loccell:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media (max-width:860px){.drawer{width:100vw}}
+/* popup */
+.mpop{min-width:230px;max-width:300px;font-size:12.5px}
+.mpop .ptitle{font-weight:600;line-height:1.3;margin-bottom:2px}
+.mpop .pid{color:var(--muted);font-size:11px;margin-bottom:7px}
+.mpop .pkv{display:flex;justify-content:space-between;gap:10px;padding:2px 0;
+ border-top:1px solid var(--grid)}
+.mpop .pkv span{color:var(--muted);white-space:nowrap}
+.mpop .pkv b{text-align:right;font-weight:600}
+.mpop .pnote{color:var(--muted);font-size:11px;margin-top:6px;font-style:italic}
+.mpop .popopen{margin-top:9px;width:100%;justify-content:center;cursor:pointer}
+.leaflet-popup-content{margin:11px 13px}
 .tagv{display:inline-block;padding:1px 6px;border-radius:999px;font-size:10.5px;font-weight:600}
 .tagv.TRACK{background:color-mix(in srgb,var(--track) 20%,transparent);color:var(--track)}
 .tagv.REVIEW{background:color-mix(in srgb,var(--review) 24%,transparent);color:#8a6200}
@@ -966,7 +1134,7 @@ h3.s{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--mu
 <div class=appbar>
   <div class=titlerow>
     <h1>Tender screen — M/s Agarwal Gabion Industries</h1>
-    <span class=stamp>live from Supabase</span>
+    <span class=stamp>live from Supabase<i class=livedot id=livedot></i></span>
     <span class=pills>
 <span id=pills></span>
     </span>
@@ -975,7 +1143,7 @@ h3.s{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--mu
     <button class=tab role=tab data-view=board aria-selected=true>Board</button>
       <button class=tab role=tab data-view=map aria-selected=false>Map</button>
     <button class=tab role=tab data-view=contractors aria-selected=false>Call list</button>
-    <button class=tab role=tab data-view=upload aria-selected=false>Add tenders</button>
+    <button class=tab role=tab data-view=ops aria-selected=false>Operations</button>
   </div>
 </div>
 
@@ -993,7 +1161,6 @@ h3.s{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--mu
     </select>
     <select id=bsort>
       <option value=gabion selected>Sort by gabion</option>
-      <option value=total>Sort by total supply</option>
       <option value=value>Sort by contract size</option>
       <option value=chain>Sort by chainage</option>
     </select>
@@ -1002,14 +1169,17 @@ h3.s{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--mu
     <button class=chip id=hidedone aria-pressed=false>Hide reviewed</button>
     <span class=count id=bcount></span>
   </div>
-  <div class=boardsplit>
+  <div class=boardsplit id=boardsplit>
     <div class=boardlist id=boardlist></div>
+    <div class=gutter id=gutter role=separator aria-orientation=vertical
+         tabindex=0 aria-label="Resize the job list. Arrow keys adjust, double-click resets."
+         title="Drag to resize · double-click to reset"></div>
     <div class=reqpane id=req></div>
   </div>
 </section>
 
 <section class=view id=view-map hidden>
-  <div class=panelwrap><div class=panel><div class=mapsplit><div class=maplist id=maplist></div><div><div id=map></div></div></div></div></div>
+  <div class=panelwrap><div class=panel><div class=mapsplit><div class=maplist id=maplist></div><div id=map></div></div></div></div>
 </section>
 
 <section class=view id=view-contractors hidden>
@@ -1022,23 +1192,51 @@ h3.s{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--mu
 </section>
 
 
-<section class=view id=view-upload hidden>
+<section class=view id=view-ops hidden>
   <div class=panelwrap><div class=panel>
     <h3 class=s>Add tenders</h3>
-    <p class=mtext style="max-width:62ch">Drop the tender ZIP here and it joins the
-      queue. The pipeline machine collects it on its next check and runs the full
-      pass at home. Nothing is processed in the browser, so a large archive is fine.</p>
-    <p><input type=file id=file multiple accept=".zip,.rar,.7z"></p>
-    <h3 class=s>Already copied onto the machine?</h3>
-    <p class=mtext style="max-width:62ch">If the archives are already in the pipeline
-      machine’s <code>inbox</code> folder, nothing needs uploading — just tell it to start.</p>
-    <p><button class=chip id=runinbox>Process inbox now</button>
-       <button class=chip id=refreshq>Refresh</button></p>
-    <div id=uplog></div>
-    <div id=queue style="margin-top:10px"></div>
+    <p class=mtext style="max-width:66ch">Drop the archives or folders into
+      <b>inbox</b>, then run the pipeline. Zips, extracted folders and repeat
+      copies of a tender you already have are all handled — a tender is identified
+      by the <code>Tender_Detail</code> inside it, not by the filename.</p>
+    <div id=opsfolders></div>
+
+    <h3 class=s>Run the pipeline</h3>
+    <p class=mtext style="max-width:66ch">Open a terminal in the pipeline folder
+      and paste. Each is safe to re-run.</p>
+    <div id=opscmds></div>
+
+    <h3 class=s>What is on the machine</h3>
+    <div id=opsstats></div>
   </div></div>
 </section>
 
+
+<!-- Empty on screen; filled and printed on demand. Kept outside every view so the
+     print stylesheet can hide the whole app and show only this. -->
+<div id=printarea></div>
+
+<!-- Slides over whatever view you are in. The map is for finding a job; reading
+     it should not cost you your place on the map. -->
+<div class=drawerback id=drawerback hidden></div>
+<aside class=drawer id=drawer hidden aria-label="Tender detail">
+  <div class=drawerhead>
+    <span id=drawertitle></span>
+    <button class=chip id=drawerclose aria-label="Close">&#10005;</button>
+  </div>
+  <div class=drawerbody id=drawerbody></div>
+</aside>
+
+<!-- Same slide-over, but a map. Clicking a Location on the board answers "where
+     is this?" without abandoning the board and hunting for the pin. -->
+<aside class="drawer mapdrawer" id=mapdrawer hidden aria-label="Location">
+  <div class=drawerhead>
+    <span id=mapdrawertitle></span>
+    <button class=chip id=mapdrawerclose aria-label="Close">&#10005;</button>
+  </div>
+  <div class=minimapwrap><div id=minimap></div></div>
+  <div class=minifoot id=minifoot></div>
+</aside>
 
 </div>
 
@@ -1062,14 +1260,14 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
 <script>
 window.__SB__ = supabase.createClient("https://qqzkqaedroeehuewmiic.supabase.co", "sb_publishable_2kQnRCAIxSyOfi4wsQrKDA_KHFHOJsr");
 window.__BOOT__ = { mode: "cloud",
-  caps: { citations: false, review: true, upload: true } };
+  caps: { citations: false, review: true, ops: false } };
 </script>
 <script>
 /* ---------- boot ---------- */
 /* One interface, two sources. `adapt()` is the only place that knows the
    difference; everything after it sees the same shape. */
 const BOOT = window.__BOOT__ || { mode: 'local', caps: {}, data: { tenders: [] } };
-const CAPS = Object.assign({ citations: false, review: false, upload: false }, BOOT.caps);
+const CAPS = Object.assign({ citations: false, review: false, ops: false }, BOOT.caps);
 let D = { tenders: [] };
 
 /* The canonical tender. The local payload already has this shape - it is the
@@ -1078,7 +1276,19 @@ let D = { tenders: [] };
    stays empty and its section hides itself. */
 function adapt(rows, extra) {
   const sched = extra.sched || {}, awards = extra.awards || {},
-        boq = extra.boq || {}, geo = extra.geo || {}, findings = extra.findings || {};
+        boq = extra.boq || {}, geo = extra.geo || {}, findings = extra.findings || {},
+        evid = extra.evidence || {}, allHits = extra.hits || {},
+        quant = extra.quantities || {};
+  // Data comes from Supabase; the documents behind it may still be on this disk.
+  // BOOT.localBase is set only by the local build, which is what lets one page
+  // read the shared store and still open the original PDF at the cited page.
+  const base = BOOT.localBase || '';
+  const cite = e => {
+    const label = (e.source_file || '').replace(/^md\//, '').replace(/\.md$/, '');
+    const url = (base && e.storage_key) ? base + e.storage_key : null;
+    return { label: label + (e.page ? `, p${e.page}` : ''), page: e.page,
+             url, image: null, portal: null, primary: url };
+  };
   return rows.map(t => ({
     tender_id: t.tender_id,
     verdict: t.verdict, score: t.score || 0,
@@ -1120,47 +1330,100 @@ function adapt(rows, extra) {
         })()
       : null,
     award: awards[t.tender_id] || null,
-    supply: boq[t.tender_id] || [],
+    // `supply` must be summarise()'s output, exactly as dashboard.py feeds it from
+    // supply_items - every quantity on the board is totalled from this. Handing it
+    // the raw pile instead is what made the hosted build read 252,468 Cum where the
+    // local one read 199,502. The unsummarised rows stay available as `boq`.
+    supply: (boq[t.tender_id] || []).filter(r => r.is_supply),
     geo: geo[t.tender_id] || null,
+    // The derived position travels as its own object, exactly as the local build
+    // shapes it, so renderMapView needs no branch for where the data came from.
+    // `alignment` is dropped on both sides - that tender already draws its geometry.
+    // Folder links for the On disk panel. Only the local build sets localBase, so
+    // the hosted page leaves these null and the panel names the path as plain text
+    // instead of offering a file:// link no browser will follow from https.
+    dir_url:   base ? base + t.tender_id + '/_raw/' : null,
+    dir_path:  base ? decodeURI((base + t.tender_id).replace(/^file:\/\/\//, '')
+                                                   .replace(/\//g, '\\')) : null,
+    dir_files: t.raw_file_count || 0,
+    res_url:   (base && t.result_file_count) ? base + t.tender_id + '__result/_raw/' : null,
+    res_path:  (base && t.result_file_count)
+      ? decodeURI((base + t.tender_id + '__result').replace(/^file:\/\/\//, '')
+                                                   .replace(/\//g, '\\')) : null,
+    res_files: t.result_file_count || 0,
+    place: (t.place_lat != null && t.place_source && t.place_source !== 'alignment')
+      ? { lat: t.place_lat, lon: t.place_lon, source: t.place_source,
+          precision_km: t.place_precision_km, note: t.place_note || '' }
+      : null,
     model: { supply: (findings[t.tender_id] || []).filter(f => f.verdict === 'supply').length,
              adjacent: (findings[t.tender_id] || []).filter(f => f.verdict === 'adjacent').length,
              rows: (findings[t.tender_id] || []).map(f => ({
                source: f.source_file, page: f.page, text: f.snippet, kind: f.kind,
                supply: f.supply_score, adjacency: f.adjacency_score,
                verdict: f.verdict, entities: f.entities || [], cite: null })) },
-    // Supabase holds no per-term keyword counts, no evidence snippets and no
-    // raw BoQ rows - by design, that is bulk we deliberately do not ship. The
-    // sections that read them hide themselves when these are empty.
-    hits: t.hits || {},
-    evidence: t.evidence || [], evidence_total: t.evidence_total || 0,
+    // These used to be embedded in the local HTML and absent online, which is
+    // most of why the two builds looked like different products. They are data
+    // about a tender, so they live in Supabase now and both builds read them.
+    hits: allHits[t.tender_id] || {},
+    evidence: (evid[t.tender_id] || []).map(e => ({
+      file: e.source_file, tier: e.tier, term: e.term,
+      page: e.page, snippet: e.snippet, cite: cite(e) })),
+    evidence_total: (evid[t.tender_id] || []).length,
     evidence_truncated: false,
-    boq: t.boq || [], boq_total: (boq[t.tender_id] || []).length,
+    boq: boq[t.tender_id] || [], boq_total: (boq[t.tender_id] || []).length,
     geo_files: (geo[t.tender_id] || {}).files || [],
-    quantities: t.quantities || [],
+    quantities: (quant[t.tender_id] || []).map(q => ({
+      file: q.source_file, term: q.term, value: q.value,
+      unit: q.unit, page: q.page, context: q.context })),
     portal_url: t.portal_url || null,
   }));
 }
 
 async function loadCloud() {
   const SB = window.__SB__;
-  const [t, s, f, g, a, b, fi] = await Promise.all([
-    SB.from('in_tenders').select('*').order('score', { ascending: false }),
-    SB.from('in_schedule_h').select('*'),
-    SB.from('in_contractors').select('*').order('wins', { ascending: false }),
-    SB.from('in_geo').select('*'),
-    SB.from('in_awards').select('*'),
-    SB.from('in_boq_items').select('*'),
-    SB.from('in_findings').select('*'),
+  // PostgREST caps a response at 1000 rows. in_evidence and in_quantities are
+  // several thousand, so they page - without this they silently truncate and the
+  // board looks thinner than the database, with no error to notice.
+  async function all(table, order, filter) {
+    const out = [];
+    for (let from = 0; ; from += 1000) {
+      let q = SB.from(table).select('*').range(from, from + 999);
+      if (filter) q = filter(q);
+      if (order) q = q.order(order, { ascending: false });
+      const { data, error } = await q;
+      if (error) throw error;
+      out.push(...(data || []));
+      if ((data || []).length < 1000) return out;
+    }
+  }
+  window.__ALL__ = all;
+  // Load ONLY what the board needs to draw. Evidence, quantity mentions, model
+  // findings, the raw BoQ rows and the map geometry are all per-tender detail -
+  // together about 12,000 rows and half a megabyte of coordinates - and fetching
+  // them up front meant staring at a spinner before the first row appeared. They
+  // are fetched by `hydrate()` when a tender is actually opened.
+  //
+  // in_boq_items is filtered server-side to the summarised set: 683 rows instead
+  // of 2,426, and the board only ever totals those.
+  const [t, s, f, a, b] = await Promise.all([
+    all('in_tenders', 'score'), all('in_schedule_h'), all('in_contractors', 'wins'),
+    all('in_awards'), all('in_boq_items', null, q => q.eq('is_supply', true)),
   ]);
-  if (t.error) throw t.error;
+  const g = [], fi = [], ev = [], hi = [], qt = [];
   const by = (rows, key) => (rows || []).reduce((m, r) => ((m[r[key]] ||= []).push(r), m), {});
   const one = (rows, key) => (rows || []).reduce((m, r) => (m[r[key]] = r, m), {});
+  // {tender: {tier: {term: n}}} - the shape the score breakdown already renders.
+  const hits = {};
+  (hi || []).forEach(h => {
+    ((hits[h.tender_id] ||= {})[h.tier] ||= {})[h.term] = h.n;
+  });
   D = {
-    tenders: adapt(t.data || [], {
-      sched: by(s.data, 'tender_id'), awards: one(a.data, 'tender_id'),
-      boq: by(b.data, 'tender_id'), geo: one(g.data, 'tender_id'),
-      findings: by(fi.data, 'tender_id') }),
-    firms: f.data || [],
+    tenders: adapt(t || [], {
+      sched: by(s, 'tender_id'), awards: one(a, 'tender_id'),
+      boq: by(b, 'tender_id'), geo: one(g, 'tender_id'),
+      findings: by(fi, 'tender_id'), evidence: by(ev, 'tender_id'),
+      hits, quantities: by(qt, 'tender_id') }),
+    firms: f || [],
   };
 }
 
@@ -1382,6 +1645,20 @@ function detailHTML(t, withHead = true) {
     if (a.contract_period) bits.push(esc(a.contract_period));
     if (bits.length) h += `<div class=mtext>${bits.join(' \u00b7 ')}</div>`;
     if (a.description) h += `<div class=mtext>${esc(a.description)}</div>`;
+    // Every bidder, with its GSTIN as its own column. The losers are prospects
+    // too - they wanted this job and will bid the next one - and the GSTIN is
+    // what lets you recognise a firm across tenders that spell its name three
+    // different ways.
+    if ((a.bidders || []).length) {
+      h += `<table class=qty><thead><tr><th>Bidder</th><th>Rank</th>
+        <th class=num>Bid</th><th>GSTIN</th><th>Registered</th></tr></thead><tbody>` +
+        a.bidders.map(b => `<tr${b.rank === 'L1' ? ' class=won' : ''}>
+          <td>${esc(b.bidder)}</td>
+          <td>${esc(b.rank || (b.status || '\u2014'))}</td>
+          <td class=num>${b.amount ? '\u20b9' + Number(b.amount).toLocaleString('en-IN') : '\u2014'}</td>
+          <td class=gst>${b.gstin ? esc(b.gstin) : '<span class=bsub>not stated</span>'}</td>
+          <td>${esc(b.gst_state || '')}</td></tr>`).join('') + '</tbody></table>';
+    }
     if (a.bidder_count) {
       const src = a.bidders_doc
         ? `<a class=cite href="${esc(a.bidders_doc)}" target="_blank" rel="noopener">bidder details</a>`
@@ -1396,9 +1673,13 @@ function detailHTML(t, withHead = true) {
   const v = t.value;
   if (v && v.gabion_value_cr) {
     h += '<h3>Gabion value at awarded rates</h3><div class="mrow m-sup">';
-    h += `<div class=mhead><span class=bigval>\u20b9${v.gabion_value_cr.toFixed(2)} Cr</span>
-      <span class=mscore>${v.gabion_share_pct.toFixed(3)}% of \u20b9${
-        v.award_cr ? v.award_cr.toLocaleString() : '?'} Cr awarded</span></div>`;
+    // Guarded individually: the section is entered on gabion_value_cr alone, and
+    // a tender carrying a value but no share threw here and blanked the WHOLE
+    // detail panel - one missing number costing every other field on the page.
+    h += `<div class=mhead><span class=bigval>\u20b9${Number(v.gabion_value_cr).toFixed(2)} Cr</span>
+      <span class=mscore>${v.gabion_share_pct != null
+          ? Number(v.gabion_share_pct).toFixed(3) + '% of ' : ''}\u20b9${
+        v.award_cr ? Number(v.award_cr).toLocaleString() : '?'} Cr awarded</span></div>`;
     h += '<table class=qty><thead><tr><th>Payment item</th><th class=num>Group</th>' +
       '<th class=num>Item</th><th class=num>Share</th><th class=num>Value</th></tr></thead><tbody>' +
       (v.items || []).map(i => `<tr><td>${esc(i.item)}</td>
@@ -1494,7 +1775,25 @@ function detailHTML(t, withHead = true) {
     h += fold('Geospatial', '<p class=paths>' + t.geo_files.map(esc).join('<br>') + '</p>',
               t.geo_files.length);
 
-  h += fold('On disk', `<p class=paths>tenders/${esc(t.tender_id)}/</p>`, '');
+  // A link to a directory opens the browser's listing of it - the quickest way
+  // from a row to the actual PDFs. Explorer cannot be launched from a page, so the
+  // Windows path sits beside it with a copy button for when that is what is wanted.
+  // Two folders, not one: the tender documents and the award documents arrive as
+  // separate archives and land in `<id>` and `<id>__result`. Showing only the first
+  // hid exactly the half worth opening - who won and at what rate.
+  const dirRow = (label, url, path, n) => !url ? '' :
+    `<p class=paths><a class=cite target=_blank rel=noopener href="${esc(url)}">${esc(label)}</a>
+       ${n ? `<span class=more>${n} file${n === 1 ? '' : 's'}</span>` : ''}
+       &nbsp;<button class=chip data-copy="${esc(path || '')}">Copy path</button></p>
+     <p class=paths style="color:var(--muted)">${esc(path || '')}</p>`;
+  const dirBody = (CAPS.citations && t.dir_url)
+    ? dirRow(`${t.tender_id}/_raw/`, t.dir_url, t.dir_path, t.dir_files) +
+      (t.res_url
+        ? dirRow(`${t.tender_id}__result/_raw/  \u2014 award documents`,
+                 t.res_url, t.res_path, t.res_files)
+        : '<p class=more>No award documents on disk for this tender.</p>')
+    : `<p class=paths>tenders/${esc(t.tender_id)}/</p>`;
+  h += fold('On disk', dirBody, t.res_url ? 2 : '');
 
   // Last, and folded: the model pass is supporting evidence for the deterministic
   // numbers above, not the headline. It is also the stage most often not yet run.
@@ -1576,7 +1875,7 @@ async function runInbox() {
 
 async function renderQueue() {
   const el = document.getElementById('queue');
-  if (!el || !CAPS.upload) return;
+  if (!el || !CAPS.ops) return;
   const { data, error } = await window.__SB__.from('in_uploads').select('*')
     .order('uploaded_at', { ascending: false }).limit(25);
   if (error) { el.innerHTML = `<div class=mtext>Queue unavailable: ${esc(error.message)}</div>`; return; }
@@ -1610,7 +1909,118 @@ async function saveContact(name, field, value) {
    a marker per tender when we do not. The interface is identical either way -
    the map itself used to exist ONLY in the local build, which is why the hosted
    Map tab was an empty box. */
+/* Adjacent packages of one corridor were all the same blue, so where four
+   contracts met you could not see where one ended and the next began - which is
+   exactly what a salesman is looking at the map to find out. A stable colour per
+   tender fixes that: same tender, same colour, every session. Hand-picked to stay
+   apart on a muted basemap and to remain distinguishable for the most common
+   colour-vision deficiencies - no red/green pair carries meaning on its own. */
+const PALETTE = ['#2a78d6', '#e07a1f', '#1f9d76', '#c2417a', '#7a52c9',
+                 '#0f8fa8', '#b4761a', '#5a8f2a', '#d1495b', '#4361a8',
+                 '#8a5a2b', '#2f9e8f'];
+function tenderColour(tid) {
+  let h = 0;
+  for (let i = 0; i < (tid || '').length; i++) h = (h * 31 + tid.charCodeAt(i)) | 0;
+  return PALETTE[Math.abs(h) % PALETTE.length];
+}
+
 let MAP = null;
+let DRAWN = null;      // the alignment layer group
+let ALIGN = null;      // the GeoJSON layer inside it, replaced when geo arrives
+
+/* Draw the surveyed alignments. Separate from renderMapView because the geometry
+   arrives asynchronously: the map may already exist when in_geo lands, and a map
+   built before the fetch would otherwise stay permanently empty. Idempotent - it
+   removes whatever it drew last time. */
+function drawAlignments() {
+  if (!MAP || !DRAWN || !window.L) return 0;
+  if (ALIGN) { DRAWN.removeLayer(ALIGN); ALIGN = null; }
+  // Local builds used to embed a ready-made FeatureCollection; Supabase stores
+  // the same features as a JSON array on in_geo.line. Coordinates are [lon, lat]
+  // on both paths - GeoJSON order - which is why this hands them to L.geoJSON
+  // rather than to L.polyline, which expects [lat, lon] and would mirror India.
+  const feats = [];
+  (D.tenders || []).forEach(t => {
+    const raw = (t.geo && t.geo.line) || [];
+    if (!raw.length) return;
+    const colour = tenderColour(t.tender_id);
+    // A KMZ is not consistent about how it stores an alignment: some hold
+    // LineStrings, others hold a Placemark per survey station, which rendered as
+    // a trail of unconnected dots beside neighbouring packages drawn as lines.
+    // Same road, two different-looking things. Consecutive single-point features
+    // from one file are stitched into a line, IN FILE ORDER - that is survey
+    // order. (Sorting them by longitude is what produced the zigzag earlier;
+    // never reorder them.)
+    const byFile = {};
+    raw.forEach(f => {
+      if (!f || !f.coords || !f.coords.length) return;
+      if (f.kind !== 'point' && f.coords.length > 1) {
+        feats.push({ type: 'Feature',
+          properties: { tender: t.tender_id, name: f.name, colour },
+          geometry: { type: 'LineString', coordinates: f.coords } });
+      } else {
+        (byFile[f.file || ''] ||= []).push(f.coords[0]);
+      }
+    });
+    Object.entries(byFile).forEach(([file, pts]) => {
+      if (pts.length >= 2) {
+        feats.push({ type: 'Feature',
+          properties: { tender: t.tender_id, name: file, colour },
+          geometry: { type: 'LineString', coordinates: pts } });
+      } else if (pts.length === 1) {
+        // A lone placemark is a place, not a route - leave it a dot.
+        feats.push({ type: 'Feature',
+          properties: { tender: t.tender_id, name: file, colour },
+          geometry: { type: 'Point', coordinates: pts[0] } });
+      }
+    });
+  });
+  const gj = (BOOT.data && BOOT.data.geojson)
+    || (feats.length ? { type: 'FeatureCollection', features: feats } : null);
+  if (gj) {
+    ALIGN = L.geoJSON(gj, {
+      style: f => ({ color: f.properties.colour || '#2a78d6', weight: 3.5,
+                     opacity: 0.92 }),
+      pointToLayer: (f, ll) => L.circleMarker(ll, { radius: 6, color: '#fff',
+        weight: 2, fillColor: f.properties.colour || '#2a78d6', fillOpacity: 1 }),
+      onEachFeature: (f, l) => l.bindPopup(mapPopup(f.properties.tender)),
+    }).addTo(DRAWN);
+    return gj.features.length;
+  }
+  // No geometry: fall back to one marker per tender that has a centre.
+  let n = 0;
+  D.tenders.filter(t => t.geo && t.geo.centre_lat != null).forEach(t => {
+    L.circleMarker([t.geo.centre_lat, t.geo.centre_lon],
+      { radius: 7, color: '#fff', weight: 2, fillColor: '#2a78d6', fillOpacity: 1 })
+      .bindPopup(mapPopup(t.tender_id)).addTo(DRAWN);
+    n++;
+  });
+  return n;
+}
+
+/* The alignments are 543 kB of coordinates for 18 tenders. Fetched when the Map
+   tab is first opened, not at startup - most sessions never open it. */
+let GEO_LOADED = false;
+async function loadGeo() {
+  if (GEO_LOADED || BOOT.mode !== 'cloud' || !window.__ALL__) return false;
+  GEO_LOADED = true;
+  try {
+    const rows = await window.__ALL__('in_geo');
+    const byId = {};
+    (rows || []).forEach(r => { byId[r.tender_id] = r; });
+    D.tenders.forEach(t => { if (byId[t.tender_id]) t.geo = byId[t.tender_id]; });
+    // If the map was already built, put the alignments on it now rather than
+    // leaving it empty until a reload. The side list is rebuilt too - it names
+    // how each tender was located, and the 18 surveyed ones only become
+    // "alignment" once this data is in.
+    if (MAP) {
+      drawAlignments();
+      if (typeof renderMapList === 'function') renderMapList();
+      if (window.__MAP_HOME__) window.__MAP_HOME__();
+    }
+    return true;
+  } catch (err) { GEO_LOADED = false; console.warn('geo load failed', err); return false; }
+}
 
 function renderMapView() {
   const pane = document.getElementById('map');
@@ -1627,30 +2037,86 @@ function renderMapView() {
   MAP = L.map('map', { layers: [osm] });
   L.control.layers({ 'Streets': osm, 'Satellite': sat, 'Topographic': topo }).addTo(MAP);
   L.control.scale({ imperial: false }).addTo(MAP);
+  // Imagery is already dark; the street dimming would turn it to mud, so the
+  // container carries a class and the CSS applies a lighter touch.
+  MAP.on('baselayerchange', e => {
+    MAP.getContainer().classList.toggle('sat', e.name === 'Satellite');
+  });
 
   const drawn = L.featureGroup().addTo(MAP);
-  const gj = BOOT.data && BOOT.data.geojson;
-  if (gj) {
-    L.geoJSON(gj, {
-      style: f => ({ color: f.properties.colour || '#2a78d6', weight: 3, opacity: 0.9 }),
-      pointToLayer: (f, ll) => L.circleMarker(ll, { radius: 7, color: '#fff', weight: 2,
-        fillColor: f.properties.colour || '#2a78d6', fillOpacity: 1 }),
-      onEachFeature: (f, l) => l.bindPopup(mapPopup(f.properties.tender))
-    }).addTo(drawn);
-  } else {
-    D.tenders.filter(t => t.geo && t.geo.centre_lat != null).forEach(t => {
-      L.circleMarker([t.geo.centre_lat, t.geo.centre_lon],
-        { radius: 7, color: '#fff', weight: 2, fillColor: '#2a78d6', fillOpacity: 1 })
-        .bindPopup(mapPopup(t.tender_id)).addTo(drawn);
+  DRAWN = drawn;
+  drawAlignments();
+
+  // Derived positions, drawn so they can never be mistaken for a survey. A tender
+  // located from coordinates printed in its documents is good to about 5 km and
+  // gets a dot; one placed at a state centroid is good to 150 km and gets a circle
+  // the actual size of its error, which is enormous on purpose. The state layer is
+  // OFF by default - 136 tenders piled on 13 dots is noise, not information, and
+  // until there is a place-name gazetteer that is all a state centroid can be.
+  // Every tier geocode.py can produce, best first. Missing entries are not drawn
+  // at all - when `place` and `office` were added to the geocoder and not here,
+  // 123 located tenders silently vanished from the map while the board showed
+  // them fine. Colour runs warm-to-grey with confidence, so a glance tells you
+  // how much of the map is actually known.
+  const TIER = {
+    document: { colour: '#e08a1e', label: 'Coordinates printed in the documents (~5 km)' },
+    place:    { colour: '#3f7fd0', label: 'Place names in the tender (~8 km)' },
+    chainage: { colour: '#2a9d8f', label: 'Chainage along a named corridor (~12 km)' },
+    corridor: { colour: '#7f9c3a', label: 'Corridor place names (~25 km)' },
+    office:   { colour: '#b06fc9', label: 'Inviting office - work may be elsewhere (~25 km)' },
+    state:    { colour: '#9aa4ad', label: 'State only - worksite unknown (~150 km)' },
+  };
+  const layers = {};
+  const extra = [];   // latlngs that should count towards the opening view
+  Object.entries(TIER).forEach(([tier, cfg]) => {
+    const g = L.featureGroup();
+    let n = 0;
+    (D.tenders || []).forEach(t => {
+      const p = t.place;
+      if (!p || p.source !== tier || p.lat == null) return;
+      n++;
+      const km = Number(p.precision_km) || 0;
+      if (km > 10) {
+        // interactive:false is load-bearing. These rings are up to 150 km across
+        // and the tiers are added in order, so an office or state ring lands ON
+        // TOP of every smaller dot inside it and eats the click - the dot looks
+        // dead while its neighbour two pixels away works fine. The ring is a
+        // statement about accuracy, not a target.
+        L.circle([p.lat, p.lon], { radius: km * 1000, color: cfg.colour, weight: 1,
+          opacity: 0.5, fillColor: cfg.colour, fillOpacity: 0.07, dashArray: '4 4',
+          interactive: false }).addTo(g);
+      }
+      const pop = mapPopup(t.tender_id) +
+        `<p class=more style="margin-top:6px">${esc(p.note || '')}</p>`;
+      // An invisible 12 px disc under the 5 px dot. A five-pixel target is a
+      // fiddle with a trackpad and hopeless on a touchscreen; Leaflet has no
+      // separate hit radius, so this is the hit area and the dot on top is the
+      // picture. Added first so the visible one still draws over it.
+      L.circleMarker([p.lat, p.lon], { radius: 12, stroke: false, fillOpacity: 0,
+        fillColor: cfg.colour }).bindPopup(pop).addTo(g);
+      L.circleMarker([p.lat, p.lon], { radius: 5, color: '#fff', weight: 1.5,
+        fillColor: cfg.colour, fillOpacity: 0.95 }).bindPopup(pop).addTo(g);
+      if (tier !== 'state') extra.push([p.lat, p.lon]);
     });
-  }
+    if (!n) return;
+    layers[`${cfg.label} \u2014 ${n}`] = g;
+    // Only the tiers that actually locate something are on at load. A Leaflet
+    // layer has one parent, so these are NOT added to `drawn` - their positions
+    // go into `extra` instead and the opening view unions the two.
+    if (tier !== 'state') g.addTo(MAP);
+  });
+  if (Object.keys(layers).length)
+    L.control.layers(null, layers, { collapsed: false }).addTo(MAP);
 
   // Opens on the alignments, not the region - the corpus is one corridor, so the
   // regional view spent its pixels on states with no tenders in them.
   const REGION = L.latLngBounds([17.5, 81.0], [29.9, 97.7]);
   function home() {
     MAP.invalidateSize();
-    const b = drawn.getBounds();
+    let b = drawn.getBounds();
+    // Union in the derived positions, or a tender located only from its documents
+    // sits outside the opening view and looks like it was never plotted.
+    extra.forEach(ll => { b = (b && b.isValid()) ? b.extend(ll) : L.latLngBounds([ll, ll]); });
     MAP.fitBounds(b && b.isValid() ? b : REGION, { padding: [30, 30] });
   }
   home();
@@ -1673,33 +2139,547 @@ function renderMapView() {
   renderMapList();
 }
 
+/* Enough to decide whether this pin is worth a call, and a way through to the
+   full record. A map you cannot act from is decoration. */
 function mapPopup(tid) {
   const t = D.tenders.find(x => x.tender_id === tid);
   if (!t) return esc(tid || '');
-  const d = t.detail || {}, bits = ['<b>' + esc(d.title || tid) + '</b>'];
-  if (t.award && t.award.winner) bits.push('Won by <b>' + esc(t.award.winner) + '</b>');
-  if (gabOf(t)) bits.push(crv(gabOf(t)) + ' gabion');
-  if (d.km_length) bits.push(d.km_length + ' km');
-  return bits.join('<br>');
+  const d = t.detail || {}, w = windowOf(t);
+  const row = (k, v) => v ? `<div class=pkv><span>${k}</span><b>${v}</b></div>` : '';
+  const qty = gabOf(t) ? crv(gabOf(t)) : (bestQty(t) || '');
+  return `<div class=mpop>
+    <div class=ptitle>${esc(d.title || tid)}</div>
+    <div class=pid>${esc(tid)}${d.state ? ' \u00b7 ' + esc(d.state) : ''}</div>
+    ${row('Who to call', t.award && t.award.winner ? esc(t.award.winner) : bstatus(t))}
+    ${row('Department', esc(d.ministry || d.inviting_office || ''))}
+    ${row('Gabion', esc(qty))}
+    ${row('Where', esc(d.corridor || d.location || ''))}
+    ${row('Build window', w ? esc(spanv(w)) : '')}
+    ${row('Contract', d.tender_value_cr ? crv(d.tender_value_cr) : '')}
+    ${t.place ? `<div class=pnote>${esc(t.place.note || '')}</div>` : ''}
+    <button class="chip popopen" data-id="${esc(tid)}">Open full detail</button>
+  </div>`;
 }
+
+/* ---------- slide-over detail ----------
+   Opened from a map popup. Deliberately NOT a jump to the Board: the map is how
+   you find a job, and losing your pan and zoom to read one is the wrong trade.
+   The same panel works from anywhere, so the Board can use it too. */
+function openDrawer(tid) {
+  const t = D.tenders.find(x => x.tender_id === tid);
+  const el = document.getElementById('drawer');
+  const back = document.getElementById('drawerback');
+  const body = document.getElementById('drawerbody');
+  const title = document.getElementById('drawertitle');
+  if (!t || !el || !body) return;
+  title.textContent = (t.detail && t.detail.title) || tid;
+  // Never let one bad field cost the whole panel: show what rendered, say what
+  // did not. A drawer that opens empty is worse than one that opens honest.
+  try {
+    body.innerHTML = reqHTML(t);
+    // Same wiring as the board, or the folds do not open and the notes box does
+    // not save - a notes field that silently discards what you typed is worse
+    // than no notes field.
+    wireDetail(body, t);
+    wireNote(body, t);
+  } catch (err) {
+    console.warn('detail render failed for', tid, err);
+    body.innerHTML = `<div class=empty>Could not render the full detail for
+      ${esc(tid)}. ${esc(String(err && err.message || err))}</div>`;
+  }
+  el.hidden = false; back.hidden = false;
+  slideIn(el, back);
+  document.getElementById('drawerclose').focus();
+  // Evidence, quantities and the BoQ arrive per tender; refill once they land.
+  if (BOOT.mode === 'cloud' && !HYDRATED.has(tid)) {
+    hydrate(tid).then(ok => {
+      if (!ok || el.hidden || title.dataset.id !== tid) return;
+      // Keep whatever is being typed - a background fetch must not wipe a note
+      // mid-sentence.
+      const typing = body.querySelector('#notebox');
+      const draft = typing ? typing.value : null;
+      body.innerHTML = reqHTML(t);
+      wireDetail(body, t); wireNote(body, t);
+      const fresh = body.querySelector('#notebox');
+      if (fresh && draft != null && draft !== fresh.value) fresh.value = draft;
+    });
+  }
+  title.dataset.id = tid;
+}
+
+/* ---------- print / share sheet ----------
+   Built for a phone call, not for a file: who to ring, what they need, when they
+   need it, and the questions the documents leave unanswered. Everything on it is
+   sourced - nothing is inferred for the sake of filling the page. */
+function printSheet(t) {
+  const d = t.detail || {}, a = t.award || {}, w = windowOf(t);
+  const row = (k, v) => v ? `<div class=prow><span>${k}</span><b>${v}</b></div>` : '';
+
+  // Wire specification, pulled off the gabion lines. This is what a supplier is
+  // actually asked to quote against, and it is buried in the BoQ otherwise.
+  const spec = {};
+  (t.supply || []).filter(s => s.core_match).forEach(s => {
+    ['mesh', 'wire_dia', 'coating', 'is_code', 'swg'].forEach(k => {
+      if (s[k] && !spec[k]) spec[k] = s[k];
+    });
+  });
+  const qty = gabOf(t) ? crv(gabOf(t)) : (bestQty(t) || 'not stated');
+
+  // Only ask what the documents genuinely do not answer.
+  const ask = [];
+  if (!spec.mesh) ask.push('Mesh size — the BoQ does not state it');
+  if (!spec.wire_dia && !spec.swg) ask.push('Wire diameter / SWG');
+  if (!spec.coating) ask.push('Coating — zinc, heavily zinc, or PVC');
+  if (!gabOf(t) && !bestQty(t)) ask.push('Gabion quantity — no priced line was found');
+  ask.push('Delivery schedule — when is the protection work programmed');
+  ask.push('Site access and offloading at ' + (d.corridor || d.location || 'site'));
+
+  const bidders = (a.bidders || []).slice(0, 6);
+  return `<div class=psheet>
+  <div class=phead>
+    <div class=pfirm>M/s Agarwal Gabion Industries<span>TENDER CALL SHEET</span></div>
+    <div class=pdate>${new Date().toLocaleDateString('en-IN',
+      { day: '2-digit', month: 'short', year: 'numeric' })}</div>
+  </div>
+  <div class=ptitle2>${esc(d.title || t.tender_id)}</div>
+  <div class=pref>${esc(t.tender_id)}${d.reference_no ? ' \u00b7 ' + esc(d.reference_no) : ''}</div>
+
+  <div class=pgrid>
+    <div>
+      <div class=pbox><h4>Who to call</h4>
+        ${a.winner ? `<div class=pbig>${esc(a.winner)}</div>` :
+          `<div class=pbig>${esc(bstatus(t))}</div>`}
+        ${row('GSTIN', esc((bidders.find(b => b.bidder === a.winner) || {}).gstin || ''))}
+        ${row('Registered', esc((bidders.find(b => b.bidder === a.winner) || {}).gst_state || ''))}
+        ${row('Won at', a.winning_amount ? '\u20b9' + Number(a.winning_amount).toLocaleString('en-IN') : '')}
+        ${row('Contract dated', esc(a.contract_date || ''))}
+      </div>
+      <div class=pbox><h4>What they need</h4>
+        <div class=pbig>${esc(qty)}</div>
+        ${row('Mesh', esc(spec.mesh || ''))}
+        ${row('Wire dia', spec.wire_dia ? esc(spec.wire_dia) + ' mm' : '')}
+        ${row('SWG', esc(spec.swg || ''))}
+        ${row('Coating', esc(spec.coating || ''))}
+        ${row('Standard', spec.is_code ? 'IS ' + esc(spec.is_code) : '')}
+      </div>
+    </div>
+    <div>
+      <div class=pbox><h4>Where &amp; when</h4>
+        ${row('State', esc(d.state || ''))}
+        ${row('Location', esc(d.corridor || d.location || ''))}
+        ${row('Highway', esc(d.nh || ''))}
+        ${row('Chainage', d.km_from != null ? 'km ' + d.km_from + ' \u2013 ' + d.km_to : '')}
+        ${row('Length', d.km_length ? d.km_length + ' km' : '')}
+        ${row('Build window', w ? esc(spanv(w)) : '')}
+        ${row('Position', t.place ? esc(t.place.note || '') :
+              (t.geo ? 'surveyed alignment on file' : ''))}
+      </div>
+      <div class=pbox><h4>The job</h4>
+        ${row('Department', esc(d.ministry || d.inviting_office || ''))}
+        ${row('Contract value', d.tender_value_cr ? crv(d.tender_value_cr) : '')}
+        ${row('Type', esc(d.form_of_contract || d.tender_type || ''))}
+        ${row('Concrete work', cementOf(t) ? crv(cementOf(t)) + ' (not ours)' : '')}
+      </div>
+    </div>
+  </div>
+
+  ${bidders.length > 1 ? `<div class=pbox><h4>Everyone who bid \u2014 the losers bid again</h4>
+    <table class=pbid><thead><tr><th>Bidder</th><th>Rank</th><th class=n>Bid</th>
+      <th>GSTIN</th></tr></thead><tbody>` +
+    bidders.map(b => `<tr class="${b.rank === 'L1' ? 'w' : ''}">
+      <td>${esc(b.bidder)}</td><td>${esc(b.rank || '\u2014')}</td>
+      <td class=n>${b.amount ? '\u20b9' + Number(b.amount).toLocaleString('en-IN') : '\u2014'}</td>
+      <td>${esc(b.gstin || '')}</td></tr>`).join('') +
+    '</tbody></table></div>' : ''}
+
+  <div class=pgrid>
+    <div class=pask><h4>Ask them</h4><ul>${ask.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>
+    <div><div class=pbox style="margin-bottom:4px"><h4>Notes</h4>
+      <div class=pnotes>${esc(noteFor(t.tender_id).text || '')}</div></div></div>
+  </div>
+
+  <div class=pfoot><span>Agarwal Gabion Industries \u00b7 tender screen</span>
+    <span>Figures read from the tender documents \u2014 confirm before quoting</span></div>
+</div>`;
+}
+
+function printTender(tid) {
+  const t = D.tenders.find(x => x.tender_id === tid);
+  if (!t) return;
+  const el = document.getElementById('printarea');
+  if (!el) return;
+  el.innerHTML = printSheet(t);
+  // The browser's own dialog: "Save as PDF" gives the file to send, "Print" gives
+  // the paper copy. No PDF library, no upload, nothing leaves the machine.
+  window.print();
+}
+
+/* ---------- location slide-over ----------
+   The board's Location cell opens this. Its own small Leaflet instance, built
+   once and reused: a map cannot be moved between containers, and creating one
+   per click leaks handlers and tiles. */
+/* Add the `show` class one frame after the element is laid out, or the browser
+   jumps straight to the end state and there is no slide. Falls back to a timer,
+   because rAF does not run while the tab is hidden and the panel must still
+   arrive - an animation that never starts should not mean a drawer stuck
+   off-screen. */
+function slideIn(el, back) {
+  let done = false;
+  const go = () => { if (done) return; done = true;
+    el.classList.add('show'); if (back) back.classList.add('show'); };
+  requestAnimationFrame(() => requestAnimationFrame(go));
+  setTimeout(go, 60);
+}
+
+let MINI = null, MINILAYER = null, MINICTX = null;
+function openMapDrawer(tid) {
+  const t = D.tenders.find(x => x.tender_id === tid);
+  const el = document.getElementById('mapdrawer');
+  const back = document.getElementById('drawerback');
+  if (!t || !el || !window.L) return;
+  const d = t.detail || {};
+  document.getElementById('mapdrawertitle').textContent =
+    placeOf(t) + (d.state ? ' \u2014 ' + d.state : '');
+  el.hidden = false; back.hidden = false;
+  // The slide is cosmetic and goes through rAF; BUILDING the map does not.
+  // requestAnimationFrame never fires while a tab is not compositing, so a map
+  // constructed inside it silently never exists - the drawer opens on a blank
+  // grey panel. Anything functional runs now, on a timer at worst.
+  slideIn(el, back);
+
+  // A tender with a surveyed alignment has NO `place` - it is meant to draw its
+  // geometry instead - and that geometry is only fetched when the Map tab is
+  // opened. Clicking Location straight from the board therefore had nothing to
+  // draw for exactly the 18 best-located tenders, which is the opposite of what
+  // you would expect. Fetch it now and redraw when it lands.
+  if (!(t.geo && t.geo.line) && !(t.place && t.place.lat != null)) {
+    loadGeo().then(ok => {
+      if (ok && !el.hidden) openMapDrawer(tid);
+    });
+  }
+
+  setTimeout(() => {
+    if (!MINI) {
+      MINI = L.map('minimap', { layers: [L.tileLayer(
+        'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+        { maxZoom: 19, attribution: '&copy; OpenStreetMap' })] });
+      L.control.scale({ imperial: false }).addTo(MINI);
+    }
+    if (MINILAYER) { MINI.removeLayer(MINILAYER); MINILAYER = null; }
+    if (MINICTX) { MINI.removeLayer(MINICTX); MINICTX = null; }
+    // Everything else, faint and underneath. A job shown alone tells you where it
+    // is; shown among its neighbours it tells you whether there is a second job
+    // down the road worth mentioning on the same call. Small grey dots only - the
+    // full alignments would be 5,256 features and drown the one you asked about.
+    MINICTX = L.layerGroup().addTo(MINI);
+    (D.tenders || []).forEach(o => {
+      if (o.tender_id === tid) return;
+      const ll = (o.geo && o.geo.centre_lat != null) ? [o.geo.centre_lat, o.geo.centre_lon]
+               : (o.place && o.place.lat != null) ? [o.place.lat, o.place.lon] : null;
+      if (!ll) return;
+      L.circleMarker(ll, { radius: 3.5, weight: 1, color: '#fff', opacity: 0.7,
+        fillColor: '#7c8794', fillOpacity: 0.75 })
+        .bindPopup(mapPopup(o.tender_id)).addTo(MINICTX);
+    });
+
+    MINILAYER = L.featureGroup().addTo(MINI);
+    const colour = tenderColour(tid);
+
+    // The surveyed alignment if there is one, otherwise the derived position
+    // drawn at its true error radius - a 150 km guess must LOOK like one here
+    // too, not like a pin on a building.
+    let bounds = null;
+    const feats = (t.geo && t.geo.line) || [];
+    if (feats.length) {
+      feats.forEach(f => {
+        if (!f.coords || !f.coords.length) return;
+        const ll = f.coords.map(c => [c[1], c[0]]);   // GeoJSON [lon,lat] -> Leaflet
+        if (ll.length > 1) {
+          // A white casing under the line so it stays legible over any basemap
+          // and reads as the highlighted one among the grey context dots.
+          L.polyline(ll, { color: '#fff', weight: 8, opacity: 0.85,
+            interactive: false }).addTo(MINILAYER);
+          L.polyline(ll, { color: colour, weight: 4 }).addTo(MINILAYER);
+        } else {
+          L.circleMarker(ll[0], { radius: 6, color: '#fff', weight: 2,
+            fillColor: colour, fillOpacity: 1 }).addTo(MINILAYER);
+        }
+      });
+      bounds = MINILAYER.getBounds();
+    } else if (t.geo && t.geo.centre_lat != null) {
+      // The geometry has not arrived (or none is stored) but in_geo knows the
+      // centre - better a correct point than an empty map.
+      L.circleMarker([t.geo.centre_lat, t.geo.centre_lon], { radius: 7,
+        color: '#fff', weight: 2, fillColor: colour, fillOpacity: 1 }).addTo(MINILAYER);
+      bounds = MINILAYER.getBounds();
+    } else if (t.place && t.place.lat != null) {
+      const km = Number(t.place.precision_km) || 25;
+      L.circle([t.place.lat, t.place.lon], { radius: km * 1000, color: colour,
+        weight: 1, opacity: 0.6, fillColor: colour, fillOpacity: 0.08,
+        dashArray: '5 5', interactive: false }).addTo(MINILAYER);
+      L.circleMarker([t.place.lat, t.place.lon], { radius: 6, color: '#fff',
+        weight: 2, fillColor: colour, fillOpacity: 1 }).addTo(MINILAYER);
+      bounds = MINILAYER.getBounds();
+    }
+
+    // Leaflet measures its container on creation; in a drawer that was still
+    // sliding it measures 0x0 and renders a grey box. Size it after the move.
+    MINI.invalidateSize();
+    if (bounds && bounds.isValid()) {
+      // Pad generously and cap the zoom: the point of showing the neighbours is
+      // seeing them, and flying in tight to one line hides the very context that
+      // was just added.
+      MINI.fitBounds(bounds.pad(0.9), { padding: [30, 30], maxZoom: 11 });
+    } else {
+      // Say so rather than showing a plausible-looking map of nowhere.
+      MINI.setView([25.5, 90.0], 5);
+      const f = document.getElementById('minifoot');
+      if (f) f.innerHTML = '<span class=mlhow>not located</span> ' +
+        'Nothing in this tender gives a position.';
+    }
+  }, 30);
+
+  const how = (t.geo && t.geo.centre_lat != null)
+    ? '<span class="mlhow exact">surveyed alignment</span>'
+    : `<span class=mlhow>${esc((t.place && t.place.source) || 'not located')}</span>`;
+  document.getElementById('minifoot').innerHTML =
+    `${how} ${esc((t.place && t.place.note) || (t.geo ? 'from the tender\u2019s own KML' : ''))}`;
+}
+
+function closeMapDrawer() {
+  const el = document.getElementById('mapdrawer');
+  const back = document.getElementById('drawerback');
+  if (!el || el.hidden) return;
+  el.classList.remove('show'); back.classList.remove('show');
+  setTimeout(() => { el.hidden = true; back.hidden = true; }, 220);
+}
+
+function closeDrawer() {
+  const el = document.getElementById('drawer');
+  const back = document.getElementById('drawerback');
+  if (!el || el.hidden) return;
+  el.classList.remove('show'); back.classList.remove('show');
+  setTimeout(() => {
+    el.hidden = true; back.hidden = true;
+    el.querySelector('#drawerbody').innerHTML = '';   // drop the duplicate ids
+    // A note written in the drawer must be on the board the moment it closes.
+    renderReq();
+  }, 220);
+}
+
+/* Popups are re-created by Leaflet on every open, so the handler is delegated
+   from the document rather than bound per popup - binding at creation time
+   leaves dead buttons on every popup after the first. */
+document.addEventListener('click', ev => {
+  const c = ev.target.closest ? ev.target.closest.bind(ev.target) : () => null;
+  const b = c('.popopen');
+  if (b) { openDrawer(b.dataset.id); return; }
+  const pr = c('.printbtn');
+  if (pr) { ev.stopPropagation(); printTender(pr.dataset.print); return; }
+  const loc = c('.loccell');
+  if (loc) {
+    // Don't let the row's own click fire as well - that would select the tender
+    // behind the drawer and re-render the board under it.
+    ev.stopPropagation();
+    openMapDrawer(loc.dataset.loc);
+    return;
+  }
+  if (ev.target.id === 'drawerback' || c('#drawerclose') || c('#mapdrawerclose')) {
+    closeDrawer(); closeMapDrawer();
+  }
+});
+document.addEventListener('keydown', ev => {
+  if (ev.key === 'Escape') { closeDrawer(); closeMapDrawer(); }
+});
 
 function renderMapList() {
   const el = document.getElementById('maplist');
   if (!el) return;
-  const rows = D.tenders.filter(t => t.geo && t.geo.centre_lat != null)
-    .sort((a, b) => gabOf(b) - gabOf(a));
-  if (!rows.length) { el.innerHTML = '<div class=empty>No alignments read yet.</div>'; return; }
-  el.innerHTML = rows.map(t => `<div class=lrow data-id="${esc(t.tender_id)}">
-    <span class="ldot d-${t.verdict}"></span>
-    <span><span class=lname>${esc((t.detail && t.detail.corridor) || t.tender_id)}</span>
-      <span class=lmeta>${t.geo.total_line_km
-        ? Number(t.geo.total_line_km).toLocaleString() + ' km' : ''}${
-        gabOf(t) ? ' · ' + crv(gabOf(t)) : ''}</span></span><span></span></div>`).join('');
-  el.querySelectorAll('.lrow').forEach(e => e.addEventListener('click', () => {
+  // Every tender the map can show, not only the 18 with a surveyed alignment -
+  // the list used to hide the other 143 that geocode.py had placed. Ordered by
+  // gabion, then quantity, so the list reads in the same order as the board.
+  const rows = D.tenders
+    .filter(t => (t.geo && t.geo.centre_lat != null) || (t.place && t.place.lat != null))
+    .sort((a, b) => (gabOf(b) || cumOf(b) / 1000) - (gabOf(a) || cumOf(a) / 1000));
+  if (!rows.length) { el.innerHTML = '<div class=empty>Nothing located yet.</div>'; return; }
+  const HOW = { document: 'coords in docs \u00b7 ~5 km', place: 'named places \u00b7 ~8 km',
+                chainage: 'chainage \u00b7 ~12 km', corridor: 'corridor \u00b7 ~25 km',
+                office: 'office only \u00b7 ~25 km', state: 'state only \u00b7 ~150 km' };
+  el.innerHTML = rows.map(t => {
+    const d = t.detail || {}, w = windowOf(t);
+    const surveyed = t.geo && t.geo.centre_lat != null;
+    const how = surveyed ? 'surveyed alignment' : (HOW[(t.place || {}).source] || '');
+    const size = gabOf(t) ? crv(gabOf(t)) + ' gabion' : (bestQty(t) || '');
+    const who = t.award && t.award.winner ? esc(t.award.winner) : bstatus(t);
+    const where = [d.corridor || d.location, d.state].filter(Boolean).join(', ');
+    const km = t.geo && t.geo.total_line_km
+      ? Number(t.geo.total_line_km).toLocaleString() + ' km' : (d.km_length ? d.km_length + ' km' : '');
+    return `<div class=mlrow data-id="${esc(t.tender_id)}">
+      <span class=mlbar style="background:${tenderColour(t.tender_id)}"></span>
+      <div class=mlbody>
+        <div class=mltitle>${esc(d.title || d.corridor || t.tender_id)}</div>
+        <div class=mlwho>${who}</div>
+        <div class=mlmeta>${[where, km].filter(Boolean).map(esc).join(' \u00b7 ')}</div>
+        <div class=mlfoot>
+          ${size ? `<b>${esc(size)}</b>` : ''}
+          ${w ? `<span>${esc(spanv(w))}</span>` : ''}
+          <span class="mlhow ${surveyed ? 'exact' : ''}">${esc(how)}</span>
+        </div>
+      </div></div>`;
+  }).join('');
+  el.querySelectorAll('.mlrow').forEach(e => e.addEventListener('click', () => {
     const t = D.tenders.find(x => x.tender_id === e.dataset.id);
-    const bb = t && t.geo && t.geo.bbox;
-    if (bb && MAP) MAP.fitBounds([[bb[1], bb[0]], [bb[3], bb[2]]], { padding: [40, 40], maxZoom: 14 });
+    if (!t || !MAP) return;
+    const bb = t.geo && t.geo.bbox;
+    if (bb) {
+      MAP.fitBounds([[bb[1], bb[0]], [bb[3], bb[2]]], { padding: [40, 40], maxZoom: 14 });
+    } else if (t.place && t.place.lat != null) {
+      // Zoom to suit the accuracy: there is no honest reason to fly to street
+      // level on a position that is only good to 150 km.
+      const km = Number(t.place.precision_km) || 25;
+      MAP.setView([t.place.lat, t.place.lon], km > 100 ? 7 : km > 20 ? 9 : 11);
+    }
+    board.sel = t.tender_id;
+    // Mark the row so the list shows which pin you are looking at.
+    el.querySelectorAll('.mlrow').forEach(r =>
+      r.setAttribute('aria-selected', String(r.dataset.id === t.tender_id)));
   }));
+  // A second click, or the keyboard, opens the same slide-over the map pins use.
+  el.querySelectorAll('.mlrow').forEach(e => {
+    e.setAttribute('tabindex', '0');
+    e.addEventListener('dblclick', () => openDrawer(e.dataset.id));
+    e.addEventListener('keydown', ev => {
+      if (ev.key === 'Enter') { ev.preventDefault(); openDrawer(e.dataset.id); }
+    });
+  });
+}
+
+/* ---------- notes ---------- */
+/* A sales dashboard needs somewhere to write what happened on the call. Notes are
+   per tender, autosaved a second after typing stops, and stamped with when they
+   were last touched.
+
+   Offline they live in localStorage, which survives a rebuild because the page is
+   opened from the same path each time - but it is one browser on one machine, so
+   `Export notes` writes them out as JSON and dashboard.py folds `reports/notes.json`
+   back in on the next build. That is what makes them durable rather than a
+   convenience that vanishes when a cache is cleared. */
+const NOTESTORE = 'agi-tender-notes';
+let NOTES = (() => {
+  const seeded = (BOOT.data && BOOT.data.notes) || {};
+  try { return { ...seeded, ...JSON.parse(localStorage.getItem(NOTESTORE) || '{}') }; }
+  catch (e) { return seeded; }
+})();
+
+function noteFor(tid) { return NOTES[tid] || { text: '', at: null }; }
+
+let noteTimer = null;
+function noteChanged(tid, text) {
+  NOTES[tid] = { text, at: new Date().toISOString() };
+  clearTimeout(noteTimer);
+  noteTimer = setTimeout(() => {
+    try { localStorage.setItem(NOTESTORE, JSON.stringify(NOTES)); } catch (e) {}
+    pushNote(tid, text).catch(() => {});
+    // The board panel and the map's slide-over can both be showing this tender,
+    // so every stamp and every box is updated - not getElementById, which finds
+    // one of them and leaves the other looking unsaved.
+    const when = 'saved ' + new Date().toLocaleTimeString('en-IN');
+    document.querySelectorAll('#notestamp, [data-notestamp]')
+      .forEach(s => { s.textContent = when; });
+    document.querySelectorAll('#notebox').forEach(b => {
+      if (b.value !== text && document.activeElement !== b) b.value = text;
+    });
+    renderBoard();
+  }, 800);
+}
+
+async function pushNote(tid, text) {
+  if (BOOT.mode !== 'cloud' || !window.__SB__) return;
+  await window.__SB__.from('in_notes').upsert(
+    { tender_id: tid, note: text, updated_at: new Date().toISOString() },
+    { onConflict: 'tender_id,user_id' });
+}
+
+async function loadNotes() {
+  if (BOOT.mode !== 'cloud' || !window.__SB__) return;
+  const { data, error } = await window.__SB__.from('in_notes').select('tender_id,note,updated_at');
+  if (!error && data) data.forEach(r => { NOTES[r.tender_id] = { text: r.note, at: r.updated_at }; });
+}
+
+function exportNotes() {
+  const blob = new Blob([JSON.stringify(NOTES, null, 1)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'notes.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function noteBlock(t) {
+  const n = noteFor(t.tender_id);
+  return `<h3 class=s>Notes</h3>
+    <textarea id=notebox rows=5 placeholder="Who you spoke to, what they said, what to send…"
+      style="width:100%;padding:8px 10px;font:inherit;font-size:13px;line-height:1.5;
+      background:var(--plane);color:var(--ink);border:1px solid var(--rule);
+      border-radius:7px;resize:vertical">${esc(n.text)}</textarea>
+    <div class=mtext style="display:flex;gap:10px;align-items:center;margin-top:5px">
+      <span id=notestamp style="color:var(--muted)">${
+        n.at ? 'last edited ' + dayv(n.at) : ''}</span>
+      <button class=chip id=exportnotes style="margin-left:auto">Export notes</button>
+    </div>`;
+}
+
+// Delegated once at the document, so it keeps working after any re-render and in
+// whichever pane the detail happens to be showing.
+document.addEventListener('click', ev => {
+  const b = ev.target.closest && ev.target.closest('button[data-copy]');
+  if (!b) return;
+  ev.preventDefault();
+  const path = b.dataset.copy || '';
+  const flash = ok => {
+    const o = 'Copy path';
+    b.textContent = ok ? 'Copied' : 'Press Ctrl+C';
+    setTimeout(() => { b.textContent = o; }, 1400);
+  };
+  // The async clipboard API exists on file:// but its promise rejects there, so
+  // "is it defined" is not the test - the rejection is. Fall through to the
+  // textarea trick, and if even that fails leave the text selected so Ctrl+C works.
+  const legacy = () => {
+    const ta = document.createElement('textarea');
+    ta.value = path;
+    ta.style.cssText = 'position:absolute;left:-9999px';
+    document.body.appendChild(ta);
+    ta.select();
+    let ok = false;
+    try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+    ta.remove();
+    // If even that is refused, telling someone to press Ctrl+C is only useful when
+    // something is selected - so select the path shown beneath the button and let
+    // them do it themselves.
+    if (!ok) {
+      const shown = b.closest('p') && b.closest('p').parentElement
+        && b.closest('p').parentElement.querySelector('p.paths + p.paths');
+      if (shown) {
+        const r = document.createRange();
+        r.selectNodeContents(shown);
+        const sel = window.getSelection();
+        sel.removeAllRanges(); sel.addRange(r);
+      }
+    }
+    flash(ok);
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(path).then(() => flash(true), legacy);
+  } else {
+    legacy();
+  }
+});
+
+function wireNote(pane, t) {
+  const box = pane.querySelector('#notebox');
+  if (box) box.addEventListener('input', () => noteChanged(t.tender_id, box.value));
+  const ex = pane.querySelector('#exportnotes');
+  if (ex) ex.addEventListener('click', exportNotes);
 }
 
 /* ---------- board ---------- */
@@ -1721,6 +2701,28 @@ const crv = v => v == null ? '\u2014' : '\u20b9' + Number(v).toLocaleString('en-
 const dayv = s => { if (!s) return '\u2014';
   const d = new Date(s); return isNaN(d) ? String(s)
     : d.toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' }); };
+/* A build window spanning years does not need days - nobody rings a contractor
+   about the 11th. Month and year is the useful grain, and when both ends fall in
+   one year the year is said once: "Mar → Nov 2026", not "Mar 2026 → Nov 2026". */
+const monv = d => d.toLocaleDateString('en-IN', { month: 'short' });
+// Two-digit year - the century is understood, and this column is scanned, not read.
+const yrv = d => String(d.getFullYear() % 100).padStart(2, '0');
+// Months read better than days for a build period: "36 mo", not "1096 days".
+const durv = d => d >= 60 ? `${Math.round(d / 30.44)} mo` : `${d} d`;
+const spanv = w => {
+  if (!w) return '\u2014';
+  // Not awarded: no start exists to print, but the duration is known and is what
+  // tells you how long the job runs once it does start.
+  if (!w.start) return w.days ? durv(w.days) : '\u2014';
+  if (w.noLength || !w.end) return `${monv(w.start)}${yrv(w.start)}`;
+  const a = w.start, b = w.end;
+  if (isNaN(a) || isNaN(b)) return '\u2014';
+  const sameYear = a.getFullYear() === b.getFullYear();
+  if (sameYear && a.getMonth() === b.getMonth()) return `${monv(a)}${yrv(a)}`;
+  return sameYear
+    ? `${monv(a)} \u2192 ${monv(b)}${yrv(b)}`
+    : `${monv(a)}${yrv(a)} \u2192 ${monv(b)}${yrv(b)}`;
+};
 const gabOf   = t => (t.value && t.value.gabion_value_cr) || 0;
 // `direct` already contains the gabion line, so subtract it to avoid counting the
 // same money twice. Concrete (`cement_value_cr`) is excluded entirely - AGI does
@@ -1734,29 +2736,89 @@ const cementOf = t => (t.value && t.value.cement_value_cr) || 0;
 /* Where no rupee value can be derived, fall back to the quantity - it is the
    order size, which is the number that matters when ringing someone. Only lines
    naming the product count; a breast-wall length is not our tonnage. */
+// Volume is the order size. A gabion line measured in Cum tells us how many boxes
+// to make; one measured in metres is a wall length and one measured in "each" is
+// a count of something unstated. Picking the biggest number regardless of unit
+// showed "20 m" on a tender whose BoQ also carried 13,552 Cum.
+const CUM = /^(cu\.?\s?m|cum\.?|one\s*cum|m3|m³)$/i;
+
+function cumOf(t) {
+  return (t.supply || [])
+    .filter(r => r.core_match && r.quantity != null && CUM.test(String(r.unit || '').trim()))
+    .reduce((a, r) => a + Number(r.quantity), 0);
+}
+
 function bestQty(t) {
   const rows = (t.supply || []).filter(r => r.core_match && r.quantity != null);
   if (!rows.length) return null;
+  const vol = cumOf(t);
+  if (vol) return Math.round(vol).toLocaleString('en-IN') + ' Cum';
   const r = rows.slice().sort((a, b) => (b.quantity || 0) - (a.quantity || 0))[0];
   return Number(r.quantity).toLocaleString('en-IN') + ' ' + (r.unit || '');
 }
 
+
 function bstatus(t) {
   if (t.award && t.award.winner) return 'Won \u2014 call them';
   const st = t.detail && t.detail.status;
-  return st === 'live' ? 'Still open' : st === 'closed' ? 'Awaiting result' : 'Unknown';
+  if (st === 'live') return 'Still open';
+  if (st === 'closed') return 'Awaiting result';
+  // "Unknown" said nothing and read like a data error. What is actually known is
+  // whether a result package exists at all, which is the difference between
+  // "nobody has won yet" and "somebody won and we could not read who".
+  const hasResult = (t.res_files || 0) > 0 ||
+                    (t.award && (t.award.contract_date || t.award.contract_amount));
+  return hasResult ? 'Awarded \u2014 winner not read' : 'No result published yet';
 }
 /* Roughly when the material is wanted: protection work sits early in a road
    contract, so the first stretch of the build period is the window to sell into. */
+/* A build window needs a start AND a length, and the corpus rarely has both:
+   97 tenders carry a contract date, 152 carry a work period, only 91 carry each.
+   Rather than print a dash for the rest, say whichever half is known.
+
+     both        Mar26 -> Mar29        the real window
+     length only 36 mo                 not awarded yet, so no start exists - but
+                                       the duration is in the tender and is the
+                                       thing that decides when material is wanted
+     start only  Mar26                 awarded, period not stated                */
+/* Who is buying. On GeM the platform name tells a salesman nothing - the buyer is
+   BRO, the Indian Army, a Department of Defence unit - so the department is what
+   goes on the board, never the portal. Ministry first, then the inviting office,
+   which for a state PWD is the division that actually runs the job. */
+function deptOf(t) {
+  const d = t.detail || {};
+  const main = d.ministry || d.inviting_office;
+  if (!main) return '<span class=bsub>\u2014</span>';
+  const sub = (d.inviting_office && d.inviting_office !== main) ? d.inviting_office : '';
+  return `${esc(main)}${sub ? `<span class=bsub>${esc(sub)}</span>` : ''}`;
+}
+
+/* The most specific place we can name. The state always shows beneath it, because
+   that is what the board is filtered and grouped by - a row with no state is a row
+   that cannot be found. */
+function placeOf(t) {
+  const d = t.detail || {};
+  return d.corridor || d.nh || d.location || d.state || '\u2014';
+}
+
 function windowOf(t) {
-  if (!t.award || !t.award.contract_date) return null;
-  const start = new Date(t.award.contract_date);
-  if (isNaN(start)) return null;
-  const days = (t.detail && t.detail.period_of_work_days) || 0;
-  const end = new Date(start); end.setDate(end.getDate() + days);
+  // The award's own contract period wins: it is what was signed, stated on page 1
+  // of the AOC beside the contract date. The tender's period_of_work_days is what
+  // was ASKED for, and is the fallback for tenders not yet awarded.
+  const days = (t.award && t.award.contract_days)
+            || (t.detail && t.detail.period_of_work_days) || 0;
+  const raw = t.award && t.award.contract_date;
+  const start = raw ? new Date(raw) : null;
+  if (!start || isNaN(start)) {
+    return days ? { days, phase: 'not awarded yet' } : null;
+  }
+  const end = new Date(start);
+  if (days) end.setDate(end.getDate() + days);
   const months = Math.round((Date.now() - start) / 2.63e9);
-  return { start, end,
-    phase: months < 0 ? 'not started' : months <= 18 ? 'in the build window' : 'later stage' };
+  const phase = months < 0 ? 'not started'
+              : months <= 18 ? 'in the build window' : 'later stage';
+  return days ? { start, end, days, phase }
+              : { start, days: 0, phase, noLength: true };
 }
 
 function boardGroups() {
@@ -1764,27 +2826,43 @@ function boardGroups() {
   const rows = D.tenders.filter(t => t.verdict !== 'RESULT' &&
     state.verdicts.has(t.verdict) &&
     !(state.hideDone && state.done.has(t.tender_id)) && (!q ||
+    // State and department are columns on the board, so they must be searchable
+    // too - typing "Assam" or "Defence" should narrow it.
     (t.tender_id + ' ' + ((t.detail && t.detail.title) || '') + ' ' +
      ((t.detail && t.detail.corridor) || '') + ' ' +
+     ((t.detail && t.detail.state) || '') + ' ' +
+     ((t.detail && t.detail.location) || '') + ' ' +
+     ((t.detail && t.detail.ministry) || '') + ' ' +
+     ((t.detail && t.detail.inviting_office) || '') + ' ' +
      ((t.award && t.award.winner) || '')).toLowerCase().includes(q)));
   const key = GROUPS[board.by][1];
   const cmp = {
-    gabion: (a, b) => gabOf(b) - gabOf(a),
-    total:  (a, b) => otherOf(b) - otherOf(a),
+    // Rank on whichever measure the tender actually has. Cum is scaled into the
+    // same order of magnitude as a crore figure so the two interleave sensibly
+    // rather than one block always sorting above the other.
+    gabion: (a, b) => (gabOf(b) || cumOf(b) / 1000) - (gabOf(a) || cumOf(a) / 1000),
+    volume: (a, b) => cumOf(b) - cumOf(a),
     value:  (a, b) => ((b.detail && b.detail.tender_value_cr) || 0) -
                       ((a.detail && a.detail.tender_value_cr) || 0),
     chain:  (a, b) => ((a.detail && a.detail.km_from) ?? 1e9) -
                       ((b.detail && b.detail.km_from) ?? 1e9),
-  }[board.sort];
+  }[board.sort] || ((a, b) => (gabOf(b) || cumOf(b) / 1000) - (gabOf(a) || cumOf(a) / 1000));
   const blank = board.by === 'winner'
     ? 'No contractor yet \u2014 result not published' : 'Not stated';
   const g = new Map();
   rows.forEach(t => { const k = key(t) || blank;
     if (!g.has(k)) g.set(k, []); g.get(k).push(t); });
   g.forEach(v => v.sort(cmp));
+  // Group order uses the same two-measure rule as the row sort. Ranking groups on
+  // the rupee figure alone sank every contractor whose jobs are measured in Cum
+  // below every contractor who happens to hold an EPC package - and on this
+  // corpus that is 145 tenders of 173.
+  const size = v => v.reduce((s, t) => s + (gabOf(t) || cumOf(t) / 1000), 0);
+  // Un-awarded work is a watchlist, not a call list: no contractor exists to ring,
+  // so it sorts last however large it is. Within it, size still applies.
+  const watch = k => k === blank && board.by === 'winner';
   return [...g.entries()].sort((a, b) =>
-    b[1].reduce((s, t) => s + gabOf(t), 0) - a[1].reduce((s, t) => s + gabOf(t), 0)
-    || b[1].length - a[1].length);
+    (watch(a[0]) - watch(b[0])) || size(b[1]) - size(a[1]) || b[1].length - a[1].length);
 }
 
 function renderBoard() {
@@ -1800,21 +2878,23 @@ function renderBoard() {
   const all = groups.flatMap(([, v]) => v);
   if (!all.some(t => t.tender_id === board.sel)) board.sel = all[0].tender_id;
 
-  let h = `<table class=board><thead><tr><th>Job</th><th>Who to call</th>
-    <th class=num>Gabion</th><th class=num>Other supply</th><th>Where</th>
+  let h = `<table class=board>
+    <colgroup><col><col class=c-dept><col class=c-who><col class=c-gab><col class=c-where><col class=c-when></colgroup>
+    <thead><tr><th>Job</th><th>Department</th><th>Who to call</th>
+    <th class=num>Gabion</th><th>Location</th>
     <th>Build window</th></tr></thead><tbody>`;
   for (const [name, items] of groups) {
     const gs = items.reduce((s, t) => s + gabOf(t), 0);
-    const os = items.reduce((s, t) => s + otherOf(t), 0);
     h += `<tr class=grp><th colspan=6>${esc(name)}
       <span class=gcount>${items.length} job${items.length === 1 ? '' : 's'}</span>
-      <span class=gval>${gs ? crv(gs) + ' gabion' : ''}${os ? ' \u00b7 ' + crv(os) + ' other' : ''}</span></th></tr>`;
+      <span class=gval>${gs ? crv(gs) + ' gabion' : ''}</span></th></tr>`;
     for (const t of items) {
       const d = t.detail || {}, w = windowOf(t);
       h += `<tr class=brow data-id="${esc(t.tender_id)}" aria-selected="${t.tender_id === board.sel}">
         <td><span class=btitle>${esc(d.title || t.tender_id)}</span>
           <span class=bsub>${esc(t.tender_id)}${d.km_length ? ' \u00b7 ' + d.km_length + ' km' : ''}${
             d.tender_value_cr ? ' \u00b7 ' + crv(d.tender_value_cr) + ' contract' : ''}</span></td>
+        <td>${deptOf(t)}</td>
         <td>${t.award && t.award.winner ? '<b>' + esc(t.award.winner) + '</b>'
               : '<span class=bsub>' + bstatus(t) + '</span>'}</td>
         <td class=num>${gabOf(t) ? '<b>' + crv(gabOf(t)) + '</b>'
@@ -1823,9 +2903,11 @@ function renderBoard() {
           : (t.hit_totals && t.hit_totals.core)
             ? '<span class=bsub>named \u00d7' + t.hit_totals.core + '<br>not priced</span>'
             : '\u2014'}</td>
-        <td class=num>${otherOf(t) ? crv(otherOf(t)) : '\u2014'}</td>
-        <td>${esc(d.corridor || d.nh || '\u2014')}<span class=bsub>${esc(d.state || '')}</span></td>
-        <td>${w ? dayv(w.start) + '<span class=bsub>' + w.phase + '</span>'
+        <td><button class=loccell data-loc="${esc(t.tender_id)}"
+              title="Show on the map">${esc(placeOf(t))}<span class=bsub>${
+          esc(d.state || 'state not stated')}${
+          noteFor(t.tender_id).text ? ' \u00b7 noted' : ''}</span></button></td>
+        <td>${w ? spanv(w) + '<span class=bsub>' + w.phase + '</span>'
                 : '<span class=bsub>\u2014</span>'}</td></tr>`;
     }
   }
@@ -1836,11 +2918,73 @@ function renderBoard() {
   renderReq();
 }
 
-function renderReq() {
-  const t = D.tenders.find(x => x.tender_id === board.sel);
-  const el = document.getElementById('req');
-  if (!el) return;
-  if (!t) { el.innerHTML = '<div class=empty>Select a job.</div>'; return; }
+/* Per-tender detail, fetched the first time a job is opened rather than for all
+   173 at startup. Five small queries scoped to one tender_id return in well under
+   a second, against ~12,000 rows that used to block the first paint. */
+const HYDRATED = new Set();
+async function hydrate(tid) {
+  if (!tid || HYDRATED.has(tid) || BOOT.mode !== 'cloud') return false;
+  HYDRATED.add(tid);                       // claim it first, so a fast double-click
+  const SB = window.__SB__;                // cannot fire two identical fetches
+  const t = D.tenders.find(x => x.tender_id === tid);
+  if (!SB || !t) return false;
+  const one = tbl => SB.from(tbl).select('*').eq('tender_id', tid);
+  try {
+    const [ev, qt, hi, fi, bq, bd] = await Promise.all([
+      one('in_evidence'), one('in_quantities'), one('in_hits'),
+      one('in_findings'), one('in_boq_items'), one('in_bids'),
+    ]);
+    // in_awards holds the contract header; the bidders are their own table. The
+    // detail panel lists them with their GSTINs, and the losers matter too - they
+    // wanted this job and will bid the next one.
+    if (t.award && (bd.data || []).length) {
+      t.award.bidders = (bd.data || [])
+        .map(b => ({ bidder: b.contractor, rank: b.rank, amount: b.amount,
+                     gstin: b.gstin, gst_state: b.gst_state }))
+        .sort((x, y) => (x.rank === 'L1' ? -1 : y.rank === 'L1' ? 1 : 0)
+                        || (x.amount || 0) - (y.amount || 0));
+    }
+    const base = BOOT.localBase || '';
+    t.evidence = (ev.data || []).map(e => ({
+      file: e.source_file, tier: e.tier, term: e.term, page: e.page,
+      snippet: e.snippet,
+      cite: { label: (e.source_file || '').replace(/^md\//, '').replace(/\.md$/, '')
+                     + (e.page ? `, p${e.page}` : ''),
+              page: e.page,
+              url: (base && e.storage_key) ? base + e.storage_key : null,
+              image: null, portal: null,
+              primary: (base && e.storage_key) ? base + e.storage_key : null } }));
+    t.evidence_total = t.evidence.length;
+    t.quantities = (qt.data || []).map(q => ({
+      file: q.source_file, term: q.term, value: q.value,
+      unit: q.unit, page: q.page, context: q.context }));
+    const hits = {};
+    (hi.data || []).forEach(h => { (hits[h.tier] ||= {})[h.term] = h.n; });
+    t.hits = hits;
+    t.model = {
+      supply: (fi.data || []).filter(f => f.verdict === 'supply').length,
+      adjacent: (fi.data || []).filter(f => f.verdict === 'adjacent').length,
+      rows: (fi.data || []).map(f => ({
+        source: f.source_file, page: f.page, text: f.snippet, kind: f.kind,
+        supply: f.supply_score, adjacency: f.adjacency_score,
+        verdict: f.verdict, entities: f.entities || [], cite: null })) };
+    t.boq = bq.data || [];
+    t.boq_total = t.boq.length;
+    return true;
+  } catch (err) {
+    HYDRATED.delete(tid);                  // let it be retried rather than stay blank
+    console.warn('detail load failed for', tid, err);
+    return false;
+  }
+}
+
+/* The full tender panel, as one string. Extracted so the board and the map's
+   slide-over render the SAME thing - the drawer used to call detailHTML alone and
+   so lost the header, the build window, the cement warning, "Where to deliver"
+   and, most annoyingly, the notes box. A note taken from the map has to be the
+   same note you see on the board; they already share one store, but only one of
+   the two was drawing it. */
+function reqHTML(t) {
   const d = t.detail || {}, w = windowOf(t);
   const row = (k, val) => val == null || val === '' ? '' : `<dt>${k}</dt><dd>${val}</dd>`;
 
@@ -1848,10 +2992,20 @@ function renderReq() {
   // material is wanted, and where it goes - and then hands over to the full tender
   // detail, which is the same markup the Tenders tab renders.
   let h = `<div class=reqhead>${esc(d.title || t.tender_id)}</div>
-    <div class=reqid>${esc(t.tender_id)}${d.reference_no ? ' · ' + esc(d.reference_no) : ''}</div>`;
+    <div class=reqid>${esc(t.tender_id)}${d.reference_no ? ' · ' + esc(d.reference_no) : ''}
+      <button class="chip printbtn" data-print="${esc(t.tender_id)}"
+        title="One page: who to call, what they need, what to ask">
+        Print / save as PDF</button></div>`;
 
-  if (w) h += `<div class=mrow><div class=mtext>Build window <b>${dayv(w.start)}</b>
-    → ${dayv(w.end)} — <b>${w.phase}</b></div></div>`;
+  // The panel has room for exact dates; the board column does not. Both fall back
+  // to whichever half of the window is actually known.
+  if (w) {
+    const txt = w.start && w.end ? `<b>${dayv(w.start)}</b> → ${dayv(w.end)}`
+              : w.start          ? `<b>${dayv(w.start)}</b> — period not stated`
+              :                    `<b>${durv(w.days)}</b> from the award date`;
+    h += `<div class=mrow><div class=mtext>Build window ${txt}
+      — <b>${w.phase}</b></div></div>`;
+  }
 
   if (!gabOf(t) && t.hit_totals && t.hit_totals.core)
     h += `<div class=mrow><div class=mtext>The documents name it
@@ -1867,6 +3021,8 @@ function renderReq() {
         ? ' This tender does name gabion for: ' + t.value.gabion_linked.join(', ') + '.'
         : ''}</div></div>`;
 
+  h += noteBlock(t);
+
   h += `<h3 class=s>Where to deliver</h3><dl class=kv>` +
     row('State', esc(d.state || '')) + row('Corridor', esc(d.corridor || '')) +
     row('Highway', esc(d.nh || '')) +
@@ -1880,8 +3036,21 @@ function renderReq() {
   // Schedule-H, and the collapsible supply items, keyword hits, evidence,
   // geospatial, on-disk and model sections. Head omitted: it carries id=mark.
   h += detailHTML(t, false);
-  el.innerHTML = h;
+  return h;
+}
+
+function renderReq() {
+  const t = D.tenders.find(x => x.tender_id === board.sel);
+  const el = document.getElementById('req');
+  if (!el) return;
+  // Fetch on first open, then redraw with the detail filled in.
+  if (t && !HYDRATED.has(t.tender_id) && BOOT.mode === 'cloud') {
+    hydrate(t.tender_id).then(ok => { if (ok && board.sel === t.tender_id) renderReq(); });
+  }
+  if (!t) { el.innerHTML = '<div class=empty>Select a job.</div>'; return; }
+  el.innerHTML = reqHTML(t);
   wireDetail(el, t);
+  wireNote(el, t);
 }
 
 /* The call list: firms ranked by the gabion in what they actually won. Firms that
@@ -1909,6 +3078,15 @@ function renderCallList() {
     // share a trading name, none share a GSTIN - and its first two digits say
     // where the firm is registered, which is rarely where the work is.
     const f = firmOf(c.name);
+    // in_contractors is the roll-up, but a firm can carry its GSTIN on one bid
+    // and not on the roll-up. Fall back to the bids of the jobs it won rather
+    // than showing a dash for a number we already hold.
+    if (!f.gstin) {
+      for (const t of c.jobs) {
+        const b = ((t.award && t.award.bidders) || []).find(x => x.bidder === c.name && x.gstin);
+        if (b) { f.gstin = b.gstin; f.gst_state = b.gst_state; break; }
+      }
+    }
     return `<tr><td><b>${esc(c.name)}</b></td><td class=num>${c.jobs.length}</td>
       <td class=num>${c.gabion ? '<b>' + crv(c.gabion) + '</b>' : '\u2014'}</td>
       <td class=num>${c.other ? crv(c.other) : '\u2014'}</td>
@@ -1923,7 +3101,7 @@ function renderCallList() {
 /* ---------- tabs ---------- */
 function showView(v) {
   state.view = v;
-  ['board', 'tenders', 'map', 'contractors'].forEach(name => {
+  ['board', 'map', 'contractors', 'ops'].forEach(name => {
     const el = document.getElementById('view-' + name);
     if (el) el.hidden = (name !== v);
     const tb = document.querySelector(`.tab[data-view="${name}"]`);
@@ -1931,13 +3109,14 @@ function showView(v) {
   });
   // Leaflet measured a 0x0 container while this pane was hidden, so re-measure AND
   // re-apply the view. invalidateSize() on its own keeps the bogus zoom.
-  if (v === 'upload') renderQueue();
+  if (v === 'ops') renderOps();
   // Leaflet measures its container at creation; in a hidden tab that is 0x0, so
   // the map is built on first show and re-homed on every show after.
-  if (v === 'map') setTimeout(() => {
+  // Geometry first, or the map builds with nothing to draw and never redraws.
+  if (v === 'map') loadGeo().then(() => setTimeout(() => {
     renderMapView();
     if (window.__MAP_HOME__) window.__MAP_HOME__();
-  }, 60);
+  }, 60));
 }
 
 /* ---------- wiring ---------- */
@@ -1950,12 +3129,96 @@ bind('sort', 'change', e => { state.sort = e.target.value; renderList(); });
 // briefly wired twice - here for the old Tenders tab and again for the board -
 // and two handlers on one button toggle the same flag straight back, so every
 // click looked like it did nothing at all.
+/* The two builds ship the same markup so the DOM is identical; a capability the
+   build does not have has its tab removed here rather than being a dead button.
+   Operations is local-only - the hosted page must not offer it at all. */
+if (!CAPS.ops) {
+  document.querySelectorAll('.tab[data-view=ops], #view-ops').forEach(el => el.remove());
+}
 document.querySelectorAll('.tab[data-view]').forEach(tb => {
   tb.addEventListener('click', () => showView(tb.dataset.view));
 });
 bind('bq', 'input', e => { board.q = e.target.value; renderBoard(); });
 bind('groupby', 'change', e => { board.by = e.target.value; renderBoard(); });
 bind('bsort', 'change', e => { board.sort = e.target.value; renderBoard(); });
+
+/* ---------- resizable board split ----------
+   The job titles and the requirement panel want different widths depending on
+   what is being read, so the divider is draggable rather than fixed at 3fr 1fr.
+   Both panes keep a minimum, because dragging one to nothing leaves no way to
+   drag it back. Pointer events rather than mouse events, so it works with a
+   trackpad, a touchscreen and a pen alike. */
+(function () {
+  const SPLIT = 'agi-board-split';
+  const split = document.getElementById('boardsplit');
+  const gutter = document.getElementById('gutter');
+  if (!split || !gutter) return;
+  const MIN_LIST = 360, MIN_REQ = 260, GUTTER = 6;
+
+  function apply(px) {
+    const w = split.clientWidth;
+    const max = w - GUTTER - MIN_REQ;
+    if (max < MIN_LIST) return;              // too narrow to split meaningfully
+    const clamped = Math.min(Math.max(px, MIN_LIST), max);
+    split.style.setProperty('--split', clamped + 'px');
+    gutter.setAttribute('aria-valuenow', Math.round(clamped / w * 100));
+    return clamped;
+  }
+  const saved = parseInt(localStorage.getItem(SPLIT) || '', 10);
+  if (saved) requestAnimationFrame(() => apply(saved));
+
+  let dragging = false;
+  gutter.addEventListener('pointerdown', ev => {
+    dragging = true;
+    gutter.setPointerCapture(ev.pointerId);
+    document.body.classList.add('dragging');
+    ev.preventDefault();
+  });
+  gutter.addEventListener('pointermove', ev => {
+    if (!dragging) return;
+    apply(ev.clientX - split.getBoundingClientRect().left);
+  });
+  const stop = ev => {
+    if (!dragging) return;
+    dragging = false;
+    try { gutter.releasePointerCapture(ev.pointerId); } catch (e) {}
+    document.body.classList.remove('dragging');
+    const cur = parseInt(split.style.getPropertyValue('--split'), 10);
+    if (cur) { try { localStorage.setItem(SPLIT, String(cur)); } catch (e) {} }
+    // Leaflet and the sticky table headers both need to hear about a resize.
+    if (window.__MAP__) window.__MAP__.invalidateSize();
+  };
+  gutter.addEventListener('pointerup', stop);
+  gutter.addEventListener('pointercancel', stop);
+
+  // Keyboard, because a mouse-only control is unusable for anyone who cannot use one.
+  gutter.addEventListener('keydown', ev => {
+    const step = ev.shiftKey ? 60 : 20;
+    const cur = parseInt(split.style.getPropertyValue('--split'), 10)
+                || document.getElementById('boardlist').clientWidth;
+    let next = null;
+    if (ev.key === 'ArrowLeft') next = cur - step;
+    else if (ev.key === 'ArrowRight') next = cur + step;
+    else if (ev.key === 'Home') next = MIN_LIST;
+    else if (ev.key === 'End') next = split.clientWidth - GUTTER - MIN_REQ;
+    if (next == null) return;
+    ev.preventDefault();
+    const set = apply(next);
+    if (set) { try { localStorage.setItem(SPLIT, String(Math.round(set))); } catch (e) {} }
+  });
+
+  // Double-click restores the 3:1 default rather than stranding a bad drag.
+  gutter.addEventListener('dblclick', () => {
+    split.style.removeProperty('--split');
+    try { localStorage.removeItem(SPLIT); } catch (e) {}
+  });
+
+  // A saved pixel width can be wider than a smaller window; re-clamp on resize.
+  window.addEventListener('resize', () => {
+    const cur = parseInt(split.style.getPropertyValue('--split'), 10);
+    if (cur) apply(cur);
+  });
+})();
 document.querySelectorAll('.chip[data-v]').forEach(btn => btn.addEventListener('click', () => {
   const v = btn.dataset.v;
   if (state.verdicts.has(v)) state.verdicts.delete(v); else state.verdicts.add(v);
@@ -1967,10 +3230,65 @@ bind('hidedone', 'click', () => {
   document.getElementById('hidedone').setAttribute('aria-pressed', String(state.hideDone));
   renderBoard();
 });
-if (CAPS.upload) {
-  bind('file', 'change', e => { if (e.target.files.length) upload([...e.target.files]); e.target.value = ''; });
-  bind('runinbox', 'click', runInbox);
-  bind('refreshq', 'click', renderQueue);
+/* ---------- operations (local build only) ----------
+   A page cannot start a process, and a button that pretends to would be a lie.
+   What it CAN do is open the folder and hand over the exact command. */
+function renderOps() {
+  if (!CAPS.ops) return;
+  // Belt and braces: the tab is removed at boot, but if anything ever routes here
+  // without the capability, show nothing rather than an empty shell.
+  const base = BOOT.localBase || '';
+  const root = base.replace(/tenders\/$/, '');
+  const win = u => decodeURI(u.replace(/^file:\/\/\//, '').replace(/\//g, '\\'));
+  const folder = (label, url, what) => `
+    <div class=opsrow>
+      <a class=cite href="${esc(url)}" target=_blank rel=noopener>${esc(label)}</a>
+      <span class=opswhat>${esc(what)}</span>
+      <button class=chip data-copy="${esc(win(url))}">Copy path</button>
+    </div>`;
+  const f = document.getElementById('opsfolders');
+  if (f) f.innerHTML = root
+    ? folder('inbox/', root + 'inbox/', 'drop new archives or folders here')
+    + folder('tenders/', root + 'tenders/', 'one folder per tender, documents inside')
+    + folder('reports/', root + 'reports/', 'screen.md, this dashboard')
+    + folder('processed/', root + 'processed/', 'the originals, kept as provenance')
+    : '<div class=mtext>Paths are only available in the local build.</div>';
+
+  const cmd = (c, why) => `
+    <div class=opsrow>
+      <code class=opscmd>${esc(c)}</code>
+      <span class=opswhat>${esc(why)}</span>
+      <button class=chip data-copy="${esc(c)}">Copy</button>
+    </div>`;
+  const c = document.getElementById('opscmds');
+  if (c) c.innerHTML =
+      cmd('.venv\\Scripts\\python.exe run.py',
+          'everything: ingest inbox, screen, value, locate, sync, rebuild')
+    + cmd('.venv\\Scripts\\python.exe run.py --reprocess',
+          'skip ingest, re-run every later stage over what is already there')
+    + cmd('.venv\\Scripts\\python.exe ingest.py inbox --move-to processed',
+          'unpack and convert only')
+    + cmd('.venv\\Scripts\\python.exe ocr.py',
+          'read the scanned pages - hours, drawings and notices first')
+    + cmd('.venv\\Scripts\\python.exe sync.py',
+          'push to Supabase; skips tenders that have not changed')
+    + cmd('.venv\\Scripts\\python.exe check.py',
+          'reconcile output against input and list the gaps');
+
+  const s = document.getElementById('opsstats');
+  if (s) {
+    const t = D.tenders || [];
+    const ocr = t.reduce((n, x) => n + (x.needs_ocr || 0), 0);
+    const stat = (k, v) => `<div class=prow><span>${k}</span><b>${v}</b></div>`;
+    s.innerHTML = '<div class=pbox2>'
+      + stat('Tenders', t.length)
+      + stat('Awarded', t.filter(x => x.award && x.award.winner).length)
+      + stat('Located', t.filter(x => (x.place && x.place.lat != null) ||
+                                      (x.geo && x.geo.centre_lat != null)).length)
+      + stat('Documents', t.reduce((n, x) => n + (x.md_files || 0), 0))
+      + stat('Pages still to OCR', ocr)
+      + '</div>';
+  }
 }
 
 document.addEventListener('keydown', e => {
@@ -1984,16 +3302,69 @@ document.addEventListener('keydown', e => {
     if (box) box.focus(); }
 });
 
+/* ---------- live refresh ----------
+   A sync finishes on the laptop and the page in front of you is stale until you
+   remember to reload. Supabase Realtime pushes the change instead: any write to
+   in_tenders re-reads the board within a second or two.
+   Polling `updated_at` is the fallback, because Realtime needs the table added to
+   a publication and a silent failure there would look exactly like "nothing has
+   changed" - which is the one thing this is supposed to rule out. */
+let LIVE_SEEN = null, LIVE_BUSY = false;
+async function refreshLive(why) {
+  if (LIVE_BUSY || BOOT.mode !== 'cloud') return;
+  LIVE_BUSY = true;
+  try {
+    const keepView = state.view, keepSel = board.sel;
+    await loadCloud();
+    HYDRATED.clear();            // per-tender detail may have changed too
+    GEO_LOADED = false;
+    board.sel = D.tenders.some(t => t.tender_id === keepSel) ? keepSel : board.sel;
+    renderBoard(); renderCallList(); if (typeof renderPills === 'function') renderPills();
+    if (keepView === 'map' && MAP) { await loadGeo(); drawAlignments(); renderMapList(); }
+    const dot = document.getElementById('livedot');
+    if (dot) { dot.classList.add('on'); setTimeout(() => dot.classList.remove('on'), 4000); }
+    console.info('dashboard refreshed:', why);
+  } catch (e) { console.warn('live refresh failed', e); }
+  LIVE_BUSY = false;
+}
+
+function startLive() {
+  if (BOOT.mode !== 'cloud' || !window.__SB__) return;
+  try {
+    window.__SB__.channel('in_tenders_live')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'in_tenders' },
+          () => refreshLive('realtime'))
+      .subscribe();
+  } catch (e) { console.warn('realtime unavailable', e); }
+  // Fallback: ask only for the newest updated_at, which is one tiny row.
+  setInterval(async () => {
+    if (document.hidden) return;          // no point polling a tab nobody is looking at
+    try {
+      const { data } = await window.__SB__.from('in_tenders')
+        .select('updated_at').order('updated_at', { ascending: false }).limit(1);
+      const latest = data && data[0] && data[0].updated_at;
+      if (!latest) return;
+      if (LIVE_SEEN && latest !== LIVE_SEEN) refreshLive('poll');
+      LIVE_SEEN = latest;
+    } catch (e) {}
+  }, 45000);
+}
+
 async function start() {
-  if (BOOT.mode === 'cloud') { await loadCloud(); await loadReviews(); } else loadLocal();
+  if (BOOT.mode === 'cloud') { await loadCloud(); await loadReviews(); await loadNotes(); }
+  else loadLocal();
   const app = document.getElementById('app');
   if (app) app.hidden = false;
   const gate = document.getElementById('gate');
   if (gate) gate.hidden = true;
   showView(state.view || 'board');
   renderList(); renderBoard(); renderCallList();
+  startLive();
   if (typeof renderPills === 'function') renderPills();
-  if (typeof renderMapView === 'function') renderMapView();
+  // The map is NOT built here. It used to be, and because it is built once and
+  // guarded by `if (MAP) return`, it was built before loadGeo() had fetched a
+  // single alignment - so the 18 surveyed corridors never appeared. showView
+  // builds it after the geometry lands.
 }
 
 // Local has its data already; cloud waits for a successful sign-in. The script
