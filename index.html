@@ -4175,24 +4175,36 @@ function portalURL(uuid) {
 
 function detailHTML(t, withHead = true) {
   const isDone = state.done.has(t.tender_id);
-  // The head carries `id=mark`, so it must appear once in the document. The board
-  // renders its own title and passes withHead=false rather than duplicating it.
-  let h = !withHead ? '<div class="dd">' : `<div class=dhead>
-      <span class="verdict v-${t.verdict}"><i></i>${t.verdict}</span>
-      <h2>${esc(t.tender_id)}</h2></div>
-    <div class=dsub>${t.md_files} documents \u00b7 ${t.total_chars.toLocaleString()} chars
-      \u00b7 score ${t.score.toLocaleString()}
-      ${(t.needs_ocr || t.failed) ? ' \u00b7 <span class=lwarn>'
-        + (t.needs_ocr + t.failed) + ' unread file(s)</span>' : ''}</div>
-    <div class=dactions>
-      ${CAPS.review ? `<button class="btn${isDone ? ' on' : ''}" id=mark>${
+
+  /* The actions belong to the TENDER, not to the head.
+
+     They used to live inside the head, which is only rendered when
+     withHead=true - and nothing renders that any more. `renderDetail` is the
+     only caller that asks for a head, and it writes into `#detail`, a pane the
+     board redesign removed; it now returns at `if (!pane) return`. So the head
+     had no output path, and Mark reviewed and Open on Nexizo were invisible
+     everywhere: the board panel and the drawer both pass withHead=false.
+
+     The head was carrying them because of `id=mark` - an id may appear once, and
+     two panels can be built at once. A class removes that constraint entirely,
+     so the buttons can sit where they are actually needed. */
+  const actions = `<div class=dactions>
+      ${CAPS.review ? `<button class="btn markbtn${isDone ? ' on' : ''}">${
         isDone ? '\u2713 Reviewed' : 'Mark reviewed'}</button>` : ''}
       ${t.portal_url ? `<a class="btn portal" href="${esc(t.portal_url)}" target="_blank"
         rel="noopener">Open on Nexizo \u2197</a>` : ''}
     </div>
     ${t.source_site ? `<div class=dsite>Published on <b>${esc(t.source_site)}</b>
-      — Nexizo aggregates it; the original document lives there</div>` : ''}
-    <div class="dd">`;
+      \u2014 Nexizo aggregates it; the original document lives there</div>` : ''}`;
+
+  let h = (!withHead ? '' : `<div class=dhead>
+      <span class="verdict v-${t.verdict}"><i></i>${t.verdict}</span>
+      <h2>${esc(t.tender_id)}</h2></div>
+    <div class=dsub>${t.md_files} documents \u00b7 ${t.total_chars.toLocaleString()} chars
+      \u00b7 score ${t.score.toLocaleString()}
+      ${(t.needs_ocr || t.failed) ? ' \u00b7 <span class=lwarn>'
+        + (t.needs_ocr + t.failed) + ' unread file(s)</span>' : ''}</div>`)
+    + actions + `<div class="dd">`;
 
   // Once a contract is awarded the ranked bidder list is history. The winner is
   // the only name that matters; the rest stays one click away in the source doc.
@@ -4386,8 +4398,10 @@ function detailHTML(t, withHead = true) {
    be in the DOM at a time. Both panels render into their own pane and only the
    visible one is ever populated - see renderReq. */
 function wireDetail(pane, t) {
-  const b = pane.querySelector('#mark');
-  if (b) b.addEventListener('click', () => toggleDone(t.tender_id));
+  // querySelectorAll, not '#mark': the button is a class now, so the board panel
+  // and the drawer can each carry one without colliding on an id.
+  pane.querySelectorAll('.markbtn').forEach(
+    b => b.addEventListener('click', () => toggleDone(t.tender_id)));
 }
 
 function renderDetail() {
@@ -5866,7 +5880,8 @@ function reqHTML(t) {
 
   // Everything the Tenders tab shows, from the same builder - award, gabion value,
   // Schedule-H, and the collapsible supply items, keyword hits, evidence,
-  // geospatial, on-disk and model sections. Head omitted: it carries id=mark.
+  // geospatial, on-disk and model sections. Head omitted only because the board
+  // draws its own title above this - the actions come through either way now.
   h += detailHTML(t, false);
   return h;
 }
