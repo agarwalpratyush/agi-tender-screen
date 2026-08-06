@@ -768,14 +768,33 @@ select.sel { padding: 6px 9px; font: inherit; font-size: 12px; background: var(-
   margin-bottom: 4px; }
 .dhead h2 { font-size: 17px; font-weight: 600; margin: 0; word-break: break-word; }
 .dsub { color: var(--muted); font-size: 12.5px; margin-bottom: 16px; }
-.dactions { display: flex; gap: 8px; margin: 0 0 18px; flex-wrap: wrap; }
+.dactions { display: flex; gap: 8px; margin: 10px 0 4px; flex-wrap: wrap;
+  align-items: center; }
 .btn { padding: 6px 12px; font: inherit; font-size: 12.5px; cursor: pointer;
   background: var(--surface); color: var(--ink); border: 1px solid var(--rule);
   border-radius: 7px; }
 .btn:hover { border-color: var(--ink-2); }
 .btn.on { background: var(--track); border-color: var(--track); color: #fff; }
 a.btn.portal { text-decoration: none; margin-left: auto; }
-.dsite { font-size: 12px; color: var(--ink-2); margin: -2px 0 10px; }
+.dsite { font-size: 12px; color: var(--ink-2); margin: 0 0 14px; }
+/* Arrival. Loud enough to catch while scanning, quiet enough that a board where
+   everything is new does not become a wall of colour. */
+.newtag { display: inline-block; padding: 1px 5px; margin-right: 3px;
+  border-radius: 3px; background: #1f9d76; color: #fff;
+  font-size: 9.5px; font-weight: 700; letter-spacing: .06em; vertical-align: 1px; }
+.addedon { color: var(--ink-2); }
+.addedline { font-size: 12px; color: var(--ink-2); margin: 6px 0 0; }
+.pickrow { display: flex; align-items: center; gap: 6px; }
+.pickrow label { display: flex; align-items: center; gap: 7px; flex: 1; min-width: 0; }
+.pickdel { flex: none; border: 1px solid transparent; background: none; cursor: pointer;
+  color: var(--ink-2); font-size: 13px; line-height: 1; padding: 2px 6px;
+  border-radius: 4px; }
+.pickrow:hover .pickdel { border-color: var(--border); }
+.pickdel:hover { color: #c2417a; border-color: #c2417a; }
+.pickdel.armed { color: #fff; background: #c2417a; border-color: #c2417a;
+  font-size: 11px; font-weight: 600; }
+.autotag { flex: none; font-size: 10.5px; color: var(--ink-2); font-style: normal;
+  opacity: .8; }
 
 /* collapsed reference sections */
 .fold { border: 1px solid var(--grid); border-radius: 7px; margin-top: 10px; }
@@ -1156,9 +1175,19 @@ tr.won td{background:color-mix(in srgb,var(--track) 12%,transparent);font-weight
 .tag.parked{background:color-mix(in srgb,var(--muted) 18%,transparent);
  border:1px dashed var(--border)}
 /* the picker */
+/* The popover is anchored under a button, so its height is whatever the list
+   count happens to be - and with twelve lists it ran off the bottom of the page
+   with no way to reach the last rows or the New list field. It is now a fixed
+   frame with a scrolling middle: the heading and the New list field stay put and
+   only the rows scroll, so the way to add a list never scrolls out of reach.
+   `--pickmax` is set per-open from the space actually below the button. */
 .picker{position:fixed;z-index:1300;min-width:250px;max-width:300px;
  background:var(--surface);border:1px solid var(--border);border-radius:9px;
- box-shadow:0 12px 34px rgba(0,0,0,.22);padding:7px;font-size:12.5px}
+ box-shadow:0 12px 34px rgba(0,0,0,.22);padding:7px;font-size:12.5px;
+ display:flex;flex-direction:column;max-height:var(--pickmax,70vh)}
+.pickscroll{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;
+ margin:0 -7px;padding:0 7px}
+.picker .pickhead,.picker .picknew{flex:none}
 .pickhead{font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;
  color:var(--muted);padding:3px 7px 6px}
 .pickrow{display:flex;align-items:center;gap:9px;padding:5px 7px;border-radius:6px;
@@ -1352,6 +1381,8 @@ tr.won td{background:color-mix(in srgb,var(--track) 12%,transparent);font-weight
       <option value=gabion selected>Sort by gabion</option>
       <option value=value>Sort by contract size</option>
       <option value=chain>Sort by chainage</option>
+      <option value=added>Newest added first</option>
+      <option value=oldest>Oldest added first</option>
     </select>
     <input type=search id=bq placeholder="Search — several words all have to match">
     <span id=chips class=chipwrap></span>
@@ -3864,6 +3895,7 @@ function adapt(rows, extra) {
       file: q.source_file, term: q.term, value: q.value,
       unit: q.unit, page: q.page, context: q.context })),
     portal_url: t.portal_url || portalURL(t.portal_id),
+    added_at: t.added_at || null,
     source_site: t.source_site || null,
   }));
 }
@@ -3951,7 +3983,12 @@ const LISTS = new Map();
 // `No gabion named` is the rule's. Both mean "not now", so both are hidden -
 // and both remain one click away, never deleted.
 const PARKED_LIST = 'Parked';
-const HIDDEN_LISTS = new Set([PARKED_LIST, 'No gabion named']);
+/* Lists that mean "not a job for us", so they stay off the main board.
+
+   `gabion but not 16014` belongs here with `No gabion named`: a tender that
+   specifies gabion to some other standard is no more sellable than one that never
+   mentions it. Both are still one click away as chips - set aside, not deleted. */
+const HIDDEN_LISTS = new Set([PARKED_LIST, 'No gabion named', 'gabion but not 16014']);
 // Offered on a new list, not enforced - naming is free, but a suggested set
 // keeps the pile countable instead of ending up with six spellings of "later".
 const SUGGESTED = ['Parked', 'Call this week', 'Waiting on drawings',
@@ -3959,6 +3996,17 @@ const SUGGESTED = ['Parked', 'Call this week', 'Waiting on drawings',
 
 const listsOf = tid => LISTS.get(tid) || new Set();
 const isParked = tid => [...listsOf(tid)].some(n => HIDDEN_LISTS.has(n));
+
+/* Lists the PIPELINE assigns, from `in_lists.auto`. They cannot be deleted from
+   here: the next sync rewrites them, so a delete button on one would be a lie.
+   Their rule lives in `triage()` in sync.py. */
+const AUTO_LISTS = new Set();
+
+/* Names the user has removed. Two jobs: it stops `triage()` re-creating an
+   automatic list, and it takes an unwanted suggestion out of the picker. A
+   suggestion has no rows to delete, so muting is the ONLY way to remove it -
+   without this, five names nobody uses would sit in the picker forever. */
+const MUTED = new Set();
 function allLists() {
   const c = new Map();
   LISTS.forEach(set => set.forEach(n => c.set(n, (c.get(n) || 0) + 1)));
@@ -3970,13 +4018,18 @@ function allLists() {
 async function loadLists() {
   if (BOOT.mode !== 'cloud' || !window.__SB__) return;
   const { data, error } = await window.__SB__.from('in_lists')
-    .select('tender_id,list_name');
+    .select('tender_id,list_name,auto');
   if (error) { console.warn('lists unavailable', error); return; }
-  LISTS.clear();
+  LISTS.clear(); AUTO_LISTS.clear();
   (data || []).forEach(r => {
     if (!LISTS.has(r.tender_id)) LISTS.set(r.tender_id, new Set());
     LISTS.get(r.tender_id).add(r.list_name);
+    if (r.auto) AUTO_LISTS.add(r.list_name);
   });
+  try {
+    const { data: m } = await window.__SB__.from('in_list_muted').select('list_name');
+    MUTED.clear(); (m || []).forEach(x => MUTED.add(x.list_name));
+  } catch (e) { console.warn('muted lists unavailable', e); }
 }
 
 async function setList(tid, name, on) {
@@ -3994,6 +4047,48 @@ async function setList(tid, name, on) {
         .eq('tender_id', tid).eq('list_name', name);
     }
   } catch (e) { console.warn('could not save the list', e); }
+}
+
+/* Remove a list entirely - every tender comes off it, the list stops existing.
+
+   Any list, including the automatic ones. Those need a second step: `triage()`
+   in sync.py re-assigns them every run, so the name goes into `in_list_muted`
+   and the next sync skips it. Without that the button would work and then undo
+   itself overnight, which is worse than not having the button.
+
+   Nothing else is touched: the tenders stay on the board, keep their other lists,
+   and keep their notes. This unfiles them, it does not delete anything. */
+async function deleteList(name) {
+  const wasAuto = AUTO_LISTS.has(name);
+  // A suggestion has no rows; muting the name is the whole operation.
+  const suggestion = !AUTO_LISTS.has(name) &&
+    ![...LISTS.values()].some(set => set.has(name));
+  LISTS.forEach((set, tid) => {
+    if (set.delete(name) && !set.size) LISTS.delete(tid);
+  });
+  if (board.list === name) board.list = null;
+  renderBoard();
+  if (BOOT.mode !== 'cloud' || !window.__SB__) return true;
+  try {
+    // Mute FIRST. If the rows were deleted and the mute then failed, the list
+    // would reappear at the next sync; this way the worst case is a mute with
+    // nothing muted, which costs nothing and is undone by re-creating the list.
+    if (wasAuto || suggestion) {
+      const { error: mErr } = await window.__SB__.from('in_list_muted')
+        .upsert({ list_name: name }, { onConflict: 'list_name' });
+      if (mErr) throw mErr;
+      AUTO_LISTS.delete(name); MUTED.add(name);
+    }
+    const { error } = await window.__SB__.from('in_lists')
+      .delete().eq('list_name', name);
+    if (error) throw error;
+  } catch (e) {
+    console.warn('could not remove the list', e);
+    // Say so rather than leaving the screen disagreeing with the database.
+    await loadLists(); renderBoard();
+    return false;
+  }
+  return true;
 }
 
 async function loadReviews() {
@@ -4016,8 +4111,20 @@ async function pushReview(tid, reviewed) {
 
 const state = {
   q: '', verdicts: new Set(['TRACK', 'REVIEW', 'SKIP', 'RESULT']),
-  sort: 'verdict', hideDone: false, sel: null, done: loadDone(), view: 'board'
+  // 'all' | 'hide' | 'only'. A three-way control, not two booleans that can
+  // contradict each other by showing nothing at all.
+  sort: 'verdict', doneMode: 'all', sel: null, done: loadDone(), view: 'board'
 };
+
+/* Does this tender pass the reviewed filter? One predicate, used by both the
+   list view and the board, so the two can never disagree about what "reviewed"
+   hides. */
+function doneOK(t) {
+  const done = state.done.has(t.tender_id);
+  return state.doneMode === 'hide' ? !done
+       : state.doneMode === 'only' ? done
+       : true;
+}
 
 const esc = s => String(s).replace(/[&<>"]/g, c =>
   ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -4058,7 +4165,7 @@ function visible() {
   const q = state.q.toLowerCase();
   let rows = D.tenders.filter(t => {
     if (!state.verdicts.has(t.verdict)) return false;
-    if (state.hideDone && state.done.has(t.tender_id)) return false;
+    if (!doneOK(t)) return false;
     if (!q) return true;
     if (t.tender_id.toLowerCase().includes(q)) return true;
     if ((t.award && t.award.winner || '').toLowerCase().includes(q)) return true;
@@ -4173,6 +4280,24 @@ function portalURL(uuid) {
   return uuid ? 'https://nexizo.ai/app/discover/tenders/detail/' + uuid : null;
 }
 
+/* Mark reviewed and Open on Nexizo. Their own function because two panels want
+   them in two different places: the board panel and the drawer put them in the
+   header row beside Print / Share / Lists, which is where every other per-tender
+   control already lives. Appended to the end of the detail they were technically
+   present and practically invisible - eighth of ten blocks, below the notes box.
+
+   No id anywhere: a class lets both panels carry a copy without colliding. */
+function actionsHTML(t, isDone) {
+  return `<div class=dactions>
+      ${CAPS.review ? `<button class="btn markbtn${isDone ? ' on' : ''}">${
+        isDone ? '\u2713 Reviewed' : 'Mark reviewed'}</button>` : ''}
+      ${t.portal_url ? `<a class="btn portal" href="${esc(t.portal_url)}" target="_blank"
+        rel="noopener">Open on Nexizo \u2197</a>` : ''}
+    </div>
+    ${t.source_site ? `<div class=dsite>Published on <b>${esc(t.source_site)}</b>
+      \u2014 Nexizo aggregates it; the original document lives there</div>` : ''}`;
+}
+
 function detailHTML(t, withHead = true) {
   const isDone = state.done.has(t.tender_id);
 
@@ -4188,15 +4313,12 @@ function detailHTML(t, withHead = true) {
      The head was carrying them because of `id=mark` - an id may appear once, and
      two panels can be built at once. A class removes that constraint entirely,
      so the buttons can sit where they are actually needed. */
-  const actions = `<div class=dactions>
-      ${CAPS.review ? `<button class="btn markbtn${isDone ? ' on' : ''}">${
-        isDone ? '\u2713 Reviewed' : 'Mark reviewed'}</button>` : ''}
-      ${t.portal_url ? `<a class="btn portal" href="${esc(t.portal_url)}" target="_blank"
-        rel="noopener">Open on Nexizo \u2197</a>` : ''}
-    </div>
-    ${t.source_site ? `<div class=dsite>Published on <b>${esc(t.source_site)}</b>
-      \u2014 Nexizo aggregates it; the original document lives there</div>` : ''}`;
+  const actions = actionsHTML(t, isDone);
 
+  // reqHTML renders them in its own header row, so the shared detail must not
+  // emit a second copy - two Mark reviewed buttons in one panel is worse than
+  // none, because one of them will look like it did not work.
+  const actionsHere = withHead ? actions : '';
   let h = (!withHead ? '' : `<div class=dhead>
       <span class="verdict v-${t.verdict}"><i></i>${t.verdict}</span>
       <h2>${esc(t.tender_id)}</h2></div>
@@ -4204,7 +4326,7 @@ function detailHTML(t, withHead = true) {
       \u00b7 score ${t.score.toLocaleString()}
       ${(t.needs_ocr || t.failed) ? ' \u00b7 <span class=lwarn>'
         + (t.needs_ocr + t.failed) + ' unread file(s)</span>' : ''}</div>`)
-    + actions + `<div class="dd">`;
+    + actionsHere + `<div class="dd">`;
 
   // Once a contract is awarded the ranked bidder list is history. The winner is
   // the only name that matters; the rest stays one click away in the source doc.
@@ -5478,6 +5600,52 @@ const crv = v => v == null ? '\u2014' : '\u20b9' + Number(v).toLocaleString('en-
 const dayv = s => { if (!s) return '\u2014';
   const d = new Date(s); return isNaN(d) ? String(s)
     : d.toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' }); };
+
+/* ---------- when a tender arrived ----------
+   `added_at` is the first time the tender entered the pipeline, taken from the
+   append-only ingest logs rather than manifest.json - a folder rewritten when its
+   award pack landed must not read as a new tender. */
+const addedAt = t => t.added_at ? new Date(t.added_at) : null;
+const NEW_DAYS = 7;
+
+/* Age in days, or null when unknown. Unknown sorts LAST, never first: a missing
+   date must not masquerade as the freshest thing on the board. */
+function addedAge(t) {
+  const d = addedAt(t);
+  return d && !isNaN(d) ? (Date.now() - d.getTime()) / 86400000 : null;
+}
+const isNew = t => { const a = addedAge(t); return a != null && a <= NEW_DAYS; };
+
+/* A badge is only worth drawing when it distinguishes something.
+
+   The whole corpus arrived inside one week, so a plain 7-day rule tagged 162 of
+   173 rows NEW - a wall of colour that says nothing and hides the handful that
+   might actually be recent. So the badge switches itself off when more than a
+   third of the board would carry it. The "added N days ago" text and the sort
+   are unaffected: those stay useful whatever the spread, and they are what you
+   read when you want the real answer.
+
+   Recomputed per render, because it depends on the filtered set in front of you,
+   not on the corpus as a whole. */
+let BADGE_OK = true;
+function gaugeBadges(rows) {
+  const n = rows.length;
+  const fresh = rows.filter(isNew).length;
+  BADGE_OK = n > 0 && fresh > 0 && fresh / n <= 0.34;
+}
+const showNew = t => BADGE_OK && isNew(t);
+
+/* "today", "3 days ago", "2 weeks ago" - how you actually think about a backlog.
+   The exact date is in the title attribute for when it matters. */
+function agov(t) {
+  const a = addedAge(t);
+  if (a == null) return '';
+  if (a < 1) return 'today';
+  if (a < 2) return 'yesterday';
+  if (a < 14) return Math.floor(a) + ' days ago';
+  if (a < 60) return Math.floor(a / 7) + ' weeks ago';
+  return Math.floor(a / 30) + ' months ago';
+}
 /* A build window spanning years does not need days - nobody rings a contractor
    about the 11th. Month and year is the useful grain, and when both ends fall in
    one year the year is said once: "Mar → Nov 2026", not "Mar 2026 → Nov 2026". */
@@ -5639,7 +5807,7 @@ function boardGroups() {
     // Parked tenders are off the board unless you ask for them. This is the
     // whole point: a big dump should shrink to what is worth a call.
     (board.list ? listsOf(t.tender_id).has(board.list) : !isParked(t.tender_id)) &&
-    !(state.hideDone && state.done.has(t.tender_id)) && (
+    doneOK(t) && (
     // Matched against a blob built ONCE per tender rather than concatenated
     // afresh on every keystroke. Every term supplied must appear, so "assam
     // gawar" narrows instead of widening - which is what anyone typing two words
@@ -5656,7 +5824,14 @@ function boardGroups() {
                       ((a.detail && a.detail.tender_value_cr) || 0),
     chain:  (a, b) => ((a.detail && a.detail.km_from) ?? 1e9) -
                       ((b.detail && b.detail.km_from) ?? 1e9),
+    // Newest first. A tender with no date sorts to the BOTTOM either way -
+    // "unknown" is not "brand new", and putting it on top would bury the thing
+    // you opened this sort to find.
+    added:  (a, b) => (addedAge(a) ?? 1e9) - (addedAge(b) ?? 1e9),
+    oldest: (a, b) => (addedAge(b) ?? -1) - (addedAge(a) ?? -1),
   }[board.sort] || ((a, b) => (gabOf(b) || cumOf(b) / 1000) - (gabOf(a) || cumOf(a) / 1000));
+  // Decide once per render whether NEW is worth drawing at all - see gaugeBadges.
+  gaugeBadges(rows);
   const blank = board.by === 'winner'
     ? 'No contractor yet \u2014 result not published' : 'Not stated';
   const g = new Map();
@@ -5671,6 +5846,17 @@ function boardGroups() {
   // Un-awarded work is a watchlist, not a call list: no contractor exists to ring,
   // so it sorts last however large it is. Within it, size still applies.
   const watch = k => k === blank && board.by === 'winner';
+  // When the sort is about ARRIVAL, the groups have to follow it too. Ordering
+  // them by size while sorting rows by date puts the newest tender somewhere in
+  // the middle of the page - the rows are correctly sorted inside a group nobody
+  // scrolled to. A group is as recent as its most recent member.
+  if (board.sort === 'added' || board.sort === 'oldest') {
+    const best = v => board.sort === 'added'
+      ? Math.min(...v.map(t => addedAge(t) ?? 1e9))
+      : -Math.max(...v.map(t => addedAge(t) ?? -1));
+    return [...g.entries()].sort((a, b) =>
+      (watch(a[0]) - watch(b[0])) || best(a[1]) - best(b[1]));
+  }
   return [...g.entries()].sort((a, b) =>
     (watch(a[0]) - watch(b[0])) || size(b[1]) - size(a[1]) || b[1].length - a[1].length);
 }
@@ -5714,9 +5900,12 @@ function renderBoard() {
     for (const t of items) {
       const d = t.detail || {}, w = windowOf(t);
       h += `<tr class=brow data-id="${esc(t.tender_id)}" aria-selected="${t.tender_id === board.sel}">
-        <td><span class=btitle>${esc(d.title || t.tender_id)}</span>
+        <td><span class=btitle>${showNew(t) ? '<span class=newtag>NEW</span> ' : ''}${
+            esc(d.title || t.tender_id)}</span>
           <span class=bsub>${esc(t.tender_id)}${d.km_length ? ' \u00b7 ' + d.km_length + ' km' : ''}${
-            d.tender_value_cr ? ' \u00b7 ' + crv(d.tender_value_cr) + ' contract' : ''}</span></td>
+            d.tender_value_cr ? ' \u00b7 ' + crv(d.tender_value_cr) + ' contract' : ''}${
+            agov(t) ? ' \u00b7 <span class=addedon title="added ' + esc(dayv(t.added_at))
+              + '">added ' + agov(t) + '</span>' : ''}</span></td>
         <td>${deptOf(t)}</td>
         <td>${t.award && t.award.winner ? '<b>' + esc(t.award.winner) + '</b>'
               : '<span class=bsub>' + bstatus(t) + '</span>'}</td>
@@ -5838,6 +6027,9 @@ function reqHTML(t) {
       <button class="chip listbtn" data-list="${esc(t.tender_id)}"
         title="Add to a list, or set aside">Lists${
         listsOf(t.tender_id).size ? ' \u00b7 ' + listsOf(t.tender_id).size : ''}</button></div>
+    ${agov(t) ? `<div class=addedline>${showNew(t) ? '<span class=newtag>NEW</span> ' : ''}Added
+      <b>${agov(t)}</b> · ${dayv(t.added_at)}</div>` : ''}
+    ${actionsHTML(t, state.done.has(t.tender_id))}
     ${listsOf(t.tender_id).size ? `<div class=taglist>${
         [...listsOf(t.tender_id)].map(n =>
           `<span class="tag${HIDDEN_LISTS.has(n) ? ' parked' : ''}">${esc(n)}</span>`).join('')
@@ -6080,9 +6272,25 @@ document.querySelectorAll('.chip[data-v]').forEach(btn => btn.addEventListener('
   btn.setAttribute('aria-pressed', String(state.verdicts.has(v)));
   renderBoard();
 }));
+/* One chip cycling all -> hide -> only -> all, rather than two chips that can
+   both be on. The label always states the CURRENT state, so you never have to
+   work out whether a pressed button means "hiding" or "about to hide". */
+const DONE_MODES = ['all', 'hide', 'only'];
+const DONE_LABEL = { all: 'Hide reviewed', hide: 'Reviewed hidden',
+                     only: 'Reviewed only' };
+function renderDoneChip() {
+  const el = document.getElementById('hidedone');
+  if (!el) return;
+  el.textContent = DONE_LABEL[state.doneMode];
+  el.setAttribute('aria-pressed', String(state.doneMode !== 'all'));
+  el.title = state.doneMode === 'all' ? 'Click to hide the ones you have reviewed'
+           : state.doneMode === 'hide' ? 'Click to show ONLY the reviewed ones'
+           : 'Click to show everything again';
+}
 bind('hidedone', 'click', () => {
-  state.hideDone = !state.hideDone;
-  document.getElementById('hidedone').setAttribute('aria-pressed', String(state.hideDone));
+  state.doneMode = DONE_MODES[(DONE_MODES.indexOf(state.doneMode) + 1) % 3];
+  renderDoneChip();
+  board.shown = PAGE;
   renderBoard();
 });
 
@@ -6118,30 +6326,73 @@ function closePicker() {
 function openPicker(anchor, tid) {
   closePicker();
   const mine = listsOf(tid);
+  const counts = new Map(allLists());
   const names = allLists().map(([n]) => n);
-  SUGGESTED.forEach(n => { if (!names.includes(n)) names.push(n); });
+  SUGGESTED.forEach(n => {
+    if (!names.includes(n) && !MUTED.has(n)) names.push(n);
+  });
 
   const el = document.createElement('div');
   el.className = 'picker';
   el.innerHTML =
-    `<div class=pickhead>Lists</div>` +
-    names.map(n => `<label class=pickrow>
-        <input type=checkbox data-list="${esc(n)}" ${mine.has(n) ? 'checked' : ''}>
-        <span>${esc(n)}</span>
+    `<div class=pickhead>Lists</div><div class=pickscroll>` +
+    names.map(n => {
+      const used = counts.get(n) || 0;
+      return `<div class=pickrow>
+        <label><input type=checkbox data-list="${esc(n)}" ${mine.has(n) ? 'checked' : ''}>
+          <span>${esc(n)}</span></label>
         ${HIDDEN_LISTS.has(n) ? '<i>hidden from the board</i>' : ''}
-      </label>`).join('') +
+        ${AUTO_LISTS.has(n) ? '<i class=autotag>automatic</i>' : ''}
+        ${`<button class=pickdel type=button data-del="${esc(n)}"
+               title="${AUTO_LISTS.has(n)
+                 ? 'Remove it and stop the rule that recreates it'
+                 : used ? 'Remove this list everywhere'
+                 : 'Hide this suggestion'}">×</button>`}
+      </div>`; }).join('') + `</div>` +
     `<form class=picknew><input type=text placeholder="New list…" maxlength=40>
        <button class=chip type=submit>Add</button></form>`;
   document.body.appendChild(el);
   PICKER = el;
 
-  // Anchor under the button, nudged back on screen if it would overflow.
+  /* Anchor under the button - but only if it fits. Below a button near the
+     bottom of the window there may be 60px of room, so the popover flips above
+     it and takes its height from whichever side has more space. Measured, not
+     assumed: a fixed 70vh is wrong for both a tall window and a short one. */
   const r = anchor.getBoundingClientRect();
-  el.style.top = `${Math.round(r.bottom + 6)}px`;
-  el.style.left = `${Math.round(Math.min(r.left, window.innerWidth - el.offsetWidth - 12))}px`;
+  const GAP = 6, EDGE = 10;
+  const below = window.innerHeight - r.bottom - GAP - EDGE;
+  const above = r.top - GAP - EDGE;
+  const flip = below < 220 && above > below;
+  el.style.setProperty('--pickmax', `${Math.max(160, Math.round(flip ? above : below))}px`);
+  el.style.left = `${Math.round(Math.max(EDGE,
+    Math.min(r.left, window.innerWidth - el.offsetWidth - 12)))}px`;
+  if (flip) el.style.top = `${Math.round(Math.max(EDGE, r.top - GAP - el.offsetHeight))}px`;
+  else      el.style.top = `${Math.round(r.bottom + GAP)}px`;
 
   el.querySelectorAll('input[type=checkbox]').forEach(cb =>
     cb.addEventListener('change', () => setList(tid, cb.dataset.list, cb.checked)));
+
+  /* Two clicks to delete, in place. The first turns the x into the consequence -
+     "Remove from 16?" - so the number is read before it is acted on, and there is
+     no modal to dismiss. Clicking anything else in the picker cancels it. */
+  el.querySelectorAll('.pickdel').forEach(btn => btn.addEventListener('click', async () => {
+    const name = btn.dataset.del;
+    if (btn.dataset.armed !== '1') {
+      el.querySelectorAll('.pickdel').forEach(o => {
+        o.dataset.armed = ''; o.textContent = '×'; o.classList.remove('armed'); });
+      btn.dataset.armed = '1';
+      const used2 = counts.get(name) || 0;
+      btn.textContent = AUTO_LISTS.has(name)
+        ? `Remove from ${used2} and stop the rule?`
+        : used2 ? `Remove from ${used2}?` : 'Hide it?';
+      btn.classList.add('armed');
+      return;
+    }
+    btn.disabled = true;
+    const ok = await deleteList(name);
+    closePicker();
+    if (!ok) console.warn('list not removed');
+  }));
   el.querySelector('.picknew').addEventListener('submit', async ev => {
     ev.preventDefault();
     const box = ev.target.querySelector('input');
@@ -6316,6 +6567,7 @@ async function start() {
   const deep = decodeURIComponent((location.hash.match(/[#&]t=([^&]+)/) || [])[1] || '');
   if (deep && D.tenders.some(x => x.tender_id === deep)) { board.sel = deep; board.q = ''; }
   showView(state.view || 'board');
+  renderDoneChip();
   renderList(); renderBoard(); renderCallList();
   if (deep) { try { openDrawer(deep); } catch (e) {} }
   startLive();
