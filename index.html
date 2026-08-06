@@ -775,6 +775,7 @@ select.sel { padding: 6px 9px; font: inherit; font-size: 12px; background: var(-
 .btn:hover { border-color: var(--ink-2); }
 .btn.on { background: var(--track); border-color: var(--track); color: #fff; }
 a.btn.portal { text-decoration: none; margin-left: auto; }
+.dsite { font-size: 12px; color: var(--ink-2); margin: -2px 0 10px; }
 
 /* collapsed reference sections */
 .fold { border: 1px solid var(--grid); border-radius: 7px; margin-top: 10px; }
@@ -1204,7 +1205,20 @@ tr.won td{background:color-mix(in srgb,var(--track) 12%,transparent);font-weight
    background:#fff!important;color:#000!important;font-size:10.5pt}
   .appbar,.toolbar,.view,.drawer,.drawerback,.mapdrawer,footer.hint{display:none!important}
   #printarea{display:block!important}
-  .psheet{font:10.5pt/1.42 system-ui,-apple-system,"Segoe UI",sans-serif;color:#000}
+  /* Exactly one A4 page, and the questions and notes take whatever the facts
+     leave over. Sizing them by content instead pushed the sheet to 1,250pt
+     against 1,017pt of printable page - a second sheet carrying a footer. */
+  .psheet{font:10.5pt/1.42 system-ui,-apple-system,"Segoe UI",sans-serif;color:#000;
+   display:flex;flex-direction:column;height:calc(297mm - 28mm)}
+  .psheet>*{flex:none}
+  /* The questions get the wider column. At an even split they wrapped to two
+     lines each and ate the whole page, leaving nothing between them to write
+     the answer on - which was the point of moving the QR out of here. */
+  .pgrid.pwrite{flex:1;min-height:0;margin-bottom:0;grid-template-columns:1.55fr 1fr}
+  .pgrid.pwrite>*{display:flex;flex-direction:column;min-height:0}
+  .pgrid.pwrite ul{flex:1;display:flex;flex-direction:column;justify-content:space-between;
+   margin:0;padding-left:17px}
+  .pspec{font-size:9pt;color:#333;margin:2px 0 1px}
   .phead{display:flex;justify-content:space-between;align-items:flex-start;
    border-bottom:2px solid #000;padding-bottom:6px;margin-bottom:10px}
   .pfirm{font-size:13pt;font-weight:700;letter-spacing:-.01em}
@@ -1223,9 +1237,14 @@ tr.won td{background:color-mix(in srgb,var(--track) 12%,transparent);font-weight
   .pbig{font-size:14pt;font-weight:700}
   .pask{border:1px solid #bbb;border-left:3px solid #000;border-radius:4px;
    padding:7px 9px;break-inside:avoid}
-  .pask li{margin:2px 0}
-  .pnotes{border:1px solid #bbb;border-radius:4px;padding:7px 9px;min-height:52px;
-   white-space:pre-wrap;break-inside:avoid}
+  /* Room to write. A sheet that leaves no space to answer its own questions is
+     a leaflet, not a call sheet - so the questions and the notes get the whole
+     bottom of the page, which is what moving the QR into the header freed up. */
+  .pask li{padding-bottom:4px;border-bottom:1px dotted #c8c8c8}
+  .pask li:last-child{border-bottom:none}
+  .pnotes{border:1px solid #bbb;border-radius:4px;padding:7px 9px;flex:1;
+   white-space:pre-wrap}
+  .pnotebox{display:flex;flex-direction:column;min-height:0}
   .pfoot{margin-top:10px;padding-top:5px;border-top:1px solid #ccc;
    font-size:8pt;color:#666;display:flex;justify-content:space-between}
   table.pbid{width:100%;border-collapse:collapse;font-size:9pt}
@@ -1234,12 +1253,12 @@ tr.won td{background:color-mix(in srgb,var(--track) 12%,transparent);font-weight
   table.pbid td{border-bottom:1px solid #e3e3e3;padding:3px 4px}
   table.pbid td.n{text-align:right;font-variant-numeric:tabular-nums}
   table.pbid tr.w td{font-weight:700}
-  .pqr{display:flex;gap:10px;align-items:center}
-  .pqr svg{flex:none;width:88px;height:88px}
-  .pqr span{font-size:8.5pt;color:#555;line-height:1.35}
-  .pcode{display:block;margin-top:3px;font-family:ui-monospace,Consolas,monospace;
-   font-size:15pt;font-weight:700;letter-spacing:.13em;color:#000}
-  .pcodehint{display:block;font-size:7pt;color:#777;letter-spacing:.02em}
+  /* The QR and the code live together in the top right corner, so the bottom of
+     the page is left for the two things that get written on. */
+  .phead-r{display:flex;gap:10px;align-items:flex-start;text-align:right}
+  .pqrsmall svg{display:block;width:66px;height:66px}
+  .pcode{display:block;font-family:ui-monospace,Consolas,monospace;
+   font-size:15pt;font-weight:700;letter-spacing:.13em;color:#000;line-height:1.1}
 }
 /* slide-over detail */
 .drawerback{position:fixed;inset:0;background:rgba(0,0,0,.28);z-index:1200;
@@ -3844,7 +3863,8 @@ function adapt(rows, extra) {
     quantities: (quant[t.tender_id] || []).map(q => ({
       file: q.source_file, term: q.term, value: q.value,
       unit: q.unit, page: q.page, context: q.context })),
-    portal_url: t.portal_url || null,
+    portal_url: t.portal_url || portalURL(t.portal_id),
+    source_site: t.source_site || null,
   }));
 }
 
@@ -4142,6 +4162,17 @@ function tierBlock(t) {
 /* Builds the full tender detail for one tender. Split out of renderDetail so the
    board's panel can show exactly the same thing - one source, so the two panels
    cannot drift apart as sections are added. */
+/* The tender's page on Nexizo, from the portal's own uuid.
+
+   The scheme is not guessed: `sources/nexizo/documents.py` fetches documents from
+   this exact path, so if it were wrong the downloads would not work either. It is
+   built here rather than stored because a URL derived from an id is not data - and
+   the local build used to construct it from a NEXIZO_TENDER_URL environment
+   variable that has never been set, so the button existed and never once appeared. */
+function portalURL(uuid) {
+  return uuid ? 'https://nexizo.ai/app/discover/tenders/detail/' + uuid : null;
+}
+
 function detailHTML(t, withHead = true) {
   const isDone = state.done.has(t.tender_id);
   // The head carries `id=mark`, so it must appear once in the document. The board
@@ -4158,7 +4189,10 @@ function detailHTML(t, withHead = true) {
         isDone ? '\u2713 Reviewed' : 'Mark reviewed'}</button>` : ''}
       ${t.portal_url ? `<a class="btn portal" href="${esc(t.portal_url)}" target="_blank"
         rel="noopener">Open on Nexizo \u2197</a>` : ''}
-    </div><div class="dd">`;
+    </div>
+    ${t.source_site ? `<div class=dsite>Published on <b>${esc(t.source_site)}</b>
+      — Nexizo aggregates it; the original document lives there</div>` : ''}
+    <div class="dd">`;
 
   // Once a contract is awarded the ranked bidder list is history. The winner is
   // the only name that matters; the rest stays one click away in the source doc.
@@ -4858,6 +4892,13 @@ function printSheet(t) {
     });
   });
   const qty = gabOf(t) ? crv(gabOf(t)) : (bestQty(t) || 'not stated');
+  // One line, not five rows. The mesh, the wire and the coating are read
+  // together as a single specification anyway, and five labelled rows cost the
+  // page 100 points of height that the questions and the notes need more.
+  const specline = [spec.mesh && 'mesh ' + spec.mesh,
+    spec.wire_dia && spec.wire_dia + ' mm wire', spec.swg && spec.swg + ' SWG',
+    spec.coating, spec.is_code && 'IS ' + spec.is_code]
+    .filter(Boolean).map(esc).join(' · ');
 
   // The gabion lines, each one separately. A tender routinely prices slope work
   // and toe wall work as different items at different rates, and they are
@@ -4874,27 +4915,29 @@ function printSheet(t) {
      not a sales call. These are the things the documents genuinely cannot answer
      and that decide whether the order happens. */
   const ask = [];
-  ask.push('Has the gabion been tied up with anyone yet, or is it still open?');
+  ask.push('Is the gabion tied up with anyone, or still open?');
   if (lines.some(l => l.rate))
     ask.push(`They have costed it at ${money(Math.round(
       lines.filter(l => l.rate).reduce((s, l) => s + l.rate, 0) /
       lines.filter(l => l.rate).length))}/${lines.find(l => l.rate).unit || 'unit'} — what is workable?`);
-  else ask.push('What rate have they allowed for the gabion in their costing?');
-  ask.push('When is the protection work programmed to start on site?');
-  ask.push('Assembled boxes or flat-packed for assembly on site?');
-  ask.push('Delivery point and access — can a full truck reach it?');
-  ask.push('Which test certificates does the engineer want with the material?');
+  else ask.push('What rate have they allowed for the gabion?');
+  ask.push('When does the protection work start on site?');
+  ask.push('Assembled boxes, or flat-packed?');
+  ask.push('Delivery point — can a full truck reach it?');
+  ask.push('Which test certificates does the engineer want?');
   if (!spec.mesh || (!spec.wire_dia && !spec.swg))
-    ask.push('Confirm the mesh and wire — the BoQ does not state all of it');
+    ask.push('Confirm the mesh and wire — the BoQ does not state it');
   ask.push('Payment terms, and against which RA bill?');
 
   return `<div class=psheet>
   <div class=phead>
     <div class=pfirm>M/s Agarwal Gabion Industries<span>TENDER CALL SHEET</span></div>
-    <div class=pdate>${new Date().toLocaleDateString('en-IN',
-      { day: '2-digit', month: 'short', year: 'numeric' })}
-      <span class=pcode>${esc(prettyCode(t.tender_id))}</span>
-      <span class=pcodehint>type this into the search box</span></div>
+    <div class=phead-r>
+      <div class=pdate><span class=pcode>${esc(prettyCode(t.tender_id))}</span>
+        ${new Date().toLocaleDateString('en-IN',
+          { day: '2-digit', month: 'short', year: 'numeric' })}</div>
+      <div class=pqrsmall>${qrSVG(shareURL(t.tender_id), 74)}</div>
+    </div>
   </div>
   <div class=ptitle2>${esc(d.title || t.tender_id)}</div>
   <div class=pref>${esc(t.tender_id)}${d.reference_no ? ' \u00b7 ' + esc(d.reference_no) : ''}</div>
@@ -4919,11 +4962,7 @@ function printSheet(t) {
           ).join('') + '</tbody></table>' : ''}
         ${row('Their budget', lines.some(l => l.amount)
           ? money(lines.reduce((s, l) => s + (l.amount || 0), 0)) : '')}
-        ${row('Mesh', esc(spec.mesh || ''))}
-        ${row('Wire dia', spec.wire_dia ? esc(spec.wire_dia) + ' mm' : '')}
-        ${row('SWG', esc(spec.swg || ''))}
-        ${row('Coating', esc(spec.coating || ''))}
-        ${row('Standard', spec.is_code ? 'IS ' + esc(spec.is_code) : '')}
+        ${specline ? `<div class=pspec>${specline}</div>` : ''}
         ${row('Gabion share', t.value && t.value.gabion_share_pct
           ? Number(t.value.gabion_share_pct).toFixed(2) + '% of the contract' : '')}
       </div>
@@ -4948,17 +4987,10 @@ function printSheet(t) {
     </div>
   </div>
 
-  <div class=pgrid>
+  <div class="pgrid pwrite">
     <div class=pask><h4>Ask them</h4><ul>${ask.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>
-    <div>
-      <div class=pbox style="margin-bottom:6px"><h4>Notes</h4>
-        <div class=pnotes>${esc(noteFor(t.tender_id).text || '')}</div></div>
-      <div class=pbox><h4>Open the full record</h4>
-        <div class=pqr>${qrSVG(shareURL(t.tender_id), 104)}
-          <span>Scan to open this tender on the board \u2014 every document,
-            every figure, and the map.</span></div>
-      </div>
-    </div>
+    <div class="pbox pnotebox"><h4>Notes</h4>
+      <div class=pnotes>${esc(noteFor(t.tender_id).text || '')}</div></div>
   </div>
 
   <div class=pfoot><span>Agarwal Gabion Industries \u00b7 tender screen</span>
@@ -4994,7 +5026,11 @@ function slideIn(el, back) {
   setTimeout(go, 60);
 }
 
-let MINI = null, MINILAYER = null, MINICTX = null;
+// Which tender the panel is currently showing. The lazy geometry fetch below
+// finishes whenever the network says so, and by then you may well have closed
+// the panel and opened a different job - `!el.hidden` was true in that case too,
+// so a slow fetch for tender A redrew itself on top of tender B.
+let MINI = null, MINILAYER = null, MINICTX = null, MINIID = null, MINIWAIT = null;
 function openMapDrawer(tid) {
   const t = D.tenders.find(x => x.tender_id === tid);
   const el = document.getElementById('mapdrawer');
@@ -5003,7 +5039,7 @@ function openMapDrawer(tid) {
   const d = t.detail || {};
   document.getElementById('mapdrawertitle').textContent =
     placeOf(t) + (d.state ? ' \u2014 ' + d.state : '');
-  el.hidden = false; back.hidden = false;
+  el.hidden = false; back.hidden = false; MINIID = tid;
   // The slide is cosmetic and goes through rAF; BUILDING the map does not.
   // requestAnimationFrame never fires while a tab is not compositing, so a map
   // constructed inside it silently never exists - the drawer opens on a blank
@@ -5016,16 +5052,27 @@ function openMapDrawer(tid) {
   // draw for exactly the 18 best-located tenders, which is the opposite of what
   // you would expect. Fetch it now and redraw when it lands.
   if (!(t.geo && t.geo.line) && !(t.place && t.place.lat != null)) {
+    MINIWAIT = tid;
     loadGeo().then(ok => {
-      if (ok && !el.hidden) openMapDrawer(tid);
+      if (MINIWAIT === tid) MINIWAIT = null;
+      if (ok && !el.hidden && MINIID === tid) openMapDrawer(tid);
     });
   }
 
   setTimeout(() => {
+    if (el.hidden || MINIID !== tid) return;
     if (!MINI) {
-      MINI = L.map('minimap', { layers: [L.tileLayer(
-        'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-        { maxZoom: 19, attribution: '&copy; OpenStreetMap' })] });
+      // The centre and zoom are set HERE, not later from the bounds. A Leaflet
+      // map with no view has no projection, and `L.circle(...).getBounds()` -
+      // which the derived-position branch below calls to frame the accuracy
+      // ring - reaches through `_map` to project its radius. On a view-less map
+      // that is undefined, so getBounds threw, the whole callback aborted before
+      // fitBounds or setView ever ran, and the drawer slid open onto a blank
+      // grey panel with no tiles. The view below is only a seed; fitBounds
+      // replaces it a few lines down.
+      MINI = L.map('minimap', { center: [25.5, 90.0], zoom: 5,
+        layers: [L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+          { maxZoom: 19, attribution: '&copy; OpenStreetMap' })] });
       L.control.scale({ imperial: false }).addTo(MINI);
     }
     if (MINILAYER) { MINI.removeLayer(MINILAYER); MINILAYER = null; }
@@ -5088,17 +5135,47 @@ function openMapDrawer(tid) {
     // Leaflet measures its container on creation; in a drawer that was still
     // sliding it measures 0x0 and renders a grey box. Size it after the move.
     MINI.invalidateSize();
-    if (bounds && bounds.isValid()) {
+    // A map that cannot frame itself is still a usable map. Framing is the last
+    // thing that happens for that reason - but it is also the thing most likely
+    // to fail on odd geometry, so it does not get to take the tiles with it.
+    try { bounds = bounds && bounds.isValid() ? bounds : null; }
+    catch (e) { bounds = null; }
+    if (bounds) {
       // Pad generously and cap the zoom: the point of showing the neighbours is
       // seeing them, and flying in tight to one line hides the very context that
       // was just added.
-      MINI.fitBounds(bounds.pad(0.9), { padding: [30, 30], maxZoom: 11 });
+      // `animate: false` is not cosmetic. An animated fit is driven by
+      // requestAnimationFrame, which does not run while the tab is not
+      // compositing - the same trap that once left this map unbuilt. Measured
+      // here: the fit resolved to the right view immediately, but the map stayed
+      // showing the PREVIOUS tender's ground for three seconds before the
+      // animation caught up. Jump straight there.
+      MINI.fitBounds(bounds.pad(0.9),
+        { padding: [30, 30], maxZoom: 11, animate: false });
+      // The slide runs for 220ms. Click Location on a second row while the first
+      // panel is still closing and the container measures 0x0 at 30ms - Leaflet
+      // then clamps the fit to whatever view it was already holding and the map
+      // opens on the previous tender's ground. Re-measure once the movement has
+      // finished. Idempotent: on a clean open it fits to the same bounds twice.
+      setTimeout(() => {
+        if (el.hidden || MINIID !== tid) return;
+        MINI.invalidateSize();
+        MINI.fitBounds(bounds.pad(0.9),
+          { padding: [30, 30], maxZoom: 11, animate: false });
+      }, 300);
     } else {
-      // Say so rather than showing a plausible-looking map of nowhere.
-      MINI.setView([25.5, 90.0], 5);
+      // Say so rather than showing a plausible-looking map of nowhere - but only
+      // if it is TRUE. The 18 tenders with a surveyed alignment load their
+      // geometry on demand, and until it lands they look identical to a tender
+      // with nothing. Calling those "not located" is the one wrong thing to say
+      // about the best-located jobs on the board.
+      MINI.setView([25.5, 90.0], 5, { animate: false });
       const f = document.getElementById('minifoot');
-      if (f) f.innerHTML = '<span class=mlhow>not located</span> ' +
-        'Nothing in this tender gives a position.';
+      if (f) f.innerHTML = MINIWAIT === tid
+        ? '<span class=mlhow>reading the alignment…</span> ' +
+          'The surveyed geometry for this tender is still loading.'
+        : '<span class=mlhow>not located</span> ' +
+          'Nothing in this tender gives a position.';
     }
   }, 30);
 
@@ -5113,8 +5190,16 @@ function closeMapDrawer() {
   const el = document.getElementById('mapdrawer');
   const back = document.getElementById('drawerback');
   if (!el || el.hidden) return;
+  MINIID = null;
   el.classList.remove('show'); back.classList.remove('show');
-  setTimeout(() => { el.hidden = true; back.hidden = true; }, 220);
+  // Hiding is deferred so the slide-out can be seen - but if the panel has been
+  // REOPENED in those 220ms (click Location on one row, then another), this
+  // timer would hide the new panel out from under you. `show` is re-added by the
+  // reopen, so its presence means the close was overtaken.
+  setTimeout(() => {
+    if (el.classList.contains('show')) return;
+    el.hidden = true; back.hidden = true;
+  }, 220);
 }
 
 function closeDrawer() {
@@ -5123,6 +5208,7 @@ function closeDrawer() {
   if (!el || el.hidden) return;
   el.classList.remove('show'); back.classList.remove('show');
   setTimeout(() => {
+    if (el.classList.contains('show')) return;        // reopened mid-close
     el.hidden = true; back.hidden = true;
     el.querySelector('#drawerbody').innerHTML = '';   // drop the duplicate ids
     // A note written in the drawer must be on the board the moment it closes.
