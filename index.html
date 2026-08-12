@@ -784,6 +784,199 @@ a.btn.portal { text-decoration: none; margin-left: auto; }
   font-size: 9.5px; font-weight: 700; letter-spacing: .06em; vertical-align: 1px; }
 .addedon { color: var(--ink-2); }
 .addedline { font-size: 12px; color: var(--ink-2); margin: 6px 0 0; }
+
+/* ---- directory ----
+   A grouped table on the pattern of the NH Works contact sheet: you scan a
+   column of numbers looking for somebody to ring, so cards that open and close
+   were the wrong shape. State heads, department sub-heads, one row per firm. */
+.dirbar { position: sticky; top: 0; z-index: 6; display: flex; gap: 8px;
+  align-items: center; flex-wrap: wrap; padding: 10px 0 12px;
+  background: var(--bg); border-bottom: 1px solid var(--border); margin-bottom: 10px; }
+.dirbar input[type=search] { flex: 1; min-width: 200px; font: inherit; font-size: 13px;
+  padding: 7px 10px; border: 1px solid var(--border); border-radius: 7px;
+  background: var(--surface); color: var(--ink); }
+.dirbar select { font: inherit; font-size: 12.5px; padding: 6px 8px; max-width: 210px;
+  border: 1px solid var(--border); border-radius: 7px;
+  background: var(--surface); color: var(--ink); }
+.dirbar input:focus, .dirbar select:focus { border-color: var(--accent); outline: none; }
+.dircount { font-size: 12.5px; color: var(--ink-2); margin-left: auto; }
+
+/* ---- dashboard ----
+   The call queue is the page. Everything is sized so the eye lands on the
+   contractor's number first and the rest reads as context around it. */
+#dashboard { max-width: 1040px; margin: 0 auto; padding: 6px 4px 48px; }
+
+.dashhead { display: flex; justify-content: space-between; align-items: flex-end;
+  gap: 20px; flex-wrap: wrap; padding-bottom: 14px; margin-bottom: 22px;
+  border-bottom: 1px solid var(--border); }
+.dashhead h2 { margin: 0; font-size: 22px; font-weight: 650; letter-spacing: -.01em; }
+.dashhead p { margin: 4px 0 0; font-size: 13px; color: var(--ink-2); }
+.lateword { color: #c2417a; }
+.dashsum { text-align: right; font-size: 12.5px; color: var(--ink-2); }
+.dashsum span { display: block; margin-top: 2px; }
+.dashsum b { color: var(--ink); font-variant-numeric: tabular-nums; }
+
+.dh { font-size: 11px; text-transform: uppercase; letter-spacing: .09em;
+  color: var(--ink-2); font-weight: 700; margin: 26px 0 9px; }
+.dcount { background: var(--grid); border-radius: 9px; padding: 1px 7px;
+  font-size: 10.5px; margin-left: 5px; letter-spacing: 0; }
+.dhint { font-size: 12.5px; color: var(--ink-2); margin: -4px 0 10px; }
+
+/* ---- one call ----
+   Four columns in the order the call happens: who, the number, what they need,
+   why today. On a narrow screen they stack in the same order. */
+.calls { display: flex; flex-direction: column; gap: 8px; }
+.call { display: grid; grid-template-columns: minmax(0,1fr) 190px 150px 170px;
+  gap: 16px; align-items: start; padding: 14px 16px 14px 13px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-left: 3px solid var(--grid); border-radius: 10px; }
+.call:hover { border-color: rgba(42,120,214,.35); }
+.call.u-urgent { border-left-color: #c2417a; }
+.call.u-soon   { border-left-color: #e07a1f; }
+.call.u-watch  { border-left-color: var(--grid); }
+.call.late { background: linear-gradient(90deg, rgba(194,65,122,.05), transparent 45%); }
+
+.cwname { font-size: 15px; font-weight: 650; letter-spacing: -.01em; line-height: 1.25; }
+.cwnone { color: var(--ink-2); font-weight: 400; font-style: italic; }
+.cwjob { margin-top: 3px; }
+.cwjob button { border: 0; background: none; padding: 0; cursor: pointer; font: inherit;
+  font-size: 13px; color: var(--accent); text-align: left; line-height: 1.35; }
+.cwjob button:hover { text-decoration: underline; }
+.cwmeta { font-size: 11.5px; color: var(--ink-2); margin-top: 4px;
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+/* A location is only useful with its honesty attached - a 150 km guess and a
+   surveyed alignment must not look the same. */
+.seemap { border: 1px solid var(--border); background: none; cursor: pointer;
+  font: inherit; font-size: 10.5px; color: var(--ink-2); padding: 1px 7px;
+  border-radius: 5px; }
+.seemap:hover { border-color: var(--accent); color: var(--accent); }
+.locacc { font-size: 10.5px; color: var(--ink-2); opacity: .75; }
+
+/* The number is the only thing on the card you act on, so it is the biggest. */
+.bignum { display: block; font-size: 19px; font-weight: 600; letter-spacing: .01em;
+  font-variant-numeric: tabular-nums; text-decoration: none; color: var(--accent);
+  line-height: 1.25; }
+.bignum:hover { text-decoration: underline; }
+.numwho { display: block; font-size: 11px; color: var(--ink-2); margin: -1px 0 5px; }
+.smallmail { display: block; font-size: 11.5px; color: var(--ink-2);
+  text-decoration: none; margin-top: 4px; word-break: break-all; }
+.smallmail:hover { text-decoration: underline; }
+.nonum { display: block; font-size: 13px; color: #b0431f; }
+.findnum { margin-top: 5px; border: 1px dashed var(--border); background: none;
+  cursor: pointer; font: inherit; font-size: 11.5px; color: var(--ink-2);
+  padding: 3px 9px; border-radius: 6px; }
+.findnum:hover { border-color: var(--accent); color: var(--accent); }
+
+.callneed b { display: block; font-size: 15px; font-weight: 650;
+  font-variant-numeric: tabular-nums; }
+.callneed span { display: block; font-size: 11px; color: var(--ink-2); margin-top: 1px; }
+
+.callwhy { text-align: right; }
+.ulev { display: inline-block; font-size: 9.5px; font-weight: 700; padding: 2px 7px;
+  border-radius: 3px; letter-spacing: .06em; text-transform: uppercase; }
+.u-urgent > .ulev, .ulev.u-urgent { background: #c2417a; color: #fff; }
+.u-soon > .ulev,   .ulev.u-soon   { background: #e07a1f; color: #fff; }
+.u-watch > .ulev,  .ulev.u-watch  { background: var(--grid); color: var(--ink-2); }
+.cwwhen { display: block; font-size: 11.5px; color: var(--ink-2); margin-top: 4px; }
+.cwwhen.late { color: #c2417a; font-weight: 600; }
+.cwnote { font-size: 11.5px; color: var(--ink-2); margin-top: 4px; line-height: 1.35; }
+.uclear { margin-top: 8px; border: 1px solid var(--border); background: none;
+  cursor: pointer; font: inherit; font-size: 11px; color: var(--ink-2);
+  padding: 3px 10px; border-radius: 6px; }
+.uclear:hover { border-color: #1f9d76; color: #1f9d76; }
+
+.dashempty { border: 1px dashed var(--border); border-radius: 10px; padding: 26px 22px;
+  text-align: center; background: var(--surface); }
+.dashempty b { font-size: 15px; }
+.dashempty p { font-size: 13px; color: var(--ink-2); margin: 7px auto 14px; max-width: 46ch;
+  line-height: 1.5; }
+
+.minorlist { list-style: none; margin: 0; padding: 0;
+  border: 1px solid var(--border); border-radius: 9px; background: var(--surface); }
+.minorlist li { padding: 9px 13px; border-bottom: 1px solid var(--grid); font-size: 13px; }
+.minorlist li:last-child { border-bottom: none; }
+.minorlist button { border: 0; background: none; padding: 0; cursor: pointer; font: inherit;
+  font-size: 13px; color: var(--accent); text-align: left; }
+.minorlist button:hover { text-decoration: underline; }
+.minorlist .cellref { display: block; margin-top: 2px; }
+
+/* the control on a tender */
+.urgbar { display: flex; gap: 6px; margin: 8px 0 2px; flex-wrap: wrap; align-items: center; }
+.urgbar select, .urgbar input { font: inherit; font-size: 12.5px; padding: 5px 8px;
+  border: 1px solid var(--border); border-radius: 6px;
+  background: var(--surface); color: var(--ink); }
+.urgnote { flex: 1; min-width: 150px; }
+.urgbar select:focus, .urgbar input:focus { border-color: var(--accent); outline: none; }
+/* Contractors | Officers. Two populations that happen to share a table: you are
+   either looking for who is building, or for who is letting the work. */
+.dirtabs { display: flex; gap: 4px; margin: 0 0 4px; }
+.dtab { appearance: none; border: 0; cursor: pointer; font: inherit;
+  font-size: 13.5px; font-weight: 600; padding: 7px 15px; border-radius: 8px 8px 0 0;
+  background: var(--grid); color: var(--ink-2); display: flex; gap: 8px; align-items: center; }
+.dtab:hover { color: var(--ink); }
+.dtab.sel { background: var(--accent); color: #fff; }
+.dtab .pill { font-size: 11px; font-weight: 700; padding: 1px 8px; border-radius: 99px;
+  background: rgba(0,0,0,.10); }
+.dtab.sel .pill { background: rgba(255,255,255,.22); }
+/* Reach them through the officer who let the work - the reference's best idea. */
+.via { margin-top: 6px; padding-top: 5px; border-top: 1px dashed var(--grid); }
+.via .vn { font-size: 11.5px; color: var(--ink-2); }
+.warnnote { font-size: 11px; color: #8a6a12; margin-top: 3px; }
+
+table.dirtable { width: 100%; border-collapse: collapse; }
+table.dirtable th { text-align: left; font-size: 10.5px; text-transform: uppercase;
+  letter-spacing: .06em; color: var(--ink-2); font-weight: 600;
+  padding: 6px 10px; border-bottom: 1px solid var(--border); }
+table.dirtable td { padding: 9px 10px; border-bottom: 1px solid var(--grid);
+  vertical-align: top; font-size: 13px; }
+/* The two group heads. State is the loud one; department sits under it. */
+tr.st td { background: var(--grid); font-weight: 700; font-size: 13px;
+  padding: 8px 10px; border-bottom: 1px solid var(--border); }
+tr.dp td { font-weight: 600; font-size: 12.5px; color: var(--ink-2);
+  padding: 6px 10px 6px 22px; background: transparent; }
+tr.st .c, tr.dp .c { font-weight: 400; color: var(--ink-2); font-size: 11.5px;
+  margin-left: 9px; }
+tr.row:hover td { background: var(--hover, rgba(0,0,0,.03)); }
+/* A firm with nothing on file is the thing this view exists to surface. */
+tr.row.miss td:first-child { box-shadow: inset 3px 0 0 #c2417a; }
+.dirtable .nm { font-weight: 600; }
+.cellref { color: var(--ink-2); font-size: 11px; }
+
+/* One number per line, so a firm with eight of them still reads as a list. */
+a.ph, a.em { display: block; font-size: 13.5px; text-decoration: none;
+  color: var(--accent); font-variant-numeric: tabular-nums; }
+a.ph.land { color: var(--ink-2); font-size: 12.5px; }
+a.em { font-size: 12.5px; }
+a.ph:hover, a.em:hover { text-decoration: underline; }
+.clabel { font-size: 11px; color: var(--ink); background: var(--grid);
+  padding: 0 6px; border-radius: 9px; margin-left: 6px; }
+.none { display: block; color: #b0431f; font-size: 12.5px; font-weight: 500; }
+.none small { display: block; color: var(--ink-2); font-weight: 400;
+  font-size: 11px; font-style: italic; }
+.cdel { border: 1px solid transparent; background: none; cursor: pointer;
+  color: var(--ink-2); font-size: 12px; line-height: 1; padding: 0 5px;
+  border-radius: 4px; margin-left: 4px; }
+tr.row:hover .cdel { border-color: var(--border); }
+.cdel:hover { color: #c2417a; border-color: #c2417a; }
+.caddbtn { margin-top: 5px; border: 1px dashed var(--border); background: none;
+  cursor: pointer; font: inherit; font-size: 11.5px; color: var(--ink-2);
+  padding: 3px 9px; border-radius: 6px; }
+.caddbtn:hover { border-color: var(--accent); color: var(--accent); }
+.caddform { display: flex; gap: 5px; margin-top: 7px; flex-wrap: wrap; }
+.caddform select, .caddform input { font: inherit; font-size: 12px; padding: 4px 7px;
+  border: 1px solid var(--border); border-radius: 6px;
+  background: var(--surface); color: var(--ink); }
+.caddform input { flex: 1; min-width: 96px; }
+.caddform input:focus { border-color: var(--accent); outline: none; }
+
+.pj { font-size: 12px; }
+.pj summary { color: var(--accent); cursor: pointer; outline: none; }
+.pj ul { margin: 6px 0 2px; padding-left: 16px; }
+.pj li { margin: 5px 0; }
+.jobjump { border: 0; background: none; padding: 0; cursor: pointer; font: inherit;
+  font-size: 12px; color: var(--accent); text-align: left; }
+.jobjump:hover { text-decoration: underline; }
+
 .pickrow { display: flex; align-items: center; gap: 6px; }
 .pickrow label { display: flex; align-items: center; gap: 7px; flex: 1; min-width: 0; }
 .pickdel { flex: none; border: 1px solid transparent; background: none; cursor: pointer;
@@ -977,7 +1170,7 @@ tr.brow[aria-selected=true] td:first-child{box-shadow:inset 3px 0 0 var(--accent
 /* ---- carried over from the hosted-only stylesheet ---- */
 @media(prefers-color-scheme:dark){:root{--surface:#1a1a19;--plane:#0d0d0d;--ink:#fff;
  --ink-2:#c3c2b7;--grid:#2c2c2a;--rule:#383835;--border:rgba(255,255,255,.1);
- --accent:#3987e5;color-scheme:dark}}
+ --accent:#3987e5;--bg:#111110;--hover:rgba(255,255,255,.05);color-scheme:dark}}
 .gate{margin:auto;width:min(360px,92vw);background:var(--surface);
  border:1px solid var(--border);border-radius:12px;padding:26px 24px;box-shadow:var(--shadow)}
 .gate h1{font-size:15px;font-weight:600;margin:0 0 4px}
@@ -1145,6 +1338,24 @@ tr.won td{background:color-mix(in srgb,var(--track) 12%,transparent);font-weight
     max-height: 70vh; overflow-y: auto; border-radius: 14px; }
   .picker.share { width: auto !important; }
   .pickrow { padding: 11px 9px; }
+  /* The call card stacks in the same reading order: who, number, need, why. */
+  #dashboard { padding: 4px 2px 40px; }
+  .call { grid-template-columns: 1fr; gap: 10px; padding: 13px 14px 13px 11px; }
+  .callwhy { text-align: left; display: flex; align-items: center; gap: 9px;
+    flex-wrap: wrap; }
+  .cwwhen, .cwnote { margin-top: 0; }
+  .uclear { margin-top: 0; margin-left: auto; }
+  .bignum { font-size: 22px; }
+  .dashhead { flex-direction: column; align-items: flex-start; }
+  .dashsum { text-align: left; }
+  /* The directory on a phone: drop the projects column, let the numbers breathe. */
+  .dirtable .hidem { display: none; }
+  .dirbar { position: static; }
+  .dirbar select { max-width: none; flex: 1; min-width: 44%; }
+  .dircount { margin-left: 0; width: 100%; }
+  table.dirtable td { padding: 10px 6px; }
+  a.ph { font-size: 15.5px; padding: 3px 0; }
+  tr.dp td { padding-left: 12px; }
   .pickrow input[type=checkbox] { width: 20px; height: 20px; }
 
   /* Chips and buttons need a finger, not a cursor. */
@@ -1358,14 +1569,22 @@ tr.won td{background:color-mix(in srgb,var(--track) 12%,transparent);font-weight
     </span>
   </div>
   <div class=tabs role=tablist>
-    <button class=tab role=tab data-view=board aria-selected=true>Board</button>
+    <button class=tab role=tab data-view=dash aria-selected=true>Dashboard</button>
+    <button class=tab role=tab data-view=board aria-selected=false>Tenders</button>
       <button class=tab role=tab data-view=map aria-selected=false>Map</button>
-    <button class=tab role=tab data-view=contractors aria-selected=false>Call list</button>
+    <button class=tab role=tab data-view=contractors aria-selected=false>Directory</button>
     <button class=tab role=tab data-view=ops aria-selected=false>Operations</button>
   </div>
 </div>
 
-<section class=view id=view-board>
+<section class=view id=view-dash>
+  <!-- .panelwrap is the app's scroller: body is height:100vh with overflow
+       hidden, so every view has to scroll inside itself. Without it the
+       dashboard was simply clipped at the fold with no way down. -->
+  <div class=panelwrap><div id=dashboard></div></div>
+</section>
+
+<section class=view id=view-board hidden>
   <div class=toolbar>
     <label for=groupby>Group by</label>
     <select id=groupby>
@@ -4113,7 +4332,7 @@ const state = {
   q: '', verdicts: new Set(['TRACK', 'REVIEW', 'SKIP', 'RESULT']),
   // 'all' | 'hide' | 'only'. A three-way control, not two booleans that can
   // contradict each other by showing nothing at all.
-  sort: 'verdict', doneMode: 'all', sel: null, done: loadDone(), view: 'board'
+  sort: 'verdict', doneMode: 'all', sel: null, done: loadDone(), view: 'dash'
 };
 
 /* Does this tender pass the reviewed filter? One predicate, used by both the
@@ -4902,6 +5121,7 @@ function openDrawer(tid) {
   // did not. A drawer that opens empty is worse than one that opens honest.
   try {
     body.innerHTML = reqHTML(t);
+    wireUrgency(body, t);
     // Same wiring as the board, or the folds do not open and the notes box does
     // not save - a notes field that silently discards what you typed is worse
     // than no notes field.
@@ -5475,8 +5695,23 @@ function noteChanged(tid, text) {
     document.querySelectorAll('#notebox').forEach(b => {
       if (b.value !== text && document.activeElement !== b) b.value = text;
     });
-    renderBoard();
+    // NOT renderBoard(). The autosave fires 800ms after you stop typing, and a
+    // full re-render rebuilds the panel - destroying the textarea and taking the
+    // cursor with it. Pause mid-sentence to think and you had to click back in.
+    // The only thing on the board that a note changes is the "noted" marker on
+    // one row, so update that one cell and leave the rest of the DOM alone.
+    markNoted(tid, !!(text || '').trim());
   }, 800);
+}
+
+/* Put "· noted" on a row, or take it off, without rebuilding anything.
+   The Location cell owns the marker; the board row is otherwise untouched. */
+function markNoted(tid, on) {
+  document.querySelectorAll(`.loccell[data-loc="${CSS.escape(tid)}"] .bsub`)
+    .forEach(sub => {
+      const base = sub.textContent.replace(/\s*· noted\s*$/, '');
+      sub.textContent = on ? base + ' · noted' : base;
+    });
 }
 
 async function pushNote(tid, text) {
@@ -5586,6 +5821,9 @@ const isPhone = () => window.matchMedia('(max-width: 700px)').matches;
 
 const board = { by: 'winner', sort: 'gabion', q: '', sel: null, list: null,
                 shown: PAGE };
+/* Directory view state. `open` is the one firm expanded - one at a time, because
+   a page of 518 expanded cards is a scroll, not a directory. */
+const dir = { role: 'contractor', q: '', sort: 'gabion', state: '', dept: '', reach: '', open: null };
 const GROUPS = {
   winner:   ['Contractor to call', t => t.award && t.award.winner],
   state:    ['State',              t => t.detail && t.detail.state],
@@ -5687,9 +5925,14 @@ const cementOf = t => (t.value && t.value.cement_value_cr) || 0;
 // showed "20 m" on a tender whose BoQ also carried 13,552 Cum.
 const CUM = /^(cu\.?\s?m|cum\.?|one\s*cum|m3|m³)$/i;
 
+/* Cubic metres of gabion. Reads `unit_norm`, the canonical unit boq.py assigns,
+   and falls back to the regex only for rows synced before that field existed.
+   The sheets spell one unit four ways - Cum, cum, Cum., "One Cum" - and matching
+   the raw string counted 138,051 where the real figure is 301,140. */
 function cumOf(t) {
   return (t.supply || [])
-    .filter(r => r.core_match && r.quantity != null && CUM.test(String(r.unit || '').trim()))
+    .filter(r => r.core_match && r.quantity != null &&
+      (r.unit_norm ? r.unit_norm === 'Cum' : CUM.test(String(r.unit || '').trim())))
     .reduce((a, r) => a + Number(r.quantity), 0);
 }
 
@@ -5900,7 +6143,9 @@ function renderBoard() {
     for (const t of items) {
       const d = t.detail || {}, w = windowOf(t);
       h += `<tr class=brow data-id="${esc(t.tender_id)}" aria-selected="${t.tender_id === board.sel}">
-        <td><span class=btitle>${showNew(t) ? '<span class=newtag>NEW</span> ' : ''}${
+        <td><span class=btitle>${(u => u ? `<span class="ulev u-${u.level}">${
+              URG_LABEL[u.level]}</span> ` : '')(urgOf(t.tender_id))}${
+            showNew(t) ? '<span class=newtag>NEW</span> ' : ''}${
             esc(d.title || t.tender_id)}</span>
           <span class=bsub>${esc(t.tender_id)}${d.km_length ? ' \u00b7 ' + d.km_length + ' km' : ''}${
             d.tender_value_cr ? ' \u00b7 ' + crv(d.tender_value_cr) + ' contract' : ''}${
@@ -6029,6 +6274,7 @@ function reqHTML(t) {
         listsOf(t.tender_id).size ? ' \u00b7 ' + listsOf(t.tender_id).size : ''}</button></div>
     ${agov(t) ? `<div class=addedline>${showNew(t) ? '<span class=newtag>NEW</span> ' : ''}Added
       <b>${agov(t)}</b> · ${dayv(t.added_at)}</div>` : ''}
+    ${urgencyHTML(t)}
     ${actionsHTML(t, state.done.has(t.tender_id))}
     ${listsOf(t.tender_id).size ? `<div class=taglist>${
         [...listsOf(t.tender_id)].map(n =>
@@ -6087,60 +6333,635 @@ function renderReq() {
     hydrate(t.tender_id).then(ok => { if (ok && board.sel === t.tender_id) renderReq(); });
   }
   if (!t) { el.innerHTML = '<div class=empty>Select a job.</div>'; return; }
+
+  /* Anything that redraws this panel destroys the notes box and takes the cursor
+     with it. The autosave no longer calls renderBoard, but the 45-second live
+     refresh still redraws - and pausing mid-sentence for longer than that is
+     exactly what writing a note looks like. So carry the caret across the
+     rebuild: what you had typed and where you were typing it.
+
+     Restored only when the same tender is still on screen. Moving to a different
+     job should NOT drag your half-written sentence with it. */
+  const focused = document.activeElement;
+  const typing = focused && focused.id === 'notebox' && el.contains(focused)
+    ? { value: focused.value, start: focused.selectionStart,
+        end: focused.selectionEnd, tid: t.tender_id }
+    : null;
+
   el.innerHTML = reqHTML(t);
   wireDetail(el, t);
   wireNote(el, t);
+  wireUrgency(el, t);
+
+  if (typing && typing.tid === t.tender_id) {
+    const box = el.querySelector('#notebox');
+    if (box) {
+      box.value = typing.value;          // never lose an unsaved keystroke
+      box.focus();
+      try { box.setSelectionRange(typing.start, typing.end); } catch (e) {}
+    }
+  }
 }
 
-/* The call list: firms ranked by the gabion in what they actually won. Firms that
-   keep bidding and losing stay underneath - they win the next package. */
+/* ---------- the directory ----------
+   Firms ranked by the gabion in what they actually won. Firms that keep bidding
+   and losing stay underneath - they win the next package.
+
+   A firm is not one number. It is a tender inbox, a head-office landline, a
+   project manager's mobile and the site engineer you met last month, and the
+   old flat table had room for none of them: one row per firm, no contacts at
+   all, and the 110 emails the pipeline had already extracted going nowhere.
+   Every way of reaching a firm is now its own row in `in_contacts`, and this
+   view is where you read and add them. */
 const firmOf = name => (D.firms || []).find(f => f.name === name) || {};
+
+/* ---------- urgency ----------
+   How soon a tender needs a call. Set by hand, because nothing in the documents
+   can infer it: the board can rank by gabion or by contract size, but neither
+   says "ring this man on Tuesday", and that is the only ordering that matters
+   on a working morning. */
+const URGENCY = new Map();          // tender_id -> {level, due, note}
+const URG = { urgent: 0, soon: 1, watch: 2 };
+const URG_LABEL = { urgent: 'Call now', soon: 'Call this week', watch: 'Keep an eye' };
+const urgOf = tid => URGENCY.get(tid) || null;
+
+async function loadUrgency() {
+  if (BOOT.mode !== 'cloud' || !window.__SB__) return;
+  const { data, error } = await window.__SB__.from('in_urgency')
+    .select('tender_id,level,due,note');
+  if (error) { console.warn('urgency unavailable', error); return; }
+  URGENCY.clear();
+  (data || []).forEach(r => URGENCY.set(r.tender_id, r));
+}
+
+async function setUrgency(tid, level, due, note) {
+  if (!level) {
+    URGENCY.delete(tid);
+  } else {
+    URGENCY.set(tid, { tender_id: tid, level, due: due || null, note: note || null });
+  }
+  renderBoard(); renderDash();
+  if (BOOT.mode !== 'cloud' || !window.__SB__) return;
+  try {
+    if (!level) {
+      await window.__SB__.from('in_urgency').delete().eq('tender_id', tid);
+    } else {
+      await window.__SB__.from('in_urgency').upsert(
+        { tender_id: tid, level, due: due || null, note: note || null,
+          updated_at: new Date().toISOString() }, { onConflict: 'tender_id' });
+    }
+  } catch (e) { console.warn('could not save the urgency', e); }
+}
+
+/* Days until the call is due. Negative is overdue, null is "no date set" -
+   which is not the same as "not due" and must not sort as zero. */
+function dueIn(u) {
+  if (!u || !u.due) return null;
+  const d = new Date(u.due + 'T00:00:00');
+  if (isNaN(d)) return null;
+  return Math.round((d - new Date(new Date().toDateString())) / 86400000);
+}
+
+/* firm -> [contact]. Loaded once with the rest, refreshed after every edit. */
+const CONTACTS = new Map();
+const contactsOf = name => CONTACTS.get(name) || [];
+
+async function loadContacts() {
+  if (BOOT.mode !== 'cloud' || !window.__SB__) return;
+  // 1000 is the PostgREST page limit and there are 873 rows; page it rather
+  // than silently losing the tail the day the directory grows.
+  const rows = [];
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await window.__SB__.from('in_contacts')
+      .select('id,firm,person,desig,office,role,state,dept,agency,conf,asof,' +
+              'kind,value,label,source,note,projects,via')
+      .order('id').range(from, from + 999);
+    if (error) { console.warn('contacts unavailable', error); return; }
+    rows.push(...(data || []));
+    if (!data || data.length < 1000) break;
+  }
+  CONTACTS.clear();
+  rows.forEach(r => {
+    // Keyed by whoever owns the number: a firm, or a person at an office.
+    const key = r.firm || r.person || '';
+    if (!CONTACTS.has(key)) CONTACTS.set(key, []);
+    CONTACTS.get(key).push(r);
+  });
+}
+
+async function addContact(firm, person, role, kind, value, label) {
+  value = (value || '').trim();
+  if (!value) return false;
+  // Typed by you, so it outranks anything read out of a PDF or a roster.
+  const row = { firm: firm || '', person: person || '', role: role || 'contractor',
+                kind, value, label: (label || '').trim() || null, source: 'manual' };
+  const key = firm || person || '';
+  const list = CONTACTS.get(key) || [];
+  if (list.some(c => c.kind === kind && c.value === value)) return false;
+  list.push(row); CONTACTS.set(key, list);
+  renderCallList();
+  if (BOOT.mode !== 'cloud' || !window.__SB__) return true;
+  try {
+    const { error } = await window.__SB__.from('in_contacts')
+      .upsert(row, { onConflict: 'firm,person,kind,value' });
+    if (error) throw error;
+    await loadContacts(); renderCallList();
+  } catch (e) { console.warn('could not save the contact', e); return false; }
+  return true;
+}
+
+async function removeContact(firm, person, id, kind, value) {
+  const key = firm || person || '';
+  CONTACTS.set(key, (CONTACTS.get(key) || []).filter(
+    c => !(c.kind === kind && c.value === value)));
+  renderCallList();
+  if (BOOT.mode !== 'cloud' || !window.__SB__ || !id) return;
+  try {
+    await window.__SB__.from('in_contacts').delete().eq('id', id);
+  } catch (e) { console.warn('could not remove the contact', e); }
+}
+
+function dirRows() {
+  const wins = new Map();
+  D.tenders.forEach(t => {
+    const w = t.award && t.award.winner;
+    if (!w) return;
+    const e = wins.get(w) || { jobs: [], gabion: 0, other: 0, won: 0 };
+    e.jobs.push(t); e.gabion += gabOf(t); e.other += otherOf(t);
+    e.won += (t.award.winning_amount || 0) / 1e7;
+    wins.set(w, e);
+  });
+
+  const out = new Map();
+  const key = (role, firm, person) => role + ' ' + (firm || '') + ' ' + (person || '');
+  const norm = x => String(x || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+
+  CONTACTS.forEach(list => list.forEach(r => {
+    const role = r.role || 'contractor';
+    const k = key(role, r.firm, r.person);
+    let e = out.get(k);
+    if (!e) {
+      e = { role, firm: r.firm || '', person: r.person || '',
+            name: r.firm || r.person || '(unnamed)',
+            desig: r.desig || '', office: r.office || '',
+            state: r.state || '', dept: r.dept || '', agency: r.agency || '',
+            conf: r.conf || '', asof: r.asof || '', note: r.note || '',
+            projects: r.projects || null, via: r.via || null,
+            contacts: [], jobs: [], gabion: 0, other: 0, won: 0 };
+      out.set(k, e);
+    }
+    e.contacts.push(r);
+    // Fill any field the first row happened not to carry.
+    ['desig', 'office', 'state', 'dept', 'agency', 'conf', 'asof', 'note']
+      .forEach(f => { if (!e[f] && r[f]) e[f] = r[f]; });
+    if (!e.projects && r.projects) e.projects = r.projects;
+    if (!e.via && r.via) e.via = r.via;
+  }));
+
+  // Our winners: join onto a matching contact entry, or stand as their own row
+  // so a firm with no number still shows up as one to chase.
+  const byNorm = new Map();
+  out.forEach(e => { if (e.role === 'contractor') byNorm.set(norm(e.name), e); });
+  wins.forEach((w, name) => {
+    const hit = byNorm.get(norm(name));
+    const e = hit || { role: 'contractor', firm: name, person: '', name,
+      desig: '', office: '', state: '', dept: '', agency: '', conf: '',
+      asof: '', note: '', projects: null, via: null, contacts: [],
+      jobs: [], gabion: 0, other: 0, won: 0 };
+    e.jobs = w.jobs; e.gabion = w.gabion; e.other = w.other; e.won = w.won;
+    const f = firmOf(name);
+    if (f.gstin) { e.gstin = f.gstin; e.gst_state = f.gst_state; }
+    if (!hit) out.set(key('contractor', name, ''), e);
+  });
+
+  return [...out.values()].map(e => {
+    const mob = e.contacts.filter(x => x.kind === 'phone' && /^[6-9]\d{9}$/.test(x.value));
+    const land = e.contacts.filter(x => x.kind === 'phone' && !/^[6-9]\d{9}$/.test(x.value));
+    const mails = e.contacts.filter(x => x.kind === 'email');
+    // Where a firm WORKS beats where a source filed it: you want who is
+    // building near you, and our own award data knows that better.
+    const jobStates = [...new Set(e.jobs.map(t => (t.detail && t.detail.state) || '').filter(Boolean))];
+    const states = [...new Set([...(e.state ? [e.state] : []), ...jobStates])];
+    const jobDepts = [...new Set(e.jobs.map(t => deptOf(t)).filter(Boolean))];
+    const depts = [...new Set([...(e.dept ? [e.dept] : []), ...jobDepts])];
+    return { ...e, mob, land, mails,
+      state: states[0] || 'State not recorded', states,
+      dept: depts[0] || 'Source not recorded', depts,
+      np: (e.projects || []).length + e.jobs.length,
+      blob: [e.name, e.person, e.desig, e.office, e.gstin, states.join(' '),
+        depts.join(' '), e.agency,
+        e.contacts.map(x => x.value + ' ' + (x.label || '')).join(' '),
+        (e.projects || []).map(p => p.name + ' ' + p.nh).join(' '),
+        e.jobs.map(t => (t.detail && t.detail.title) || t.tender_id).join(' ')
+      ].join(' ').toLowerCase() };
+  });
+}
 
 function renderCallList() {
   const el = document.getElementById('calllist');
   if (!el) return;
-  const m = new Map();
-  D.tenders.forEach(t => {
-    const w = t.award && t.award.winner;
-    if (!w) return;
-    const e = m.get(w) || { name: w, jobs: [], gabion: 0, other: 0, won: 0 };
-    e.jobs.push(t); e.gabion += gabOf(t); e.other += otherOf(t);
-    e.won += (t.award.winning_amount || 0) / 1e7;
-    m.set(w, e);
+  const everyone = dirRows();
+  const all = everyone.filter(c => c.role === dir.role);
+
+  const q = (dir.q || '').toLowerCase().trim();
+  const pass = (c, skip) =>
+    (!q || q.split(/\s+/).every(w => c.blob.includes(w))) &&
+    (skip === 'state' || !dir.state || c.states.includes(dir.state)) &&
+    (skip === 'dept' || !dir.dept || c.depts.includes(dir.dept)) &&
+    (skip === 'reach' || !dir.reach
+      || (dir.reach === 'mob' && c.mob.length)
+      || (dir.reach === 'has' && (c.mob.length || c.land.length))
+      || (dir.reach === 'em' && c.mails.length)
+      || (dir.reach === 'no' && !c.contacts.length));
+
+  /* Every dropdown offers only what is still reachable given the OTHER filters,
+     with counts, so no combination can be chosen that returns nothing. */
+  const optsFor = (k, skip) => {
+    const n = {};
+    all.forEach(c => { if (!pass(c, skip)) return;
+      (k === 'state' ? c.states : c.depts).forEach(v => { n[v] = (n[v] || 0) + 1; }); });
+    return Object.keys(n).sort().map(v =>
+      `<option value="${esc(v)}"${dir[k] === v ? ' selected' : ''}>${esc(v)} (${n[v]})</option>`).join('');
+  };
+  const r0 = all.filter(c => pass(c, 'reach'));
+  const reachOpts = [['has', 'Has a phone number', r0.filter(c => c.mob.length || c.land.length).length],
+                     ['mob', 'Has a mobile', r0.filter(c => c.mob.length).length],
+                     ['em', 'Has an email', r0.filter(c => c.mails.length).length],
+                     ['no', 'No number listed', r0.filter(c => !c.contacts.length).length]]
+    .filter(([, , n]) => n > 0)
+    .map(([v, l, n]) => `<option value="${v}"${dir.reach === v ? ' selected' : ''}>${l} (${n})</option>`).join('');
+
+  let rows = all.filter(c => pass(c));
+  rows.sort(dir.sort === 'name' ? (a, b) => a.name.localeCompare(b.name)
+          : dir.sort === 'jobs' ? (a, b) => b.np - a.np || a.name.localeCompare(b.name)
+          : (a, b) => b.gabion - a.gabion || b.np - a.np || a.name.localeCompare(b.name));
+
+  const nCon = everyone.filter(c => c.role === 'contractor').length;
+  const nOff = everyone.filter(c => c.role === 'officer').length;
+  const withNum = all.filter(c => c.contacts.length).length;
+
+  el.innerHTML = `
+    <div class=dirtabs>
+      <button class="dtab${dir.role === 'contractor' ? ' sel' : ''}" data-role=contractor>
+        Contractors <span class=pill>${nCon}</span></button>
+      <button class="dtab${dir.role === 'officer' ? ' sel' : ''}" data-role=officer>
+        Officers <span class=pill>${nOff}</span></button>
+    </div>
+    <div class=dirbar>
+      <input type=search id=dirq placeholder="Search a name, an office, a number, a job"
+        value="${esc(dir.q || '')}">
+      <select id=dirstate><option value="">All states</option>${optsFor('state', 'state')}</select>
+      <select id=dirdept><option value="">All sources</option>${optsFor('dept', 'dept')}</select>
+      <select id=dirreach><option value="">Any contact</option>${reachOpts}</select>
+      <select id=dirsort>
+        <option value=gabion${dir.sort === 'gabion' ? ' selected' : ''}>Sort: most gabion</option>
+        <option value=jobs${dir.sort === 'jobs' ? ' selected' : ''}>most works</option>
+        <option value=name${dir.sort === 'name' ? ' selected' : ''}>name</option>
+      </select>
+      <span class=dircount>${rows.length} of ${all.length} · ${withNum} reachable</span>
+    </div>` + (rows.length ? dirTable(rows) : '<div class=empty>Nobody matches.</div>');
+  wireDir(el);
+}
+
+function dirTable(rows) {
+  const byState = {};
+  rows.forEach(c => {
+    (byState[c.state] = byState[c.state] || {});
+    (byState[c.state][c.dept] = byState[c.state][c.dept] || []).push(c);
   });
-  const cust = [...m.values()].sort((a, b) => b.gabion - a.gabion || b.other - a.other);
-  if (!cust.length) { el.innerHTML = '<div class=empty>No awards read yet.</div>'; return; }
-  el.innerHTML = `<table><thead><tr><th>Contractor</th><th class=num>Jobs</th>
-    <th class=num>Gabion</th><th class=num>Other supply</th><th class=num>Contract value</th>
-    <th>GSTIN</th><th>Where</th></tr></thead><tbody>` + cust.map(c => {
-    // The GSTIN is the one unambiguous identifier in these packs - two firms can
-    // share a trading name, none share a GSTIN - and its first two digits say
-    // where the firm is registered, which is rarely where the work is.
-    const f = firmOf(c.name);
-    // in_contractors is the roll-up, but a firm can carry its GSTIN on one bid
-    // and not on the roll-up. Fall back to the bids of the jobs it won rather
-    // than showing a dash for a number we already hold.
-    if (!f.gstin) {
-      for (const t of c.jobs) {
-        const b = ((t.award && t.award.bidders) || []).find(x => x.bidder === c.name && x.gstin);
-        if (b) { f.gstin = b.gstin; f.gst_state = b.gst_state; break; }
-      }
-    }
-    return `<tr><td><b>${esc(c.name)}</b></td><td class=num>${c.jobs.length}</td>
-      <td class=num>${c.gabion ? '<b>' + crv(c.gabion) + '</b>' : '\u2014'}</td>
-      <td class=num>${c.other ? crv(c.other) : '\u2014'}</td>
-      <td class=num>${crv(c.won)}</td>
-      <td>${f.gstin ? '<code>' + esc(f.gstin) + '</code><span class=bsub>'
-             + esc(f.gst_state || '') + '</span>' : '<span class=bsub>\u2014</span>'}</td>
-      <td class=bsub>${esc(c.jobs.map(t => (t.detail && (t.detail.corridor || t.detail.nh))
-        || t.tender_id).join(', '))}</td></tr>`;
-  }).join('') + '</tbody></table>';
+
+  const fmt = v => /^[6-9]\d{9}$/.test(v) ? v.slice(0, 5) + ' ' + v.slice(5) : v;
+  const delBtn = x => `<button class=cdel data-firm="${esc(x.firm || '')}"
+      data-person="${esc(x.person || '')}" data-id="${x.id || ''}"
+      data-kind="${x.kind}" data-value="${esc(x.value)}" title="Remove">×</button>`;
+  const tel = x => `<a class="ph${/^[6-9]\d{9}$/.test(x.value) ? '' : ' land'}"
+      href="tel:${esc(x.value)}">${esc(fmt(x.value))}</a>${
+      x.label && x.label !== 'mobile' && x.label !== 'landline'
+        ? `<span class=clabel>${esc(x.label)}</span>` : ''}${delBtn(x)}`;
+  const mail = x => `<a class=em href="mailto:${esc(x.value)}">${esc(x.value)}</a>${
+      x.label ? `<span class=clabel>${esc(x.label)}</span>` : ''}${delBtn(x)}`;
+
+  const isOff = dir.role === 'officer';
+  let html = `<table class=dirtable><thead><tr>
+      <th>${isOff ? 'Name / Office' : 'Firm / Contractor'}</th>
+      <th style="width:190px">${isOff ? 'Designation' : 'What they won'}</th>
+      <th style="width:250px">Phone &amp; email</th>
+      <th style="width:170px" class=hidem>${isOff ? 'Works' : 'Recorded against'}</th>
+      </tr></thead><tbody>`;
+
+  Object.keys(byState).sort().forEach(state => {
+    const depts = byState[state];
+    const n = Object.values(depts).reduce((s, v) => s + v.length, 0);
+    html += `<tr class=st><td colspan=4>${esc(state)}<span class=c>${n} ${
+      isOff ? 'officer' : 'firm'}${n > 1 ? 's' : ''} · ${
+      Object.keys(depts).length} source${Object.keys(depts).length > 1 ? 's' : ''}</span></td></tr>`;
+
+    Object.keys(depts).sort().forEach(dn => {
+      const list = depts[dn];
+      html += `<tr class=dp><td colspan=4>${esc(dn)}<span class=c>${list.length}</span></td></tr>`;
+
+      list.forEach(c => {
+        const open = dir.open === c.name;
+        const who = c.firm || c.person;
+        // Works recorded on the imported sheet, plus tenders we hold ourselves.
+        const works = (c.projects || []).map(p => `<li>${esc(p.name || 'name not given')}${
+            p.nh ? ` <span class=cellref>· NH ${esc(p.nh)}</span>` : ''}
+            <br><span class=cellref>${esc(p.source || '')}</span></li>`).join('')
+          + c.jobs.map(t => `<li><button class=jobjump data-id="${esc(t.tender_id)}">${
+              esc(((t.detail && t.detail.title) || t.tender_id).slice(0, 90))}</button></li>`).join('');
+        html += `<tr class="row${c.contacts.length ? '' : ' miss'}">
+          <td><div class=nm>${esc(c.name)}</div>
+            ${c.office ? `<div class=cellref>${esc(c.office)}</div>` : ''}
+            ${c.gstin ? `<div class=cellref><code>${esc(c.gstin)}</code></div>` : ''}
+            ${c.agency ? `<div class=cellref>${esc(c.agency)}${
+                c.asof ? ' · ' + esc(c.asof) : ''}</div>` : ''}</td>
+          <td>${isOff
+            ? esc(c.desig || '') + (c.conf ? `<div class=cellref>${esc(c.conf)}</div>` : '')
+            : (c.gabion ? `<b>${crv(c.gabion)}</b> gabion` : '<span class=cellref>not a winner on our board</span>')
+              + (c.jobs.length ? `<div class=cellref>${c.jobs.length} job${
+                  c.jobs.length > 1 ? 's' : ''} · ${crv(c.won)} won</div>` : '')}</td>
+          <td>${c.mob.map(tel).join('')}${c.land.map(tel).join('')}${c.mails.map(mail).join('')}
+            ${!c.contacts.length
+              ? '<span class=none>no number yet<small>nothing in the source either</small></span>' : ''}
+            ${(c.via || []).length ? (c.via).map(v => `<div class=via>
+                <div class=vn>via ${esc(v.name || '')}</div>
+                ${(v.mobiles || []).map(mv => `<a class=ph href="tel:${esc(mv)}">${esc(fmt(mv))}</a>`).join('')}
+              </div>`).join('') : ''}
+            ${c.note ? `<div class=warnnote>${esc(c.note)}</div>` : ''}
+            <button class=caddbtn data-firm="${esc(c.firm || '')}" data-person="${esc(c.person || '')}"
+              data-name="${esc(c.name)}">${open ? '−' : '+'} add a number</button>
+            ${open ? `<form class=caddform data-firm="${esc(c.firm || '')}"
+                data-person="${esc(c.person || '')}" data-role="${esc(c.role)}">
+                <select name=kind><option value=phone>Phone</option><option value=email>Email</option></select>
+                <input name=value placeholder="Number or address" autocomplete=off>
+                <input name=label placeholder="Whose? e.g. site engineer" autocomplete=off>
+                <button class=chip type=submit>Save</button>
+              </form>` : ''}</td>
+          <td class=hidem>${works
+            ? `<details class=pj><summary>${c.np} work${c.np > 1 ? 's' : ''}</summary><ul>${works}</ul></details>`
+            : '<span class=cellref>·</span>'}</td></tr>`;
+      });
+    });
+  });
+  return html + '</tbody></table>';
+}
+
+/* Re-bound on every render because the table is rebuilt. The search box keeps
+   its caret explicitly - the same trap that broke the notes box. */
+function wireDir(el) {
+  const q = el.querySelector('#dirq');
+  if (q) q.addEventListener('input', () => {
+    dir.q = q.value;
+    const pos = q.selectionStart;
+    renderCallList();
+    const again = document.getElementById('dirq');
+    if (again) { again.focus(); try { again.setSelectionRange(pos, pos); } catch (e) {} }
+  });
+  const bind = (id, key) => {
+    const s = el.querySelector(id);
+    if (s) s.addEventListener('change', () => { dir[key] = s.value; renderCallList(); });
+  };
+  bind('#dirstate', 'state'); bind('#dirdept', 'dept');
+  bind('#dirreach', 'reach'); bind('#dirsort', 'sort');
+
+  el.querySelectorAll('.dtab').forEach(b => b.addEventListener('click', () => {
+    dir.role = b.dataset.role; dir.state = ''; dir.dept = ''; dir.open = null;
+    renderCallList();
+  }));
+  el.querySelectorAll('.caddbtn').forEach(b => b.addEventListener('click', () => {
+    dir.open = dir.open === b.dataset.name ? null : b.dataset.name;
+    renderCallList();
+    const f = document.querySelector('.caddform input[name=value]');
+    if (f) f.focus();
+  }));
+  el.querySelectorAll('.cdel').forEach(b => b.addEventListener('click', () =>
+    removeContact(b.dataset.firm, b.dataset.person, b.dataset.id,
+                  b.dataset.kind, b.dataset.value)));
+  el.querySelectorAll('.caddform').forEach(form =>
+    form.addEventListener('submit', async ev => {
+      ev.preventDefault();
+      const f = ev.target;
+      await addContact(f.dataset.firm, f.dataset.person, f.dataset.role,
+                       f.kind.value, f.value.value, f.label.value);
+    }));
+  // Open the tender where you are. The drawer is a fixed overlay carrying the
+  // same detail the board panel shows, so there is no reason to leave the list
+  // you are working through and lose your place in it.
+  el.querySelectorAll('.jobjump').forEach(b => b.addEventListener('click', () => {
+    board.sel = b.dataset.id;
+    openDrawer(b.dataset.id);
+  }));
+}
+/* ---------- the dashboard ----------
+   What to do today, not what exists. Everything here is a call you could make
+   this morning, ordered by how soon it needs making - the board answers "what
+   have we got", this answers "what now". Nothing on it is a new fact: it is the
+   same tenders, filtered to the ones with a reason to act. */
+/* ---------- the dashboard ----------
+
+   One question: who am I calling this morning, and what do I say to them?
+
+   The first version answered a different one. It opened with five tiles - four
+   tenders, three awarded - which are facts about the database, not reasons to
+   pick up a phone, and then five equal-weight tables so nothing led. This is
+   built the other way round: the call queue IS the page, everything else is a
+   footnote underneath it.
+
+   A call needs four things and they are laid out in the order you use them:
+   who to ring, the number, what they need from us, and why today. The number is
+   the largest interactive thing on the card because it is the only thing you
+   actually act on. */
+function renderDash() {
+  const el = document.getElementById('dashboard');
+  if (!el) return;
+  const all = (D.tenders || []).filter(t => !isParked(t.tender_id));
+
+  const flagged = all.filter(t => urgOf(t.tender_id));
+  const key = t => {
+    const u = urgOf(t.tender_id), d = dueIn(u);
+    // Overdue first and by how late; then dated, soonest first; then by level.
+    // A "keep an eye" that was due last week beats an urgent one due Friday.
+    return [d != null && d < 0 ? 0 : 1, d == null ? 9e9 : d, URG[u.level]];
+  };
+  flagged.sort((a, b) => {
+    const ka = key(a), kb = key(b);
+    return ka[0] - kb[0] || ka[1] - kb[1] || ka[2] - kb[2];
+  });
+
+  const overdue = flagged.filter(t => (dueIn(urgOf(t.tender_id)) ?? 9e9) < 0);
+  const now = flagged.filter(t => !overdue.includes(t)
+                               && urgOf(t.tender_id).level === 'urgent');
+  const week = flagged.filter(t => !overdue.includes(t)
+                                && urgOf(t.tender_id).level === 'soon');
+  const later = flagged.filter(t => !overdue.includes(t)
+                                 && urgOf(t.tender_id).level === 'watch');
+
+  const gap = all.filter(t => t.award && t.award.winner
+      && !contactsOf(t.award.winner).length && gabOf(t) > 0)
+    .sort((a, b) => gabOf(b) - gabOf(a));
+  const fresh = all.filter(t => isNew(t))
+    .sort((a, b) => (addedAge(a) ?? 9e9) - (addedAge(b) ?? 9e9));
+
+  const fmt = v => /^[6-9]\d{9}$/.test(v) ? v.slice(0, 5) + ' ' + v.slice(5) : v;
+
+  /* One call. Reads left to right the way you work: who, the number, what they
+     need, why now. */
+  const card = t => {
+    const u = urgOf(t.tender_id), d = dueIn(u);
+    const w = (t.award && t.award.winner) || '';
+    const cs = w ? contactsOf(w) : [];
+    const ph = cs.filter(c => c.kind === 'phone');
+    const em = cs.filter(c => c.kind === 'email');
+    const det = t.detail || {};
+    const when = d == null ? '' :
+      d < 0 ? `${Math.abs(d)} day${Math.abs(d) === 1 ? '' : 's'} overdue`
+      : d === 0 ? 'today' : `in ${d} day${d === 1 ? '' : 's'}`;
+
+    return `<article class="call u-${u.level}${d != null && d < 0 ? ' late' : ''}">
+      <div class=callwho>
+        <div class=cwname>${w ? esc(w) : '<span class=cwnone>Not awarded yet</span>'}</div>
+        <div class=cwjob><button class=jobjump data-id="${esc(t.tender_id)}">${
+          esc(((det.title) || t.tender_id).slice(0, 96))}</button></div>
+        <div class=cwmeta>${esc(placeOf(t))}${
+          det.state ? ' · ' + esc(det.state) : ''}${
+          det.nh ? ' · ' + esc(det.nh) : ''}${
+          det.km_from != null ? ` · km ${det.km_from}–${det.km_to}` : ''}
+          <button class=seemap data-id="${esc(t.tender_id)}"
+            title="Show where this is">map</button>
+          ${t.place && t.place.precision_km
+            ? `<span class=locacc>±${Math.round(t.place.precision_km)} km</span>` : ''}
+        </div>
+      </div>
+
+      <div class=callnum>${
+        ph.length
+          ? ph.slice(0, 2).map(c => `<a class=bignum href="tel:${esc(c.value)}">${
+              esc(fmt(c.value))}</a>${c.label && c.label !== 'mobile'
+                ? `<span class=numwho>${esc(c.label)}</span>` : ''}`).join('')
+          : `<span class=nonum>no number on file</span>${
+              w ? `<button class=findnum data-firm="${esc(w)}">add one</button>` : ''}`}
+        ${em.length ? `<a class=smallmail href="mailto:${esc(em[0].value)}">${
+          esc(em[0].value)}</a>` : ''}</div>
+
+      <div class=callneed>${
+        gabOf(t) ? `<b>${crv(gabOf(t))}</b><span>gabion in this job</span>`
+        : bestQty(t) ? `<b>${esc(bestQty(t))}</b><span>quantity in the BoQ</span>`
+        : `<span class=cwnone>gabion not priced</span>`}</div>
+
+      <div class=callwhy>
+        <span class="ulev u-${u.level}">${URG_LABEL[u.level]}</span>
+        ${when ? `<span class="cwwhen${d < 0 ? ' late' : ''}">${when}</span>` : ''}
+        ${u.note ? `<div class=cwnote>${esc(u.note)}</div>` : ''}
+        <button class=uclear data-id="${esc(t.tender_id)}" title="Clear this flag">Done</button>
+      </div>
+    </article>`;
+  };
+
+  const group = (label, list) => list.length
+    ? `<h3 class=dh>${label} <span class=dcount>${list.length}</span></h3>
+       <div class=calls>${list.map(card).join('')}</div>` : '';
+
+  // A quiet row: a job worth attention, but not a call you have been asked to make.
+  const minor = t => `<li><button class=jobjump data-id="${esc(t.tender_id)}">${
+      esc((((t.detail || {}).title) || t.tender_id).slice(0, 70))}</button>
+    <span class=cellref>${esc(((t.detail || {}).state) || '')}${
+      gabOf(t) ? ' · ' + crv(gabOf(t)) : ''}${
+      t.award && t.award.winner ? ' · ' + esc(t.award.winner) : ''}</span></li>`;
+
+  const money = all.reduce((s, t) => s + gabOf(t), 0);
+  const today = new Date().toLocaleDateString('en-IN',
+    { weekday: 'long', day: 'numeric', month: 'long' });
+
+  el.innerHTML = `
+    <header class=dashhead>
+      <div>
+        <h2>${flagged.length ? `${flagged.length} call${flagged.length === 1 ? '' : 's'} queued`
+                             : 'No calls queued'}</h2>
+        <p>${today}${overdue.length ? ` · <b class=lateword>${overdue.length} overdue</b>` : ''}</p>
+      </div>
+      <div class=dashsum>
+        <span><b>${crv(money)}</b> gabion across ${all.length} tenders</span>
+        ${gap.length ? `<span><b>${gap.length}</b> won with gabion and no number</span>` : ''}
+      </div>
+    </header>
+
+    ${flagged.length ? '' : `<div class=dashempty>
+      <b>Nothing is flagged.</b>
+      <p>Open a tender, set <em>Call now</em> or <em>Call this week</em>, and it
+         appears here with the contractor's number ready to dial.</p>
+      <button class=chip id=gotenders>Go to Tenders</button></div>`}
+
+    ${group('Overdue', overdue)}
+    ${group('Call today', now)}
+    ${group('This week', week)}
+    ${group('Keeping an eye', later)}
+
+    ${gap.length ? `<h3 class=dh>Won, gabion in it, nobody to ring
+        <span class=dcount>${gap.length}</span></h3>
+      <p class=dhint>Awarded jobs with real gabion and no contact on file. Worth
+         finding a number before someone else does.</p>
+      <ul class=minorlist>${gap.slice(0, 8).map(minor).join('')}</ul>` : ''}
+
+    ${fresh.length ? `<h3 class=dh>Just arrived <span class=dcount>${fresh.length}</span></h3>
+      <ul class=minorlist>${fresh.slice(0, 8).map(minor).join('')}</ul>` : ''}`;
+
+  // Open the tender where you are. The drawer is a fixed overlay carrying the
+  // same detail the board panel shows, so there is no reason to leave the list
+  // you are working through and lose your place in it.
+  el.querySelectorAll('.jobjump').forEach(b => b.addEventListener('click', () => {
+    board.sel = b.dataset.id;
+    openDrawer(b.dataset.id);
+  }));
+  el.querySelectorAll('.uclear').forEach(b => b.addEventListener('click', () =>
+    setUrgency(b.dataset.id, null)));
+  // Adding a number should not cost you the dashboard. A small popover anchored
+  // to the button does the same job as the Directory's form, in place.
+  el.querySelectorAll('.findnum').forEach(b => b.addEventListener('click', ev => {
+    ev.stopPropagation();
+    openNumberAdd(b, b.dataset.firm);
+  }));
+  el.querySelectorAll('.seemap').forEach(b => b.addEventListener('click', ev => {
+    ev.stopPropagation();
+    openMapDrawer(b.dataset.id);
+  }));
+  const go = el.querySelector('#gotenders');
+  if (go) go.addEventListener('click', () => { showView('board'); renderBoard(); });
+}
+
+/* The control that puts a tender on the dashboard. Lives on the tender panel,
+   because that is where you are when you decide it needs a call. */
+function urgencyHTML(t) {
+  const u = urgOf(t.tender_id) || {};
+  const opt = (v, label) => `<option value="${v}"${u.level === v ? ' selected' : ''}>${label}</option>`;
+  return `<div class=urgbar>
+      <select class=urglevel data-id="${esc(t.tender_id)}">
+        <option value="">Not flagged</option>
+        ${opt('urgent', 'Call now')}${opt('soon', 'Call this week')}${opt('watch', 'Keep an eye')}
+      </select>
+      <input type=date class=urgdue data-id="${esc(t.tender_id)}" value="${esc(u.due || '')}"
+        title="When the call is due">
+      <input type=text class=urgnote data-id="${esc(t.tender_id)}" maxlength=80
+        placeholder="Why? e.g. drawings due, ask before Diwali" value="${esc(u.note || '')}">
+    </div>`;
+}
+
+function wireUrgency(pane, t) {
+  const lv = pane.querySelector('.urglevel');
+  const du = pane.querySelector('.urgdue');
+  const nt = pane.querySelector('.urgnote');
+  if (!lv) return;
+  const save = () => setUrgency(t.tender_id, lv.value || null, du.value || null, nt.value || null);
+  lv.addEventListener('change', save);
+  du.addEventListener('change', save);
+  // The note saves on blur, not on every keystroke: this is the same textarea
+  // trap as the notes box, and a re-render mid-sentence loses the cursor.
+  nt.addEventListener('blur', save);
 }
 
 /* ---------- tabs ---------- */
 function showView(v) {
   state.view = v;
-  ['board', 'map', 'contractors', 'ops'].forEach(name => {
+  ['dash', 'board', 'map', 'contractors', 'ops'].forEach(name => {
     const el = document.getElementById('view-' + name);
     if (el) el.hidden = (name !== v);
     const tb = document.querySelector(`.tab[data-view="${name}"]`);
@@ -6149,6 +6970,7 @@ function showView(v) {
   // Leaflet measured a 0x0 container while this pane was hidden, so re-measure AND
   // re-apply the view. invalidateSize() on its own keeps the bogus zoom.
   if (v === 'ops') renderOps();
+  if (v === 'dash') renderDash();
   // Leaflet measures its container at creation; in a hidden tab that is 0x0, so
   // the map is built on first show and re-homed on every show after.
   // Geometry first, or the map builds with nothing to draw and never redraws.
@@ -6404,6 +7226,44 @@ function openPicker(anchor, tid) {
   el.querySelector('.picknew input').focus();
 }
 
+/* Add a number without leaving the page you are on.
+
+   The dashboard used to send you to the Directory, which is two tab hops from
+   the call you were about to make. This is the same three fields in a popover
+   anchored to the button, saving through the same addContact(). */
+function openNumberAdd(anchor, firm) {
+  closePicker();
+  const el = document.createElement('div');
+  el.className = 'picker';
+  el.innerHTML = `<div class=pickhead>A number for ${esc(firm)}</div>
+    <form class="caddform pop">
+      <select name=kind><option value=phone>Phone</option><option value=email>Email</option></select>
+      <input name=value placeholder="Number or address" autocomplete=off>
+      <input name=label placeholder="Whose? e.g. site engineer" autocomplete=off>
+      <button class=chip type=submit>Save</button>
+    </form>`;
+  document.body.appendChild(el);
+  PICKER = el;
+  const r = anchor.getBoundingClientRect();
+  const GAP = 6, EDGE = 10;
+  el.style.left = `${Math.round(Math.max(EDGE,
+    Math.min(r.left, window.innerWidth - el.offsetWidth - 12)))}px`;
+  const below = window.innerHeight - r.bottom - GAP - EDGE;
+  el.style.top = below < el.offsetHeight
+    ? `${Math.round(Math.max(EDGE, r.top - GAP - el.offsetHeight))}px`
+    : `${Math.round(r.bottom + GAP)}px`;
+
+  el.querySelector('form').addEventListener('submit', async ev => {
+    ev.preventDefault();
+    const f = ev.target;
+    const ok = await addContact(firm, '', 'contractor',
+                                f.kind.value, f.value.value, f.label.value);
+    if (ok) { closePicker(); renderDash(); }
+  });
+  const box = el.querySelector('input[name=value]');
+  if (box) box.focus();
+}
+
 function openShare(anchor, tid) {
   closePicker();
   const url = shareURL(tid);
@@ -6556,7 +7416,7 @@ function startLive() {
 }
 
 async function start() {
-  if (BOOT.mode === 'cloud') { await loadCloud(); await loadReviews(); await loadNotes(); await loadLists(); }
+  if (BOOT.mode === 'cloud') { await loadCloud(); await loadReviews(); await loadNotes(); await loadLists(); await loadContacts(); await loadUrgency(); }
   else loadLocal();
   const app = document.getElementById('app');
   if (app) app.hidden = false;
