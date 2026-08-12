@@ -852,6 +852,86 @@ a.btn.portal { text-decoration: none; margin-left: auto; }
 .seemap:hover { border-color: var(--accent); color: var(--accent); }
 .locacc { font-size: 10.5px; color: var(--ink-2); opacity: .75; }
 
+/* ---- contacts on a tender ---- */
+.tcbox { border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px;
+  margin: 10px 0 2px; background: var(--surface); }
+.tcbox h4 { margin: 0 0 6px; font-size: 10.5px; text-transform: uppercase;
+  letter-spacing: .07em; color: var(--ink-2); font-weight: 600; }
+.tclist { list-style: none; margin: 0; padding: 0; }
+.tcline { display: flex; align-items: center; gap: 7px; padding: 4px 0;
+  border-bottom: 1px dotted var(--grid); flex-wrap: wrap; }
+.tcline:last-child { border-bottom: none; }
+.tcline a { font-size: 14px; text-decoration: none; color: var(--accent);
+  font-variant-numeric: tabular-nums; }
+.tcline a:hover { text-decoration: underline; }
+/* A number recorded against THIS contract, not the firm's head office. */
+.tcjob { font-size: 10px; background: #1f9d76; color: #fff; padding: 1px 6px;
+  border-radius: 3px; letter-spacing: .04em; }
+.tcadd { margin-top: 8px; border: 1px dashed var(--border); background: none;
+  cursor: pointer; font: inherit; font-size: 11.5px; color: var(--ink-2);
+  padding: 4px 10px; border-radius: 6px; }
+.tcadd:hover { border-color: var(--accent); color: var(--accent); }
+
+/* ---- the new-contact form ---- */
+.picker.wide { min-width: 320px; max-width: 340px; }
+.newcontact { display: flex; flex-direction: column; gap: 6px; padding: 7px; }
+.newcontact input, .newcontact select { font: inherit; font-size: 12.5px;
+  padding: 6px 8px; border: 1px solid var(--border); border-radius: 6px;
+  background: var(--surface); color: var(--ink); width: 100%; box-sizing: border-box; }
+.newcontact input:focus, .newcontact select:focus { border-color: var(--accent);
+  outline: none; }
+.ncrow { display: flex; gap: 6px; }
+.ncrow > * { flex: 1; min-width: 0; }
+.ncnote { font-size: 11px; color: var(--ink-2); }
+.ncerr { font-size: 11.5px; color: #c2417a; min-height: 0; }
+.newcontact button { align-self: flex-start; margin-top: 2px; }
+
+/* ---- linking someone already in the directory ----
+   876 contacts is too many to scroll, so it opens showing only who is already
+   on the job and searches from there. */
+.linkq { width: calc(100% - 14px); margin: 0 7px 6px; font: inherit; font-size: 12.5px;
+  padding: 6px 8px; border: 1px solid var(--border); border-radius: 6px;
+  background: var(--surface); color: var(--ink); box-sizing: border-box; }
+.linkq:focus { border-color: var(--accent); outline: none; }
+.linkresults { max-height: 260px; overflow-y: auto; overscroll-behavior: contain;
+  margin: 0 -7px -7px; padding: 0 7px 7px; }
+.linkrow { display: flex; align-items: center; gap: 8px; padding: 6px 4px;
+  border-bottom: 1px solid var(--grid); cursor: pointer; }
+.linkrow:last-child { border-bottom: none; }
+.linkrow:hover { background: var(--hover); }
+.linkrow.on { background: rgba(31,157,118,.08); }
+.lrwho { flex: 1; min-width: 0; font-size: 12.5px; }
+.lrwho em { display: block; font-style: normal; font-size: 10.5px; color: var(--ink-2); }
+.lrnum { font-size: 12px; color: var(--ink-2); font-variant-numeric: tabular-nums;
+  white-space: nowrap; }
+.tcactions { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+.tclink, .tcadd { border: 1px dashed var(--border); background: none; cursor: pointer;
+  font: inherit; font-size: 11.5px; color: var(--ink-2); padding: 4px 10px;
+  border-radius: 6px; }
+.tclink:hover, .tcadd:hover { border-color: var(--accent); color: var(--accent); }
+.tcunlink { border: 1px solid transparent; background: none; cursor: pointer;
+  color: var(--ink-2); font-size: 12px; line-height: 1; padding: 0 5px;
+  border-radius: 4px; margin-left: auto; }
+.tcline:hover .tcunlink { border-color: var(--border); }
+.tcunlink:hover { color: #c2417a; border-color: #c2417a; }
+
+/* A save either worked or it did not, and you should not have to reload to
+   find out which. */
+.toast { position: fixed; left: 50%; bottom: 26px; transform: translate(-50%, 14px);
+  z-index: 2000; max-width: min(520px, 92vw); padding: 10px 16px; border-radius: 8px;
+  background: #1f9d76; color: #fff; font-size: 13px; line-height: 1.4;
+  box-shadow: 0 8px 26px rgba(0,0,0,.22); opacity: 0;
+  transition: opacity .18s ease, transform .18s ease; pointer-events: none; }
+.toast.show { opacity: 1; transform: translate(-50%, 0); }
+.toast.bad { background: #c2417a; }
+
+/* The contracts a number is attached to, shown in the Directory. */
+.cjob { border: 1px solid var(--border); background: none; cursor: pointer;
+  font: inherit; font-size: 10.5px; color: var(--ink-2); padding: 1px 7px;
+  border-radius: 9px; margin-left: 6px; max-width: 210px; overflow: hidden;
+  text-overflow: ellipsis; white-space: nowrap; vertical-align: 1px; }
+.cjob:hover { border-color: var(--accent); color: var(--accent); }
+
 /* The number is the only thing on the card you act on, so it is the biggest. */
 .bignum { display: block; font-size: 19px; font-weight: 600; letter-spacing: .01em;
   font-variant-numeric: tabular-nums; text-decoration: none; color: var(--accent);
@@ -4206,8 +4286,11 @@ const PARKED_LIST = 'Parked';
 
    `gabion but not 16014` belongs here with `No gabion named`: a tender that
    specifies gabion to some other standard is no more sellable than one that never
-   mentions it. Both are still one click away as chips - set aside, not deleted. */
-const HIDDEN_LISTS = new Set([PARKED_LIST, 'No gabion named', 'gabion but not 16014']);
+   mentions it. So does `Supplied by someone else / Works Finished` - a job already
+   supplied and a job already built are the same thing to us, which is no sale.
+   All of them stay one click away as chips: set aside, not deleted. */
+const HIDDEN_LISTS = new Set([PARKED_LIST, 'No gabion named', 'gabion but not 16014',
+                              'Supplied by someone else / Works Finished']);
 // Offered on a new list, not enforced - naming is free, but a suggested set
 // keeps the pile countable instead of ending up with six spellings of "later".
 const SUGGESTED = ['Parked', 'Call this week', 'Waiting on drawings',
@@ -5122,6 +5205,7 @@ function openDrawer(tid) {
   try {
     body.innerHTML = reqHTML(t);
     wireUrgency(body, t);
+    wireTenderContacts(body, t);
     // Same wiring as the board, or the folds do not open and the notes box does
     // not save - a notes field that silently discards what you typed is worse
     // than no notes field.
@@ -6274,6 +6358,7 @@ function reqHTML(t) {
         listsOf(t.tender_id).size ? ' \u00b7 ' + listsOf(t.tender_id).size : ''}</button></div>
     ${agov(t) ? `<div class=addedline>${showNew(t) ? '<span class=newtag>NEW</span> ' : ''}Added
       <b>${agov(t)}</b> · ${dayv(t.added_at)}</div>` : ''}
+    ${tenderContactsHTML(t)}
     ${urgencyHTML(t)}
     ${actionsHTML(t, state.done.has(t.tender_id))}
     ${listsOf(t.tender_id).size ? `<div class=taglist>${
@@ -6352,6 +6437,7 @@ function renderReq() {
   wireDetail(el, t);
   wireNote(el, t);
   wireUrgency(el, t);
+  wireTenderContacts(el, t);
 
   if (typing && typing.tid === t.tender_id) {
     const box = el.querySelector('#notebox');
@@ -6459,22 +6545,208 @@ async function addContact(firm, person, role, kind, value, label) {
   const list = CONTACTS.get(key) || [];
   if (list.some(c => c.kind === kind && c.value === value)) return false;
   list.push(row); CONTACTS.set(key, list);
-  renderCallList();
+  refreshContactViews();
   if (BOOT.mode !== 'cloud' || !window.__SB__) return true;
   try {
     const { error } = await window.__SB__.from('in_contacts')
       .upsert(row, { onConflict: 'firm,person,kind,value' });
     if (error) throw error;
     await loadContacts(); renderCallList();
-  } catch (e) { console.warn('could not save the contact', e); return false; }
+  } catch (e) {
+    console.warn('could not save the contact', e);
+    CONTACTS.set(key, (CONTACTS.get(key) || []).filter(c => c !== row));
+    refreshContactViews();
+    toast(saveError(e, 'The number'), true);
+    return false;
+  }
+  toast('Saved');
   return true;
+}
+
+/* A contact for a firm nobody has won anything with yet.
+
+   Until now a number could only be attached to a firm already in the Directory -
+   i.e. one that had won a tender or arrived in the NH Works import. There was
+   nowhere to put the man you met last week, which is exactly the contact worth
+   having. `addPerson` creates the record and its first number in one go. */
+/* A save that fails must SAY so.
+
+   addContact / addPerson / linkContact each swallowed their error into a
+   console.warn, so a rejected write looked exactly like a successful one until
+   you reloaded and the number was gone. Nobody reads a console on a phone. This
+   puts the reason on screen and keeps it there. */
+/* "Failed to fetch" means the request never reached Supabase - a different
+   problem from a rejected one, and the two need different answers. The endpoint
+   and its CORS were verified reachable from both file:// and the hosted origin,
+   so when this appears the cause is local: offline, an extension blocking the
+   POST, or a stale page. Say which it looks like rather than echoing the browser. */
+function saveError(e, what) {
+  const raw = (e && (e.message || e.details || e.hint)) || String(e || 'unknown');
+  if (/failed to fetch|networkerror|load failed/i.test(raw)) {
+    return navigator.onLine
+      ? `${what} could not reach the server. An ad-blocker or extension may be `
+        + `blocking it - try again, or open the page in a private window.`
+      : `${what} failed: you are offline. It will need doing again once connected.`;
+  }
+  if (/row-level security|permission/i.test(raw))
+    return `${what} was refused - this account may not have write access.`;
+  if (/duplicate key|already exists/i.test(raw))
+    return `That one is already on file.`;
+  return `${what} failed: ${raw}`;
+}
+
+function toast(msg, bad) {
+  document.querySelectorAll('.toast').forEach(x => x.remove());
+  const el = document.createElement('div');
+  el.className = 'toast' + (bad ? ' bad' : '');
+  el.textContent = msg;
+  document.body.appendChild(el);
+  setTimeout(() => el.classList.add('show'), 10);
+  setTimeout(() => { el.classList.remove('show');
+                     setTimeout(() => el.remove(), 250); }, bad ? 8000 : 2600);
+}
+
+/* Every place a contact is shown. A number saved from the tender panel has to
+   appear ON that panel - the first version refreshed the Directory and the
+   Dashboard and left the panel you were looking at unchanged, which reads as
+   "it did not save". */
+function refreshContactViews() {
+  renderCallList();
+  renderDash();
+  renderReq();
+  const body = document.getElementById('drawerbody');
+  const el = document.getElementById('drawer');
+  if (body && el && !el.hidden && MINIID !== null) { /* map drawer, not this */ }
+  if (body && el && !el.hidden) {
+    const t = D.tenders.find(x => x.tender_id === board.sel);
+    if (t) {
+      body.innerHTML = reqHTML(t);
+      wireDetail(body, t); wireNote(body, t);
+      wireUrgency(body, t); wireTenderContacts(body, t);
+    }
+  }
+}
+
+/* tender_id -> Set(contact_id). Who in the directory is worth ringing about
+   this contract. A separate table, not a column on the contact: one man is the
+   right call for several packages on a corridor, and one package needs both the
+   firm's owner and its site engineer. */
+const TLINKS = new Map();
+
+async function loadTenderContacts() {
+  if (BOOT.mode !== 'cloud' || !window.__SB__) return;
+  const { data, error } = await window.__SB__.from('in_tender_contacts')
+    .select('tender_id,contact_id');
+  if (error) { console.warn('tender contacts unavailable', error); return; }
+  TLINKS.clear();
+  (data || []).forEach(r => {
+    if (!TLINKS.has(r.tender_id)) TLINKS.set(r.tender_id, new Set());
+    TLINKS.get(r.tender_id).add(r.contact_id);
+  });
+}
+
+async function linkContact(tid, contactId, on) {
+  const set = TLINKS.get(tid) || new Set();
+  if (on) set.add(contactId); else set.delete(contactId);
+  TLINKS.set(tid, set);
+  refreshContactViews();
+  if (BOOT.mode !== 'cloud' || !window.__SB__ || !contactId) return;
+  try {
+    if (on) {
+      await window.__SB__.from('in_tender_contacts')
+        .upsert({ tender_id: tid, contact_id: contactId },
+                { onConflict: 'tender_id,contact_id' });
+    } else {
+      await window.__SB__.from('in_tender_contacts').delete()
+        .eq('tender_id', tid).eq('contact_id', contactId);
+    }
+  } catch (e) {
+    console.warn('could not link the contact', e);
+    const back = TLINKS.get(tid) || new Set();
+    if (on) back.delete(contactId); else back.add(contactId);
+    TLINKS.set(tid, back);
+    refreshContactViews();
+    toast(saveError(e, 'The link'), true);
+  }
+}
+
+/* contact_id -> [tender_id]. The reverse of TLINKS, so the Directory can show
+   which contracts a person is on. A link that is only visible from one side is
+   half a link: you look someone up to remember why you have their number. */
+function tendersForContact(id) {
+  const out = [];
+  TLINKS.forEach((set, tid) => { if (set.has(id)) out.push(tid); });
+  return out;
+}
+
+/* Every contact row, flattened once, for searching. */
+function allContacts() {
+  const out = [];
+  CONTACTS.forEach(list => list.forEach(c => out.push(c)));
+  return out;
+}
+
+async function addPerson(rec) {
+  const row = {
+    firm: (rec.firm || '').trim(), person: (rec.person || '').trim(),
+    role: rec.role || 'contractor',
+    desig: (rec.desig || '').trim() || null,
+    state: (rec.state || '').trim() || null,
+    dept: (rec.dept || '').trim() || null,
+    kind: rec.kind || 'phone', value: (rec.value || '').trim(),
+    label: (rec.label || '').trim() || null,
+    tender_id: rec.tender_id || null,
+    source: 'manual', agency: 'Pratyush',
+  };
+  if (!row.value || (!row.firm && !row.person)) return 'A name and a number, at least.';
+  const key = row.firm || row.person;
+  const list = CONTACTS.get(key) || [];
+  if (list.some(c => c.kind === row.kind && c.value === row.value))
+    return 'That number is already on file.';
+  list.push(row); CONTACTS.set(key, list);
+  refreshContactViews();
+  if (BOOT.mode !== 'cloud' || !window.__SB__) return null;
+  try {
+    const { error } = await window.__SB__.from('in_contacts')
+      .upsert(row, { onConflict: 'firm,person,kind,value' });
+    if (error) throw error;
+    await loadContacts(); refreshContactViews();
+  } catch (e) {
+    console.warn('could not save the contact', e);
+    // Roll the optimistic row back, or the screen keeps showing a number the
+    // database does not have - the failure mode that started this.
+    CONTACTS.set(key, (CONTACTS.get(key) || []).filter(c => c !== row));
+    refreshContactViews();
+    const why = saveError(e, 'The contact');
+    toast(why, true);
+    return why;
+  }
+  toast('Saved');
+  return null;
+}
+
+/* Contacts attached to one tender: whoever won it, plus anyone recorded against
+   this job specifically. A site engineer belongs to the job, not to the firm's
+   head office, and `tender_id` is what keeps that distinction. */
+function contactsForTender(t) {
+  const w = (t.award && t.award.winner) || '';
+  const byFirm = w ? contactsOf(w) : [];
+  const linked = TLINKS.get(t.tender_id) || new Set();
+  const byJob = [];
+  CONTACTS.forEach(list => list.forEach(c => {
+    // Attached to this job either explicitly (linked from the directory) or
+    // because it was typed in on this tender in the first place.
+    const isHere = linked.has(c.id) || c.tender_id === t.tender_id;
+    if (isHere && !byFirm.includes(c)) byJob.push(c);
+  }));
+  return { byFirm, byJob, winner: w, linked };
 }
 
 async function removeContact(firm, person, id, kind, value) {
   const key = firm || person || '';
   CONTACTS.set(key, (CONTACTS.get(key) || []).filter(
     c => !(c.kind === kind && c.value === value)));
-  renderCallList();
+  refreshContactViews();
   if (BOOT.mode !== 'cloud' || !window.__SB__ || !id) return;
   try {
     await window.__SB__.from('in_contacts').delete().eq('id', id);
@@ -6618,6 +6890,7 @@ function renderCallList() {
         <option value=jobs${dir.sort === 'jobs' ? ' selected' : ''}>most works</option>
         <option value=name${dir.sort === 'name' ? ' selected' : ''}>name</option>
       </select>
+      <button class=chip id=newcontact>+ New contact</button>
       <span class=dircount>${rows.length} of ${all.length} · ${withNum} reachable</span>
     </div>` + (rows.length ? dirTable(rows) : '<div class=empty>Nobody matches.</div>');
   wireDir(el);
@@ -6634,12 +6907,23 @@ function dirTable(rows) {
   const delBtn = x => `<button class=cdel data-firm="${esc(x.firm || '')}"
       data-person="${esc(x.person || '')}" data-id="${x.id || ''}"
       data-kind="${x.kind}" data-value="${esc(x.value)}" title="Remove">×</button>`;
+  // Which contracts this number is attached to - the other half of the link.
+  const jobs = x => {
+    const ts = x.id ? tendersForContact(x.id) : [];
+    if (!ts.length) return '';
+    return ts.map(tid => {
+      const t = (D.tenders || []).find(y => y.tender_id === tid);
+      const label = (t && t.detail && t.detail.title) || tid;
+      return `<button class=cjob data-id="${esc(tid)}"
+        title="${esc(label)}">${esc(label.slice(0, 34))}</button>`;
+    }).join('');
+  };
   const tel = x => `<a class="ph${/^[6-9]\d{9}$/.test(x.value) ? '' : ' land'}"
       href="tel:${esc(x.value)}">${esc(fmt(x.value))}</a>${
       x.label && x.label !== 'mobile' && x.label !== 'landline'
-        ? `<span class=clabel>${esc(x.label)}</span>` : ''}${delBtn(x)}`;
+        ? `<span class=clabel>${esc(x.label)}</span>` : ''}${jobs(x)}${delBtn(x)}`;
   const mail = x => `<a class=em href="mailto:${esc(x.value)}">${esc(x.value)}</a>${
-      x.label ? `<span class=clabel>${esc(x.label)}</span>` : ''}${delBtn(x)}`;
+      x.label ? `<span class=clabel>${esc(x.label)}</span>` : ''}${jobs(x)}${delBtn(x)}`;
 
   const isOff = dir.role === 'officer';
   let html = `<table class=dirtable><thead><tr>
@@ -6721,6 +7005,11 @@ function wireDir(el) {
     const s = el.querySelector(id);
     if (s) s.addEventListener('change', () => { dir[key] = s.value; renderCallList(); });
   };
+  const nc = el.querySelector('#newcontact');
+  if (nc) nc.addEventListener('click', ev => {
+    ev.stopPropagation();
+    openNewContact(nc, { role: dir.role, state: dir.state });
+  });
   bind('#dirstate', 'state'); bind('#dirdept', 'dept');
   bind('#dirreach', 'reach'); bind('#dirsort', 'sort');
 
@@ -6747,7 +7036,7 @@ function wireDir(el) {
   // Open the tender where you are. The drawer is a fixed overlay carrying the
   // same detail the board panel shows, so there is no reason to leave the list
   // you are working through and lose your place in it.
-  el.querySelectorAll('.jobjump').forEach(b => b.addEventListener('click', () => {
+  el.querySelectorAll('.jobjump, .cjob').forEach(b => b.addEventListener('click', () => {
     board.sel = b.dataset.id;
     openDrawer(b.dataset.id);
   }));
@@ -6930,6 +7219,41 @@ function renderDash() {
 
 /* The control that puts a tender on the dashboard. Lives on the tender panel,
    because that is where you are when you decide it needs a call. */
+/* Who to call for THIS job, on the tender itself.
+
+   The Directory answers "how do I reach this firm"; this answers "who do I ring
+   about this contract", which is not the same question - a package has its own
+   site engineer, and that number belongs to the job. Saved with `tender_id` set,
+   so it stays attached to the contract rather than floating up to the firm. */
+function tenderContactsHTML(t) {
+  const { byFirm, byJob, winner } = contactsForTender(t);
+  const line = c => `<li class=tcline>
+      <a href="${c.kind === 'phone' ? 'tel:' + esc(c.value) : 'mailto:' + esc(c.value)}">${
+        esc(c.kind === 'phone' && /^[6-9]\d{9}$/.test(c.value)
+            ? c.value.slice(0, 5) + ' ' + c.value.slice(5) : c.value)}</a>
+      ${c.person ? `<span class=clabel>${esc(c.person)}</span>` : ''}
+      ${c.label && c.label !== 'mobile' ? `<span class=clabel>${esc(c.label)}</span>` : ''}
+      ${(TLINKS.get(t.tender_id) || new Set()).has(c.id)
+          ? `<span class=tcjob>this job</span>
+             <button class=tcunlink data-id="${esc(t.tender_id)}" data-cid="${c.id}"
+               title="Unlink from this contract">×</button>`
+          : (c.tender_id === t.tender_id ? '<span class=tcjob>this job</span>' : '')}
+    </li>`;
+  const all = [...byJob, ...byFirm];
+  return `<div class=tcbox>
+    <h4>Who to call for this job${winner ? ` · ${esc(winner)}` : ''}</h4>
+    ${all.length ? `<ul class=tclist>${all.map(line).join('')}</ul>`
+      : `<div class=bsub>${winner ? 'No number for them yet.'
+          : 'Not awarded, so there is nobody to ring yet.'}</div>`}
+    <div class=tcactions>
+      <button class=tclink data-id="${esc(t.tender_id)}">link someone from the directory</button>
+      <button class=tcadd data-id="${esc(t.tender_id)}"
+        data-firm="${esc(winner)}" data-state="${esc((t.detail || {}).state || '')}">
+        add a new number</button>
+    </div>
+  </div>`;
+}
+
 function urgencyHTML(t) {
   const u = urgOf(t.tender_id) || {};
   const opt = (v, label) => `<option value="${v}"${u.level === v ? ' selected' : ''}>${label}</option>`;
@@ -6943,6 +7267,23 @@ function urgencyHTML(t) {
       <input type=text class=urgnote data-id="${esc(t.tender_id)}" maxlength=80
         placeholder="Why? e.g. drawings due, ask before Diwali" value="${esc(u.note || '')}">
     </div>`;
+}
+
+function wireTenderContacts(pane, t) {
+  pane.querySelectorAll('.tclink').forEach(b => b.addEventListener('click', ev => {
+    ev.stopPropagation();
+    openLinkContact(b, b.dataset.id);
+  }));
+  pane.querySelectorAll('.tcunlink').forEach(b => b.addEventListener('click', ev => {
+    ev.stopPropagation();
+    // Unlinking removes the connection, never the contact.
+    linkContact(b.dataset.id, Number(b.dataset.cid), false);
+  }));
+  pane.querySelectorAll('.tcadd').forEach(b => b.addEventListener('click', ev => {
+    ev.stopPropagation();
+    openNewContact(b, { tender_id: b.dataset.id, firm: b.dataset.firm,
+                        state: b.dataset.state, role: 'contractor' });
+  }));
 }
 
 function wireUrgency(pane, t) {
@@ -7264,6 +7605,141 @@ function openNumberAdd(anchor, firm) {
   if (box) box.focus();
 }
 
+/* The full form: a contact who is not in the corpus at all. */
+/* Pick somebody already in the directory and attach them to this contract.
+
+   876 contacts is far too many to scroll, so this is search-first: type a name,
+   a firm or a number. Anyone already linked is shown ticked at the top, so the
+   same popover both adds and removes. */
+function openLinkContact(anchor, tid) {
+  closePicker();
+  const el = document.createElement('div');
+  el.className = 'picker wide';
+  el.innerHTML = `<div class=pickhead>Link a contact to this job</div>
+    <input type=search class=linkq placeholder="Search the directory…" autocomplete=off>
+    <div class=linkresults></div>`;
+  document.body.appendChild(el);
+  PICKER = el;
+
+  const r = anchor.getBoundingClientRect();
+  const GAP = 6, EDGE = 10;
+  el.style.left = `${Math.round(Math.max(EDGE,
+    Math.min(r.left, window.innerWidth - el.offsetWidth - 12)))}px`;
+  const below = window.innerHeight - r.bottom - GAP - EDGE;
+  el.style.top = below < 260
+    ? `${Math.round(Math.max(EDGE, r.top - GAP - Math.min(320, el.offsetHeight)))}px`
+    : `${Math.round(r.bottom + GAP)}px`;
+
+  const box = el.querySelector('.linkq');
+  const results = el.querySelector('.linkresults');
+
+  const draw = () => {
+    const q = box.value.toLowerCase().trim();
+    const linked = TLINKS.get(tid) || new Set();
+    const all = allContacts().filter(c => c.id);
+    // Linked first, then matches. Without a query show only what is linked, so
+    // the popover opens as "who is on this job" rather than a wall of 876.
+    let show = all.filter(c => linked.has(c.id));
+    if (q) {
+      const terms = q.split(/\s+/);
+      const hits = all.filter(c => !linked.has(c.id) &&
+        terms.every(w => [c.firm, c.person, c.value, c.label, c.desig, c.state]
+          .join(' ').toLowerCase().includes(w)));
+      show = show.concat(hits.slice(0, 40));
+    }
+    results.innerHTML = show.length ? show.map(c => {
+      const on = linked.has(c.id);
+      const who = c.person || c.firm || '(unnamed)';
+      const sub = [c.person && c.firm ? c.firm : '', c.desig, c.state]
+        .filter(Boolean).join(' · ');
+      return `<label class="linkrow${on ? ' on' : ''}">
+        <input type=checkbox data-cid="${c.id}" ${on ? 'checked' : ''}>
+        <span class=lrwho>${esc(who)}${sub ? `<em>${esc(sub)}</em>` : ''}</span>
+        <span class=lrnum>${esc(c.kind === 'phone' && /^[6-9]\d{9}$/.test(c.value)
+          ? c.value.slice(0, 5) + ' ' + c.value.slice(5) : c.value)}</span>
+      </label>`; }).join('')
+      : `<div class=bsub style="padding:8px 9px">${q
+          ? 'Nobody matches.' : 'Nobody linked yet — search to add someone.'}</div>`;
+    results.querySelectorAll('input[type=checkbox]').forEach(cb =>
+      cb.addEventListener('change', async () => {
+        await linkContact(tid, Number(cb.dataset.cid), cb.checked);
+        draw();
+      }));
+  };
+
+  let t = null;
+  box.addEventListener('input', () => {
+    clearTimeout(t);
+    const pos = box.selectionStart;
+    t = setTimeout(() => { draw(); box.focus();
+      try { box.setSelectionRange(pos, pos); } catch (e) {} }, 120);
+  });
+  draw();
+  box.focus();
+}
+
+function openNewContact(anchor, preset) {
+  closePicker();
+  preset = preset || {};
+  const el = document.createElement('div');
+  el.className = 'picker wide';
+  el.innerHTML = `<div class=pickhead>${
+      preset.tender_id ? 'A contact for this job' : 'New contact'}</div>
+    <form class=newcontact>
+      <div class=ncrow>
+        <select name=role>
+          <option value=contractor>Contractor</option>
+          <option value=officer>Officer</option>
+        </select>
+        <input name=state placeholder="State" value="${esc(preset.state || '')}"
+          autocomplete=off>
+      </div>
+      <input name=firm placeholder="Firm${
+        preset.role === 'officer' ? ' (leave blank for an officer)' : ''}"
+        value="${esc(preset.firm || '')}" autocomplete=off>
+      <div class=ncrow>
+        <input name=person placeholder="Person" autocomplete=off>
+        <input name=desig placeholder="Designation" autocomplete=off>
+      </div>
+      <div class=ncrow>
+        <select name=kind><option value=phone>Phone</option><option value=email>Email</option></select>
+        <input name=value placeholder="Number or address" autocomplete=off>
+      </div>
+      <input name=label placeholder="Whose is it? e.g. site engineer" autocomplete=off>
+      ${preset.tender_id ? `<div class=ncnote>Linked to
+        <b>${esc(preset.tender_id)}</b></div>` : ''}
+      <div class=ncerr></div>
+      <button class=chip type=submit>Save contact</button>
+    </form>`;
+  document.body.appendChild(el);
+  PICKER = el;
+  if (preset.role) el.querySelector('[name=role]').value = preset.role;
+
+  const r = anchor.getBoundingClientRect();
+  const GAP = 6, EDGE = 10;
+  el.style.left = `${Math.round(Math.max(EDGE,
+    Math.min(r.left, window.innerWidth - el.offsetWidth - 12)))}px`;
+  const below = window.innerHeight - r.bottom - GAP - EDGE;
+  el.style.top = below < el.offsetHeight
+    ? `${Math.round(Math.max(EDGE, r.top - GAP - el.offsetHeight))}px`
+    : `${Math.round(r.bottom + GAP)}px`;
+
+  el.querySelector('form').addEventListener('submit', async ev => {
+    ev.preventDefault();
+    const f = ev.target;
+    const err = await addPerson({
+      role: f.role.value, firm: f.firm.value, person: f.person.value,
+      desig: f.desig.value, state: f.state.value,
+      kind: f.kind.value, value: f.value.value, label: f.label.value,
+      tender_id: preset.tender_id || null,
+    });
+    if (err) { el.querySelector('.ncerr').textContent = err; return; }
+    closePicker();
+  });
+  const first = el.querySelector('[name=firm]');
+  if (first) first.focus();
+}
+
 function openShare(anchor, tid) {
   closePicker();
   const url = shareURL(tid);
@@ -7416,7 +7892,7 @@ function startLive() {
 }
 
 async function start() {
-  if (BOOT.mode === 'cloud') { await loadCloud(); await loadReviews(); await loadNotes(); await loadLists(); await loadContacts(); await loadUrgency(); }
+  if (BOOT.mode === 'cloud') { await loadCloud(); await loadReviews(); await loadNotes(); await loadLists(); await loadContacts(); await loadTenderContacts(); await loadUrgency(); }
   else loadLocal();
   const app = document.getElementById('app');
   if (app) app.hidden = false;
