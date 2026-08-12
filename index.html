@@ -931,6 +931,8 @@ a.btn.portal { text-decoration: none; margin-left: auto; }
   border-radius: 9px; margin-left: 6px; max-width: 210px; overflow: hidden;
   text-overflow: ellipsis; white-space: nowrap; vertical-align: 1px; }
 .cjob:hover { border-color: var(--accent); color: var(--accent); }
+/* Whose number this is - the thing you scan a firm's list for. */
+.cwho { font-size: 11.5px; color: var(--ink); font-weight: 600; margin-left: 7px; }
 
 /* The number is the only thing on the card you act on, so it is the biggest. */
 .bignum { display: block; font-size: 19px; font-weight: 600; letter-spacing: .01em;
@@ -6765,7 +6767,15 @@ function dirRows() {
   });
 
   const out = new Map();
-  const key = (role, firm, person) => role + ' ' + (firm || '') + ' ' + (person || '');
+  /* Keyed by the ORGANISATION, not by the person.
+     Keying on firm+person split one firm into a row per person: saving
+     "Bikash Das" against RANG PRIVATE LIMITED created a SECOND Rang row
+     carrying no jobs, which then sorted to the bottom by gabion and looked
+     like it had vanished - findable only by searching his name. A firm is
+     one entry and the people are its contacts. An officer has no firm, so
+     they key on their own name. */
+  const key = (role, firm, person) =>
+    role + ' ' + ((firm || '').trim() || (person || '').trim());
   const norm = x => String(x || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
 
   CONTACTS.forEach(list => list.forEach(r => {
@@ -6803,7 +6813,7 @@ function dirRows() {
     e.jobs = w.jobs; e.gabion = w.gabion; e.other = w.other; e.won = w.won;
     const f = firmOf(name);
     if (f.gstin) { e.gstin = f.gstin; e.gst_state = f.gst_state; }
-    if (!hit) out.set(key('contractor', name, ''), e);
+    if (!hit) out.set(key('contractor', name), e);
   });
 
   return [...out.values()].map(e => {
@@ -6820,8 +6830,11 @@ function dirRows() {
       state: states[0] || 'State not recorded', states,
       dept: depts[0] || 'Source not recorded', depts,
       np: (e.projects || []).length + e.jobs.length,
+      people: [...new Set(e.contacts.map(c => c.person)
+                 .filter(n => n && n !== e.firm))],
       blob: [e.name, e.person, e.desig, e.office, e.gstin, states.join(' '),
         depts.join(' '), e.agency,
+        e.contacts.map(c => (c.person || '') + ' ' + (c.desig || '')).join(' '),
         e.contacts.map(x => x.value + ' ' + (x.label || '')).join(' '),
         (e.projects || []).map(p => p.name + ' ' + p.nh).join(' '),
         e.jobs.map(t => (t.detail && t.detail.title) || t.tender_id).join(' ')
@@ -6918,11 +6931,15 @@ function dirTable(rows) {
         title="${esc(label)}">${esc(label.slice(0, 34))}</button>`;
     }).join('');
   };
+  // Whose number it is comes first: a firm with six numbers is a list of
+  // people, and the name is what you scan for.
+  const who = x => x.person && x.person !== x.firm
+    ? `<span class=cwho>${esc(x.person)}${x.desig ? ', ' + esc(x.desig) : ''}</span>` : '';
   const tel = x => `<a class="ph${/^[6-9]\d{9}$/.test(x.value) ? '' : ' land'}"
-      href="tel:${esc(x.value)}">${esc(fmt(x.value))}</a>${
+      href="tel:${esc(x.value)}">${esc(fmt(x.value))}</a>${who(x)}${
       x.label && x.label !== 'mobile' && x.label !== 'landline'
         ? `<span class=clabel>${esc(x.label)}</span>` : ''}${jobs(x)}${delBtn(x)}`;
-  const mail = x => `<a class=em href="mailto:${esc(x.value)}">${esc(x.value)}</a>${
+  const mail = x => `<a class=em href="mailto:${esc(x.value)}">${esc(x.value)}</a>${who(x)}${
       x.label ? `<span class=clabel>${esc(x.label)}</span>` : ''}${jobs(x)}${delBtn(x)}`;
 
   const isOff = dir.role === 'officer';
@@ -6955,6 +6972,9 @@ function dirTable(rows) {
               esc(((t.detail && t.detail.title) || t.tender_id).slice(0, 90))}</button></li>`).join('');
         html += `<tr class="row${c.contacts.length ? '' : ' miss'}">
           <td><div class=nm>${esc(c.name)}</div>
+            ${(c.people || []).length
+              ? `<div class=cellref>${esc(c.people.slice(0, 3).join(', '))}${
+                  c.people.length > 3 ? ` +${c.people.length - 3}` : ''}</div>` : ''}
             ${c.office ? `<div class=cellref>${esc(c.office)}</div>` : ''}
             ${c.gstin ? `<div class=cellref><code>${esc(c.gstin)}</code></div>` : ''}
             ${c.agency ? `<div class=cellref>${esc(c.agency)}${
