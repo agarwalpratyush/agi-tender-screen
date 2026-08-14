@@ -934,6 +934,72 @@ a.btn.portal { text-decoration: none; margin-left: auto; }
 /* Whose number this is - the thing you scan a firm's list for. */
 .cwho { font-size: 11.5px; color: var(--ink); font-weight: 600; margin-left: 7px; }
 
+/* The list filter. One control, sized to its widest option rather than to the
+   nine chips it replaced. */
+#listsel { font: inherit; font-size: 12.5px; padding: 6px 8px; max-width: 260px;
+  border: 1px solid var(--border); border-radius: 7px;
+  background: var(--surface); color: var(--ink); }
+#listsel:focus { border-color: var(--accent); outline: none; }
+/* Filtered is a state you must be able to see at a glance, or you spend a minute
+   wondering where the other 500 tenders went. */
+#listsel.on { border-color: var(--accent); color: var(--accent); font-weight: 600; }
+.lclear { margin-left: 5px; }
+
+/* ---- the list manager ----
+   The first version reused `.mlrow`, `.mlname`, `.mltype` - which already belong
+   to the MAP list, where `.mlrow` is `display:grid; grid-template-columns:4px 1fr`
+   and the 4px column is a colour swatch. The name cell inherited that 4px and
+   the rows grew to 200px tall. Everything here is prefixed `lm-` so the two can
+   never collide again. */
+.picker.lists { min-width: 380px; max-width: 430px; }
+.lm-scroll { max-height: 320px; overflow-y: auto; overscroll-behavior: contain;
+  margin: 0 -7px; padding: 0 7px; }
+
+/* The two kinds, stated rather than implied by colour. */
+.lm-group + .lm-group { margin-top: 14px; }
+.lm-ghead { font-size: 10px; text-transform: uppercase; letter-spacing: .08em;
+  font-weight: 700; color: var(--ink-2); padding: 4px 2px 6px;
+  border-bottom: 1px solid var(--grid); margin-bottom: 2px; }
+.lm-ghead em { font-style: normal; font-weight: 400; text-transform: none;
+  letter-spacing: 0; opacity: .75; margin-left: 7px; }
+.lm-empty { font-size: 11.5px; color: var(--ink-2); padding: 7px 2px; font-style: italic; }
+
+/* Name on its own line so a 40-character list still reads; the controls hold a
+   fixed width on the right so arming the delete cannot shift the row. */
+.lm-row { display: grid; grid-template-columns: minmax(0,1fr) auto auto;
+  align-items: center; gap: 8px; padding: 7px 2px;
+  border-bottom: 1px solid var(--grid); }
+.lm-row:last-child { border-bottom: none; }
+.lm-row:hover { background: var(--hover); }
+.lm-main { min-width: 0; }
+.lm-name { font-size: 12.5px; font-weight: 600; line-height: 1.3;
+  overflow-wrap: anywhere; }
+.lm-sub { font-size: 10.5px; color: var(--ink-2); margin-top: 1px; }
+
+.lm-move { border: 1px solid var(--border); background: none; cursor: pointer;
+  font: inherit; font-size: 10.5px; padding: 3px 9px; border-radius: 9px;
+  color: var(--ink-2); white-space: nowrap; }
+.lm-move:hover { border-color: var(--accent); color: var(--accent); }
+.lm-del { border: 1px solid transparent; background: none; cursor: pointer;
+  color: var(--ink-2); font-size: 13px; line-height: 1; padding: 2px 7px;
+  border-radius: 5px; white-space: nowrap; }
+.lm-row:hover .lm-del { border-color: var(--border); }
+.lm-del:hover { color: #c2417a; border-color: #c2417a; }
+.lm-del.armed { color: #fff; background: #c2417a; border-color: #c2417a;
+  font-size: 10.5px; font-weight: 600; }
+
+/* Creating one: the name gets a full line, because list names are long. */
+.lm-new { display: flex; flex-direction: column; gap: 6px; padding: 12px 0 2px;
+  border-top: 1px solid var(--border); margin-top: 12px; }
+.lm-newrow { display: flex; gap: 6px; }
+.lm-new input, .lm-new select { font: inherit; font-size: 12.5px; padding: 6px 8px;
+  border: 1px solid var(--border); border-radius: 6px;
+  background: var(--surface); color: var(--ink); }
+.lm-new input { width: 100%; box-sizing: border-box; }
+.lm-newrow select { flex: 1; }
+.lm-new input:focus, .lm-new select:focus { border-color: var(--accent); outline: none; }
+.lm-err { font-size: 11.5px; color: #c2417a; padding-top: 4px; }
+
 /* The number is the only thing on the card you act on, so it is the biggest. */
 .bignum { display: block; font-size: 19px; font-weight: 600; letter-spacing: .01em;
   font-variant-numeric: tabular-nums; text-decoration: none; color: var(--accent);
@@ -1283,6 +1349,50 @@ h3.s{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--mu
    the job, who to ring, where it is, how much gabion, when it is built, and how
    well we actually know the position. The coloured bar is the same colour the
    tender is drawn in, which is what ties a row to a line on the map. */
+/* ---- the map gear ----
+   A panel inside the map container, not a picker on the body: it has to scroll
+   with the pane and stay under Leaflet's own controls in the stacking order. */
+.gearpanel{position:absolute;top:44px;right:10px;z-index:1000;width:290px;
+ max-height:calc(100% - 60px);overflow-y:auto;overscroll-behavior:contain;
+ background:var(--surface);border:1px solid var(--border);border-radius:9px;
+ box-shadow:0 12px 34px rgba(0,0,0,.24);padding:9px;font-size:12.5px}
+.gearhead{font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;
+ color:var(--muted);padding:1px 2px 7px}
+.gearsec{font-size:10px;text-transform:uppercase;letter-spacing:.06em;font-weight:700;
+ color:var(--ink-2);padding:10px 2px 5px;border-top:1px solid var(--grid);margin-top:6px}
+.gearsec:first-of-type{border-top:none;margin-top:0}
+.gearsec em{font-style:normal;font-weight:400;text-transform:none;letter-spacing:0;
+ opacity:.7;margin-left:5px}
+.gearseg{display:flex;gap:4px}
+.gearseg button{flex:1;font:inherit;font-size:11.5px;padding:5px 4px;cursor:pointer;
+ border:1px solid var(--border);border-radius:6px;background:none;color:var(--ink-2)}
+.gearseg button.on{background:var(--accent);border-color:var(--accent);color:#fff;
+ font-weight:600}
+/* Row: [tick] [colour] [name + accuracy] [count]. The count is right-aligned in a
+   column of its own so the numbers line up and can be compared down the list. */
+.gearrow{display:grid;grid-template-columns:auto auto minmax(0,1fr) auto;
+ align-items:center;gap:7px;padding:5px 3px;border-radius:5px;cursor:pointer}
+.gearrow:hover{background:color-mix(in srgb,var(--accent) 8%,transparent)}
+.gearrow.off{opacity:.45}
+.gearrow i{width:9px;height:9px;border-radius:50%;display:block}
+.gearrow span{min-width:0;line-height:1.25}
+.gearrow span.wide{grid-column:1/4}
+.gearrow em{display:block;font-style:normal;font-size:10px;color:var(--muted)}
+.gearrow b{font-variant-numeric:tabular-nums;font-size:11.5px;color:var(--ink-2)}
+.gearrow select{grid-column:1/5;width:100%;font:inherit;font-size:12px;padding:5px 6px;
+ border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--ink)}
+.gearrow input[type=search]{grid-column:1/5;width:100%;font:inherit;font-size:12px;
+ padding:5px 7px;border:1px solid var(--border);border-radius:6px;
+ background:var(--surface);color:var(--ink);box-sizing:border-box}
+.gearrow input[type=search]:focus{border-color:var(--accent);outline:none}
+.gearbtn{grid-column:1/5;width:100%;font:inherit;font-size:12px;padding:5px 7px;
+ cursor:pointer;border:1px solid var(--border);border-radius:6px;background:none;
+ color:var(--ink-2);text-align:left}
+.gearbtn:hover{border-color:var(--accent);color:var(--accent)}
+.gearnote{font-size:10.5px;color:var(--muted);line-height:1.4;padding:4px 3px 0}
+.gearfoot{font-size:11px;color:var(--muted);padding:9px 3px 2px;margin-top:6px;
+ border-top:1px solid var(--grid)}
+.gearfoot b{color:var(--ink);font-variant-numeric:tabular-nums}
 .mlrow{display:grid;grid-template-columns:4px 1fr;gap:10px;padding:9px 11px 9px 0;
  border-bottom:1px solid var(--grid);cursor:pointer;align-items:stretch}
 .mlrow:hover{background:color-mix(in srgb,var(--accent) 7%,transparent)}
@@ -4291,8 +4401,77 @@ const PARKED_LIST = 'Parked';
    mentions it. So does `Supplied by someone else / Works Finished` - a job already
    supplied and a job already built are the same thing to us, which is no sale.
    All of them stay one click away as chips: set aside, not deleted. */
-const HIDDEN_LISTS = new Set([PARKED_LIST, 'No gabion named', 'gabion but not 16014',
-                              'Supplied by someone else / Works Finished']);
+/* Which lists are set aside is DATA, not code. It began as a hard-coded set, so
+   marking a new list "off the board" meant editing the JavaScript and
+   redeploying. It now comes from `in_lists_meta`; these four are only the
+   fallback for a page that has not loaded yet, and the same four the table was
+   seeded with. */
+const DEFAULT_HIDDEN = [PARKED_LIST, 'No gabion named', 'gabion but not 16014',
+                        'Supplied by someone else / Works Finished'];
+const HIDDEN_LISTS = new Set(DEFAULT_HIDDEN);
+/* Every list that exists, including ones with no tenders on them yet. */
+const LIST_META = new Map();     // name -> {hidden}
+
+async function loadListMeta() {
+  if (BOOT.mode !== 'cloud' || !window.__SB__) return;
+  const { data, error } = await window.__SB__.from('in_lists_meta')
+    .select('list_name,hidden');
+  if (error) { console.warn('list meta unavailable', error); return; }
+  LIST_META.clear();
+  (data || []).forEach(r => LIST_META.set(r.list_name, { hidden: !!r.hidden }));
+  /* The table is authoritative ONLY for the lists it names.
+     This used to be `HIDDEN_LISTS.clear()` followed by re-adding whatever the
+     table said - which throws away all four defaults on the way past. One row
+     recorded wrong, or a table that answers with an empty array, and lists that
+     have been set aside since day one come back onto the board. Defaults now
+     survive for any name the table does not mention. */
+  HIDDEN_LISTS.clear();
+  DEFAULT_HIDDEN.forEach(n => { if (!LIST_META.has(n)) HIDDEN_LISTS.add(n); });
+  LIST_META.forEach((v, n) => { if (v.hidden) HIDDEN_LISTS.add(n); });
+}
+
+async function createList(name, hidden) {
+  name = (name || '').trim();
+  if (!name) return 'Give it a name.';
+  if (LIST_META.has(name)) return 'There is already a list called that.';
+  LIST_META.set(name, { hidden: !!hidden });
+  if (hidden) HIDDEN_LISTS.add(name);
+  renderListBar(); renderBoard();
+  if (BOOT.mode !== 'cloud' || !window.__SB__) return null;
+  try {
+    const { error } = await window.__SB__.from('in_lists_meta')
+      .upsert({ list_name: name, hidden: !!hidden }, { onConflict: 'list_name' });
+    if (error) throw error;
+  } catch (e) {
+    LIST_META.delete(name); HIDDEN_LISTS.delete(name);
+    renderListBar(); renderBoard();
+    toast(saveError(e, 'The list'), true);
+    return 'not saved';
+  }
+  toast('List created');
+  return null;
+}
+
+/* Working <-> set aside. One flag, and it is the whole difference between a list
+   you pick up every morning and one you filed away. */
+async function setListHidden(name, hidden) {
+  const meta = LIST_META.get(name) || {};
+  const was = !!meta.hidden;
+  LIST_META.set(name, { ...meta, hidden: !!hidden });
+  if (hidden) HIDDEN_LISTS.add(name); else HIDDEN_LISTS.delete(name);
+  renderListBar(); renderBoard();
+  if (BOOT.mode !== 'cloud' || !window.__SB__) return;
+  try {
+    const { error } = await window.__SB__.from('in_lists_meta')
+      .upsert({ list_name: name, hidden: !!hidden }, { onConflict: 'list_name' });
+    if (error) throw error;
+  } catch (e) {
+    LIST_META.set(name, { ...meta, hidden: was });
+    if (was) HIDDEN_LISTS.add(name); else HIDDEN_LISTS.delete(name);
+    renderListBar(); renderBoard();
+    toast(saveError(e, 'The change'), true);
+  }
+}
 // Offered on a new list, not enforced - naming is free, but a suggested set
 // keeps the pile countable instead of ending up with six spellings of "later".
 const SUGGESTED = ['Parked', 'Call this week', 'Waiting on drawings',
@@ -4313,6 +4492,8 @@ const AUTO_LISTS = new Set();
 const MUTED = new Set();
 function allLists() {
   const c = new Map();
+  // Every declared list, so one with nothing on it yet is still offerable.
+  LIST_META.forEach((_, n) => c.set(n, 0));
   LISTS.forEach(set => set.forEach(n => c.set(n, (c.get(n) || 0) + 1)));
   return [...c.entries()].sort((a, b) => (HIDDEN_LISTS.has(a[0]) ? 1 : 0) -
                                          (HIDDEN_LISTS.has(b[0]) ? 1 : 0) ||
@@ -4371,7 +4552,8 @@ async function deleteList(name) {
     if (set.delete(name) && !set.size) LISTS.delete(tid);
   });
   if (board.list === name) board.list = null;
-  renderBoard();
+  LIST_META.delete(name); HIDDEN_LISTS.delete(name);
+  renderListBar(); renderBoard();
   if (BOOT.mode !== 'cloud' || !window.__SB__) return true;
   try {
     // Mute FIRST. If the rows were deleted and the mute then failed, the list
@@ -4386,6 +4568,8 @@ async function deleteList(name) {
     const { error } = await window.__SB__.from('in_lists')
       .delete().eq('list_name', name);
     if (error) throw error;
+    // The list itself, not just its members.
+    await window.__SB__.from('in_lists_meta').delete().eq('list_name', name);
   } catch (e) {
     console.warn('could not remove the list', e);
     // Say so rather than leaving the screen disagreeing with the database.
@@ -4928,6 +5112,31 @@ function tenderColour(tid) {
 }
 
 let MAP = null;
+/* The map's own options, kept OUTSIDE renderMapView because that function runs
+   once (`if (MAP) return`) and the gear has to keep working afterwards. This is
+   also what fixes the list layers going stale: every change rebuilds the pins
+   from the CURRENT data rather than the data as it was when the map was built. */
+let MAPTIER = {};      // tier name -> featureGroup
+let MAPBASE = {};      // base map name -> tileLayer
+let MAPCOUNT = {};     // tier name -> pins actually drawn
+let MAPEXTRA = [];     // positions the opening view should include
+let MAPASIDE = 0;      // pins that belong to a set-aside list
+/* No `list` or `hideAside` here any more: which tenders are in play is the
+   BOARD's state (board.list, board.q, state.doneMode), and the map reads it so
+   the two views can never disagree. What is left here is genuinely about the
+   map - which basemap, and which accuracy tiers to trust. */
+let MAPOPT = { base: 'Streets', tiers: null, alignments: true };
+
+/* Every tier geocode.py can produce, best first. Colour runs warm-to-grey with
+   confidence, so a glance tells you how much of the map is actually known. */
+const MAPTIERDEF = {
+  document: { colour: '#e08a1e', label: 'Coordinates in the documents', km: '~5 km' },
+  place:    { colour: '#3f7fd0', label: 'Place names in the tender',    km: '~8 km' },
+  chainage: { colour: '#2a9d8f', label: 'Chainage along a corridor',    km: '~12 km' },
+  corridor: { colour: '#7f9c3a', label: 'Corridor place names',         km: '~25 km' },
+  office:   { colour: '#b06fc9', label: 'Inviting office only',         km: '~25 km' },
+  state:    { colour: '#9aa4ad', label: 'State only — worksite unknown', km: '~150 km' },
+};
 let DRAWN = null;      // the alignment layer group
 let ALIGN = null;      // the GeoJSON layer inside it, replaced when geo arrives
 
@@ -4937,15 +5146,26 @@ let ALIGN = null;      // the GeoJSON layer inside it, replaced when geo arrives
    removes whatever it drew last time. */
 function drawAlignments() {
   if (!MAP || !DRAWN || !window.L) return 0;
-  if (ALIGN) { DRAWN.removeLayer(ALIGN); ALIGN = null; }
+  /* Clear the WHOLE group, not just ALIGN. The no-geometry fallback at the foot
+     of this function adds its markers straight to DRAWN and ALIGN never points
+     at them, so they survived every redraw. That leaked nothing while this ran
+     once per session; the moment the filters started re-running it, 23 markers
+     piled up per keystroke - 161 after seven redraws. */
+  DRAWN.clearLayers();
+  ALIGN = null;
   // Local builds used to embed a ready-made FeatureCollection; Supabase stores
   // the same features as a JSON array on in_geo.line. Coordinates are [lon, lat]
   // on both paths - GeoJSON order - which is why this hands them to L.geoJSON
   // rather than to L.polyline, which expects [lat, lon] and would mirror India.
   const feats = [];
+  // The lines are filtered by the same rule as the dots. Filtering one and not
+  // the other left a searched map showing three pins and twenty-three unrelated
+  // alignments, which reads as if the search had failed.
+  const qs = searchTerms(board.q);
   (D.tenders || []).forEach(t => {
     const raw = (t.geo && t.geo.line) || [];
     if (!raw.length) return;
+    if (!boardPass(t, qs)) return;
     const colour = tenderColour(t.tender_id);
     // A KMZ is not consistent about how it stores an alignment: some hold
     // LineStrings, others hold a Placemark per survey station, which rendered as
@@ -4990,9 +5210,11 @@ function drawAlignments() {
     }).addTo(DRAWN);
     return gj.features.length;
   }
-  // No geometry: fall back to one marker per tender that has a centre.
+  // No geometry: fall back to one marker per tender that has a centre. Obeys the
+  // same filter as everything else - it used to not, so filtering the map to one
+  // list still drew a marker for every surveyed tender.
   let n = 0;
-  D.tenders.filter(t => t.geo && t.geo.centre_lat != null).forEach(t => {
+  D.tenders.filter(t => t.geo && t.geo.centre_lat != null && boardPass(t, qs)).forEach(t => {
     L.circleMarker([t.geo.centre_lat, t.geo.centre_lon],
       { radius: 7, color: '#fff', weight: 2, fillColor: '#2a78d6', fillOpacity: 1 })
       .bindPopup(mapPopup(t.tender_id)).addTo(DRAWN);
@@ -5052,33 +5274,91 @@ function renderMapView() {
   DRAWN = drawn;
   drawAlignments();
 
-  // Derived positions, drawn so they can never be mistaken for a survey. A tender
-  // located from coordinates printed in its documents is good to about 5 km and
-  // gets a dot; one placed at a state centroid is good to 150 km and gets a circle
-  // the actual size of its error, which is enormous on purpose. The state layer is
-  // OFF by default - 136 tenders piled on 13 dots is noise, not information, and
-  // until there is a place-name gazetteer that is all a state centroid can be.
-  // Every tier geocode.py can produce, best first. Missing entries are not drawn
-  // at all - when `place` and `office` were added to the geocoder and not here,
-  // 123 located tenders silently vanished from the map while the board showed
-  // them fine. Colour runs warm-to-grey with confidence, so a glance tells you
-  // how much of the map is actually known.
-  const TIER = {
-    document: { colour: '#e08a1e', label: 'Coordinates printed in the documents (~5 km)' },
-    place:    { colour: '#3f7fd0', label: 'Place names in the tender (~8 km)' },
-    chainage: { colour: '#2a9d8f', label: 'Chainage along a named corridor (~12 km)' },
-    corridor: { colour: '#7f9c3a', label: 'Corridor place names (~25 km)' },
-    office:   { colour: '#b06fc9', label: 'Inviting office - work may be elsewhere (~25 km)' },
-    state:    { colour: '#9aa4ad', label: 'State only - worksite unknown (~150 km)' },
-  };
-  const layers = {};
-  const extra = [];   // latlngs that should count towards the opening view
-  Object.entries(TIER).forEach(([tier, cfg]) => {
-    const g = L.featureGroup();
+  MAPBASE = BASE;
+  MAPTIER = {};
+  Object.keys(MAPTIERDEF).forEach(t => { MAPTIER[t] = L.featureGroup(); });
+  // The state tier is off at first load: 136 tenders piled on 13 dots is noise,
+  // not information. Only decided once, so a later choice survives a re-render.
+  if (!MAPOPT.tiers) {
+    MAPOPT.tiers = new Set(Object.keys(MAPTIERDEF).filter(t => t !== 'state'));
+  }
+  buildPins();
+
+  // Opens on what is drawn, not the region - the corpus is one corner of it, so
+  // the regional view spent its pixels on states with no tenders in them.
+  const REGION = L.latLngBounds([17.5, 81.0], [29.9, 97.7]);
+  function home() {
+    MAP.invalidateSize();
+    let b = MAPOPT.alignments && drawn.getLayers().length ? drawn.getBounds() : null;
+    MAPEXTRA.forEach(ll => {
+      b = (b && b.isValid()) ? b.extend(ll) : L.latLngBounds([ll, ll]); });
+    MAP.fitBounds(b && b.isValid() ? b : REGION, { padding: [30, 30] });
+  }
+  MAP.__home = home;
+  home();
+
+  function btn(label, title, fn) {
+    return L.Control.extend({ options: { position: 'topleft' }, onAdd: function () {
+      const c = L.DomUtil.create('div', 'leaflet-bar');
+      const a = L.DomUtil.create('a', '', c);
+      a.href = '#'; a.title = title; a.innerHTML = label;
+      a.style.cssText = 'font-size:14px;text-align:center;line-height:26px';
+      L.DomEvent.on(a, 'click', e => { L.DomEvent.preventDefault(e); fn(); });
+      return c; } });
+  }
+  MAP.addControl(new (btn('&#9635;', 'Zoom to what is shown', home))());
+  MAP.addControl(new (btn('&#8962;', 'Out to the whole region', () => {
+    MAP.invalidateSize(); MAP.fitBounds(REGION, { padding: [10, 10] }); }))());
+
+  /* The gear. Everything the map can be told to do now lives behind one control
+     instead of being split between a collapsed Leaflet layer list and nothing at
+     all: base map, which accuracy tiers to trust, which list to look at, and
+     whether the tenders you have set aside should be on the map in the first
+     place. The old layers control could only turn groups on and off - it had no
+     way to express a FILTER, which is why 44% of the pins were jobs Pratyush had
+     already put down. */
+  const Gear = L.Control.extend({ options: { position: 'topright' },
+    onAdd: function () {
+      const c = L.DomUtil.create('div', 'leaflet-bar mapgear');
+      const a = L.DomUtil.create('a', '', c);
+      a.href = '#'; a.title = 'Filters and map options';
+      /* A funnel, drawn rather than typed. Unicode has no funnel that every
+         platform ships - the near misses render as a box on Windows or as an
+         emoji two sizes too big - so this is an inline SVG using currentColor,
+         which also means it follows the theme instead of being a fixed grey. */
+      a.innerHTML = '<svg viewBox="0 0 16 16" width="15" height="15" ' +
+        'aria-hidden="true" focusable="false" fill="none" stroke="currentColor" ' +
+        'stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">' +
+        '<path d="M1.8 2.6h12.4L9.4 8.3v4.4l-2.8 1.5V8.3z"/></svg>';
+      a.style.cssText = 'display:flex;align-items:center;justify-content:center;line-height:26px';
+      L.DomEvent.on(a, 'click', e => {
+        L.DomEvent.preventDefault(e); L.DomEvent.stopPropagation(e); toggleMapGear();
+      });
+      return c; } });
+  MAP.addControl(new Gear());
+
+  window.__MAP__ = MAP;
+  window.__MAP_HOME__ = home;
+  renderMapList();
+}
+
+/* Draw the pins for the CURRENT options. Called on every change, so the map can
+   never be showing a list membership from when the page loaded. */
+function buildPins() {
+  if (!MAP) return;
+  MAPEXTRA = [];
+  MAPASIDE = 0;
+  const qs = searchTerms(board.q);
+  Object.entries(MAPTIERDEF).forEach(([tier, cfg]) => {
+    const g = MAPTIER[tier];
+    if (!g) return;
+    g.clearLayers();
     let n = 0;
     (D.tenders || []).forEach(t => {
       const p = t.place;
       if (!p || p.source !== tier || p.lat == null) return;
+      if (isParked(t.tender_id) && MAPOPT.tiers.has(tier)) MAPASIDE++;
+      if (!boardPass(t, qs)) return;
       n++;
       const km = Number(p.precision_km) || 0;
       if (km > 10) {
@@ -5101,71 +5381,178 @@ function renderMapView() {
         fillColor: cfg.colour }).bindPopup(pop).addTo(g);
       L.circleMarker([p.lat, p.lon], { radius: 5, color: '#fff', weight: 1.5,
         fillColor: cfg.colour, fillOpacity: 0.95 }).bindPopup(pop).addTo(g);
-      if (tier !== 'state') extra.push([p.lat, p.lon]);
+      if (tier !== 'state') MAPEXTRA.push([p.lat, p.lon]);
     });
-    if (!n) return;
-    layers[`${cfg.label} \u2014 ${n}`] = g;
-    // Only the tiers that actually locate something are on at load. A Leaflet
-    // layer has one parent, so these are NOT added to `drawn` - their positions
-    // go into `extra` instead and the opening view unions the two.
-    if (tier !== 'state') g.addTo(MAP);
+    MAPCOUNT[tier] = n;
+    const on = MAPOPT.tiers.has(tier) && n > 0;
+    if (on && !MAP.hasLayer(g)) g.addTo(MAP);
+    if (!on && MAP.hasLayer(g)) MAP.removeLayer(g);
   });
-  // A list is a layer too: switch to "Parked" or "Named, no quantity" and the map
-  // shows only those. Same mechanism as the accuracy tiers, so one control
-  // answers both "how well do we know where this is" and "which pile is it in".
-  const listLayers = {};
-  allLists().forEach(([name, count]) => {
-    const g = L.layerGroup();
-    let n = 0;
-    (D.tenders || []).forEach(t => {
-      if (!listsOf(t.tender_id).has(name)) return;
-      const ll = (t.geo && t.geo.centre_lat != null) ? [t.geo.centre_lat, t.geo.centre_lon]
-               : (t.place && t.place.lat != null) ? [t.place.lat, t.place.lon] : null;
-      if (!ll) return;
-      n++;
-      L.circleMarker(ll, { radius: 7, color: '#fff', weight: 2,
-        fillColor: HIDDEN_LISTS.has(name) ? '#9aa4ad' : '#d94f8a', fillOpacity: 0.95 })
-        .bindPopup(mapPopup(t.tender_id)).addTo(g);
+  if (DRAWN) {
+    if (MAPOPT.alignments && !MAP.hasLayer(DRAWN)) DRAWN.addTo(MAP);
+    if (!MAPOPT.alignments && MAP.hasLayer(DRAWN)) MAP.removeLayer(DRAWN);
+  }
+}
+
+/* How many tenders carry no position at all. They are not "missing from the map"
+   by choice - nothing in their documents says where the work is - and a map that
+   simply omits them reads as if the corpus were fully located. */
+function unlocatedCount() {
+  return (D.tenders || []).filter(t =>
+    !(t.geo && t.geo.centre_lat != null) && !(t.place && t.place.lat != null)).length;
+}
+
+let MAPGEAR = null;
+function toggleMapGear() {
+  if (MAPGEAR) { MAPGEAR.remove(); MAPGEAR = null; return; }
+  const host = MAP.getContainer();
+  const el = L.DomUtil.create('div', 'gearpanel', host);
+  MAPGEAR = el;
+  L.DomEvent.disableClickPropagation(el);
+  L.DomEvent.disableScrollPropagation(el);
+
+  /* A geoJSON layer counts as ONE Leaflet layer however many features are in it,
+     so "how many alignments are drawn" is a question about features, not layers. */
+  const alignN = () => {
+    if (!DRAWN) return 0;
+    return DRAWN.getLayers().reduce((a, l) =>
+      a + (l.getLayers ? l.getLayers().length : 1), 0);
+  };
+  // Only the tiers that are actually ON. Counting every tier said "546 on the
+  // map" while 136 state pins sat switched off - a footer that overstates the
+  // coverage is worse than no footer, because the whole point of it is to say
+  // how much of the corpus you are really looking at.
+  const shownN = () => Object.keys(MAPCOUNT)
+    .filter(t => MAPOPT.tiers.has(t))
+    .reduce((a, t) => a + (MAPCOUNT[t] || 0), 0)
+    + (MAPOPT.alignments ? alignN() : 0);
+
+  /* Update the numbers WITHOUT rebuilding the panel.
+
+     The search box used to call the full re-render, which replaced the very
+     input being typed into - the element was destroyed mid-word, the caret went
+     with it, and restoring focus afterwards fought the browser instead of
+     removing the cause. Nothing about typing changes the panel's STRUCTURE, only
+     its counts, so only the counts are touched. */
+  const refreshCounts = () => {
+    Object.keys(MAPTIERDEF).forEach(t => {
+      const b = el.querySelector(`[data-count="${t}"]`);
+      if (b) { b.textContent = MAPCOUNT[t] || 0;
+        b.closest('.gearrow').classList.toggle('off', !MAPCOUNT[t]); }
     });
-    if (n) listLayers[`\u25cf ${name} \u2014 ${n}`] = g;
-  });
+    const ab = el.querySelector('[data-count="__align"]');
+    if (ab) ab.textContent = alignN();
+    const f = el.querySelector('.gearfoot');
+    if (f) f.innerHTML = `<b>${shownN()}</b> on the map · ` +
+      `<span>${unlocatedCount()} never located</span>`;
+  };
 
-  // Collapsed: eight lines of legend permanently covering the north-east corner
-  // was most of the map's clutter. It opens on hover or a click.
-  {
-    L.control.layers(BASE, { ...layers, ...listLayers },
-                     { collapsed: true, sortLayers: false }).addTo(MAP);
-  }
+  const draw = () => {
+    const shown = shownN();
+    const lists = allLists();
+    const tierRow = ([tier, cfg]) => {
+      const n = MAPCOUNT[tier] || 0;
+      return `<label class="gearrow${n ? '' : ' off'}">
+        <input type=checkbox data-tier="${tier}" ${MAPOPT.tiers.has(tier) ? 'checked' : ''}>
+        <i style="background:${cfg.colour}"></i>
+        <span>${esc(cfg.label)}<em>${cfg.km}</em></span>
+        <b data-count="${tier}">${n}</b></label>`;
+    };
+    el.innerHTML = `<div class=gearhead>Map options</div>
 
-  // Opens on the alignments, not the region - the corpus is one corridor, so the
-  // regional view spent its pixels on states with no tenders in them.
-  const REGION = L.latLngBounds([17.5, 81.0], [29.9, 97.7]);
-  function home() {
-    MAP.invalidateSize();
-    let b = drawn.getBounds();
-    // Union in the derived positions, or a tender located only from its documents
-    // sits outside the opening view and looks like it was never plotted.
-    extra.forEach(ll => { b = (b && b.isValid()) ? b.extend(ll) : L.latLngBounds([ll, ll]); });
-    MAP.fitBounds(b && b.isValid() ? b : REGION, { padding: [30, 30] });
-  }
-  home();
+      <div class=gearsec>Base map</div>
+      <div class=gearseg>${Object.keys(MAPBASE).map(nm =>
+        `<button data-base="${esc(nm)}" class="${MAPOPT.base === nm ? 'on' : ''}"
+          >${esc(nm)}</button>`).join('')}</div>
 
-  function btn(label, title, fn) {
-    return L.Control.extend({ options: { position: 'topleft' }, onAdd: function () {
-      const c = L.DomUtil.create('div', 'leaflet-bar');
-      const a = L.DomUtil.create('a', '', c);
-      a.href = '#'; a.title = title; a.innerHTML = label;
-      a.style.cssText = 'font-size:14px;text-align:center;line-height:26px';
-      L.DomEvent.on(a, 'click', e => { L.DomEvent.preventDefault(e); fn(); });
-      return c; } });
-  }
-  MAP.addControl(new (btn('&#9635;', 'Zoom to the alignments', home))());
-  MAP.addControl(new (btn('&#8962;', 'Out to the whole region', () => {
-    MAP.invalidateSize(); MAP.fitBounds(REGION, { padding: [10, 10] }); }))());
+      <div class=gearsec>What to show <em>by how well it is located</em></div>
+      <label class=gearrow>
+        <input type=checkbox data-align=1 ${MAPOPT.alignments ? 'checked' : ''}>
+        <i style="background:#d94f8a"></i>
+        <span>Surveyed alignment<em>exact</em></span>
+        <b data-count="__align">${alignN()}</b></label>
+      ${Object.entries(MAPTIERDEF).map(tierRow).join('')}
 
-  window.__MAP__ = MAP;
-  window.__MAP_HOME__ = home;
-  renderMapList();
+      <div class=gearsec>Filters <em>shared with the Tenders tab</em></div>
+      <div class=gearrow>
+        <input type=search id=gearq class=wide placeholder="Search — every word must match"
+          value="${esc(board.q || '')}"></div>
+      <div class=gearrow>
+        <span class=wide>Only this list</span>
+        <select id=gearlist>
+          <option value="">All tenders — set aside excluded</option>
+          ${lists.map(([nm, c]) => `<option value="${esc(nm)}"${
+            board.list === nm ? ' selected' : ''}>${esc(nm)} (${c})</option>`).join('')}
+        </select></div>
+      <div class=gearrow>
+        <button class=gearbtn id=geardone>${esc(DONE_LABEL[state.doneMode])}</button></div>
+      ${MAPASIDE && !board.list ? `<div class=gearnote>${MAPASIDE} set-aside
+        tender${MAPASIDE === 1 ? '' : 's'} are off the map — pick that list to see
+        them.</div>` : ''}
+
+      <div class=gearfoot><b>${shown}</b> on the map ·
+        <span>${unlocatedCount()} never located</span></div>`;
+
+    el.querySelectorAll('[data-base]').forEach(b => b.addEventListener('click', () => {
+      const nm = b.dataset.base;
+      Object.entries(MAPBASE).forEach(([k, layer]) => {
+        if (k === nm && !MAP.hasLayer(layer)) layer.addTo(MAP);
+        if (k !== nm && MAP.hasLayer(layer)) MAP.removeLayer(layer);
+      });
+      MAPOPT.base = nm;
+      // Imagery is already dark; the street dimming would turn it to mud, so the
+      // container carries a class and the CSS applies a lighter touch.
+      MAP.getContainer().classList.toggle('sat', nm === 'Satellite');
+      draw();
+    }));
+    el.querySelectorAll('[data-tier]').forEach(cb => cb.addEventListener('change', () => {
+      if (cb.checked) MAPOPT.tiers.add(cb.dataset.tier);
+      else MAPOPT.tiers.delete(cb.dataset.tier);
+      buildPins(); draw();
+    }));
+    const al = el.querySelector('[data-align]');
+    if (al) al.addEventListener('change', () => {
+      MAPOPT.alignments = al.checked; buildPins(); draw(); });
+    /* Every one of these writes the SAME state the Tenders tab writes, so a
+       filter set here is still set when you switch tabs. Two independent filter
+       states over one corpus is a thing to reconcile in your head every time you
+       move between them. */
+    /* The map's own work first, its panel second, the BOARD last. Ordered that
+       way on purpose: renderBoard() renders a few hundred rows and touches far
+       more of the page than anything here, and while it sat in the middle of
+       this chain a throw inside it left the map showing the previous filter -
+       the gear looked broken when the fault was somewhere else entirely. */
+    const refilter = () => {
+      drawAlignments(); buildPins(); renderMapList(); draw();
+      renderBoard();
+    };
+    const q = el.querySelector('#gearq');
+    if (q) {
+      q.addEventListener('input', () => {
+        board.q = q.value;
+        const bq = document.getElementById('bq');
+        if (bq) bq.value = q.value;
+        board.shown = PAGE;
+        clearTimeout(q.__t);
+        // Same debounce as the board's own box: at 1,000 tenders a redraw with
+        // an alignment rebuild is not something to do per keystroke.
+        q.__t = setTimeout(() => {
+          drawAlignments(); buildPins(); renderMapList();
+          refreshCounts();          // NOT draw() - see refreshCounts above
+          renderBoard();
+        }, 180);
+      });
+    }
+    const ls = el.querySelector('#gearlist');
+    if (ls) ls.addEventListener('change', () => {
+      board.list = ls.value || null; board.shown = PAGE; refilter(); });
+    const dn = el.querySelector('#geardone');
+    if (dn) dn.addEventListener('click', () => {
+      state.doneMode = DONE_MODES[(DONE_MODES.indexOf(state.doneMode) + 1) % 3];
+      renderDoneChip(); board.shown = PAGE; refilter();
+    });
+  };
+  draw();
 }
 
 /* Enough to decide whether this pin is worth a call, and a way through to the
@@ -6113,10 +6500,36 @@ function searchBlob(t) {
   ].filter(Boolean).join(' \u00b7 ').toLowerCase());
 }
 
+/* Multi-term AND. Quoted phrases are kept whole so "toe wall" is one term. */
+function searchTerms(q) {
+  return (String(q || '').toLowerCase().match(/"[^"]+"|\S+/g) || [])
+    .map(x => x.replace(/"/g, '').trim()).filter(Boolean);
+}
+
+/* THE filter - one function, obeyed by the board AND the map.
+
+   These rules used to live inline in boardGroups() and the map had none of them,
+   so the two views disagreed: the board showed the 289 worth calling and the map
+   showed all 410 including everything set aside. Anything filtered here is
+   filtered in both places by construction, which is the only way two views of one
+   corpus stay honest as filters get added. */
+function boardPass(t, qs) {
+  if (t.verdict === 'RESULT') return false;
+  if (!state.verdicts.has(t.verdict)) return false;
+  // Set aside is off unless you ask for that list by name. This is the whole
+  // point: a big dump shrinks to what is worth a call.
+  if (board.list ? !listsOf(t.tender_id).has(board.list) : isParked(t.tender_id)) return false;
+  if (!doneOK(t)) return false;
+  // Matched against a blob built ONCE per tender rather than concatenated afresh
+  // on every keystroke. Every term supplied must appear, so "assam gawar"
+  // narrows instead of widening - which is what anyone typing two words expects,
+  // and what a single includes() cannot do.
+  if (qs && qs.length && !qs.every(term => searchBlob(t).includes(term))) return false;
+  return true;
+}
+
 function boardGroups() {
-  // Multi-term AND. Quoted phrases are kept whole so "toe wall" is one term.
-  const qs = (board.q.toLowerCase().match(/"[^"]+"|\S+/g) || [])
-    .map(s => s.replace(/"/g, '').trim()).filter(Boolean);
+  const qs = searchTerms(board.q);
 
   // A short code typed off a printed sheet jumps straight to that tender - past
   // every other filter, including a list the tender is parked on, because you
@@ -6131,17 +6544,7 @@ function boardGroups() {
                               : board.q.toUpperCase() + ' matches ' + hit.length
                                 + ' tenders \u2014 check the id', hit]];
   }
-  const rows = D.tenders.filter(t => t.verdict !== 'RESULT' &&
-    state.verdicts.has(t.verdict) &&
-    // Parked tenders are off the board unless you ask for them. This is the
-    // whole point: a big dump should shrink to what is worth a call.
-    (board.list ? listsOf(t.tender_id).has(board.list) : !isParked(t.tender_id)) &&
-    doneOK(t) && (
-    // Matched against a blob built ONCE per tender rather than concatenated
-    // afresh on every keystroke. Every term supplied must appear, so "assam
-    // gawar" narrows instead of widening - which is what anyone typing two words
-    // expects, and what a single includes() cannot do.
-    (!qs.length || qs.every(term => searchBlob(t).includes(term)))));
+  const rows = D.tenders.filter(t => boardPass(t, qs));
   const key = GROUPS[board.by][1];
   const cmp = {
     // Rank on whichever measure the tender actually has. Cum is scaled into the
@@ -7477,23 +7880,166 @@ bind('hidedone', 'click', () => {
   renderBoard();
 });
 
-/* One chip per list, in the toolbar. Clicking shows only that list; clicking the
-   active one returns to the board. Lists with nothing on them are not drawn - an
-   empty filter is a dead control. */
+/* One dropdown, not a chip per list.
+
+   Nine lists became nine chips wrapping across the toolbar and pushing the board
+   down the page - and the set-aside ones sat alongside the working ones with
+   nothing but colour to separate them. A select holds any number of lists in a
+   fixed space, and an optgroup states the distinction the colour was carrying:
+   lists you work FROM, and lists you have set ASIDE.
+
+   Counts stay on every option, because "Named, no quantity 70" is the number
+   that tells you whether the list is worth opening. */
 function renderListBar() {
   const bar = document.getElementById('listbar');
   if (!bar) return;
   const lists = allLists();
-  bar.innerHTML = lists.map(([name, n]) =>
-    `<button class="chip lchip${board.list === name ? ' on' : ''}${
-       HIDDEN_LISTS.has(name) ? ' parked' : ''}"
-       data-pick="${esc(name)}" aria-pressed="${board.list === name}"
-     >${esc(name)} <b>${n}</b></button>`).join('') +
-    (board.list ? '<button class="chip lchip" data-pick="">\u2190 Back to the board</button>' : '');
-  bar.querySelectorAll('.lchip').forEach(b => b.addEventListener('click', () => {
-    board.list = b.dataset.pick === board.list || !b.dataset.pick ? null : b.dataset.pick;
-    board.shown = PAGE; renderBoard();
-  }));
+
+  const working = lists.filter(([n]) => !HIDDEN_LISTS.has(n));
+  const aside = lists.filter(([n]) => HIDDEN_LISTS.has(n));
+  const opt = ([n, c]) =>
+    `<option value="${esc(n)}"${board.list === n ? ' selected' : ''}>${esc(n)} (${c})</option>`;
+  const total = (D.tenders || []).filter(t => !isParked(t.tender_id)).length;
+
+  /* "Edit" lives INSIDE the dropdown, straight under "All tenders".
+     It was a separate `Lists…` chip beside the select, which cost a second
+     control in a toolbar that already wraps - at the width Pratyush works at it
+     was clipped to "Lists..". Editing lists is something you want *while*
+     looking at the list of lists, so it belongs in the same menu you opened to
+     find one.
+
+     It sits with "All tenders" rather than in a "Manage" group of its own: both
+     are things you do to the whole set rather than a list you pick, and burying
+     it under a heading at the bottom put it past everything else you would ever
+     scroll through. Marked with a data attribute rather than a magic value, so
+     a list someone actually names "edit" can never be mistaken for it. */
+  bar.innerHTML = `<select id=listsel class="${board.list ? 'on' : ''}"
+      title="Show only one list">
+      <option value="">All tenders (${total})</option>
+      <option value="" data-edit=1>Edit…</option>
+      ${working.length ? `<optgroup label="Lists">${working.map(opt).join('')}</optgroup>` : ''}
+      ${aside.length ? `<optgroup label="Set aside — off the board">${
+        aside.map(opt).join('')}</optgroup>` : ''}
+    </select>` +
+    (board.list ? `<button class="chip lclear" title="Show everything again">✕</button>` : '');
+
+  const sel = bar.querySelector('#listsel');
+  sel.addEventListener('change', () => {
+    const opt = sel.selectedOptions[0];
+    if (opt && opt.dataset.edit) {
+      // Picking Edit is not a filter: put the box back to what it was showing,
+      // or it would read "Edit…" while the board below shows something else.
+      sel.value = board.list || '';
+      openListManager(sel);
+      return;
+    }
+    board.list = sel.value || null;
+    board.shown = PAGE;
+    renderBoard();
+  });
+  const clear = bar.querySelector('.lclear');
+  if (clear) clear.addEventListener('click', () => {
+    board.list = null; board.shown = PAGE; renderBoard();
+  });
+}
+
+/* Manage every list in one place: make one, delete one, or move it between
+   working and set aside. Reached from the dropdown, because that is where you
+   are when you notice a list is missing or in the wrong half. */
+function openListManager(anchor) {
+  closePicker();
+  const el = document.createElement('div');
+  el.className = 'picker lists';
+
+  const draw = () => {
+    const lists = allLists();
+    const working = lists.filter(([n]) => !HIDDEN_LISTS.has(n));
+    const aside = lists.filter(([n]) => HIDDEN_LISTS.has(n));
+
+    const row = ([name, n]) => {
+      const hidden = HIDDEN_LISTS.has(name);
+      const auto = AUTO_LISTS.has(name);
+      return `<div class=lm-row>
+        <div class=lm-main>
+          <div class=lm-name>${esc(name)}</div>
+          <div class=lm-sub>${n} tender${n === 1 ? '' : 's'}${
+            auto ? ' · kept up automatically' : ''}</div>
+        </div>
+        <button class=lm-move data-name="${esc(name)}"
+          title="${hidden ? 'Bring it back onto the board' : 'Take it off the board'}"
+        >${hidden ? '↑ to working' : '↓ set aside'}</button>
+        <button class=lm-del data-name="${esc(name)}" title="Delete this list">×</button>
+      </div>`;
+    };
+
+    const group = (label, hint, list) => `<div class=lm-group>
+        <div class=lm-ghead>${label}<em>${hint}</em></div>
+        ${list.length ? list.map(row).join('')
+          : `<div class=lm-empty>none</div>`}
+      </div>`;
+
+    el.innerHTML = `<div class=pickhead>Lists</div>
+      <div class=lm-scroll>
+        ${group('Working', 'on the board', working)}
+        ${group('Set aside', 'off the board, still one click away', aside)}
+      </div>
+      <form class=lm-new>
+        <input name=name placeholder="Name a new list…" maxlength=48 autocomplete=off>
+        <div class=lm-newrow>
+          <select name=kind>
+            <option value="">Working</option>
+            <option value=hidden>Set aside</option>
+          </select>
+          <button class=chip type=submit>Add list</button>
+        </div>
+      </form>
+      <div class=lm-err></div>`;
+
+    el.querySelectorAll('.lm-move').forEach(b => b.addEventListener('click', async () => {
+      await setListHidden(b.dataset.name, !HIDDEN_LISTS.has(b.dataset.name));
+      draw();
+    }));
+    // Two clicks, and the first states the cost in tenders.
+    el.querySelectorAll('.lm-del').forEach(b => b.addEventListener('click', async () => {
+      const name = b.dataset.name;
+      const n = (allLists().find(([x]) => x === name) || [, 0])[1];
+      if (b.dataset.armed !== '1') {
+        el.querySelectorAll('.lm-del').forEach(o => {
+          o.dataset.armed = ''; o.textContent = '×'; o.classList.remove('armed'); });
+        b.dataset.armed = '1';
+        b.textContent = n ? `delete — ${n} come off` : 'delete';
+        b.classList.add('armed');
+        return;
+      }
+      b.disabled = true;
+      await deleteList(name);
+      draw();
+    }));
+    el.querySelector('.lm-new').addEventListener('submit', async ev => {
+      ev.preventDefault();
+      const f = ev.target;
+      const err = await createList(f.name.value, f.kind.value === 'hidden');
+      if (err) { el.querySelector('.lm-err').textContent = err; return; }
+      draw();
+      const box = el.querySelector('[name=name]');
+      if (box) box.focus();
+    });
+  };
+
+  document.body.appendChild(el);
+  PICKER = el;
+  draw();
+
+  const r = anchor.getBoundingClientRect();
+  const GAP = 6, EDGE = 10;
+  el.style.left = `${Math.round(Math.max(EDGE,
+    Math.min(r.left, window.innerWidth - el.offsetWidth - 12)))}px`;
+  const below = window.innerHeight - r.bottom - GAP - EDGE;
+  el.style.top = below < 280
+    ? `${Math.round(Math.max(EDGE, r.top - GAP - Math.min(400, el.offsetHeight)))}px`
+    : `${Math.round(r.bottom + GAP)}px`;
+  const box = el.querySelector('[name=name]');
+  if (box) box.focus();
 }
 
 /* ---------- the list picker ----------
@@ -7788,7 +8334,12 @@ document.addEventListener('click', ev => {
   if (btn) { ev.stopPropagation(); openPicker(btn, btn.dataset.list); return; }
   const sh = c('.sharebtn');
   if (sh) { ev.stopPropagation(); openShare(sh, sh.dataset.share); return; }
-  if (!c('.picker')) closePicker();
+  /* `#listsel` is exempt because a native <select> fires `change` and THEN a
+     click on itself. "Edit…" opened the manager on the change, and this line
+     closed it a moment later on the click - the popover was destroyed by the
+     very gesture that created it, so the button looked dead. The old `Lists…`
+     chip never hit this: it called stopPropagation() and never reached here. */
+  if (!c('.picker') && !c('#listsel')) closePicker();
 });
 document.addEventListener('keydown', ev => { if (ev.key === 'Escape') closePicker(); });
 /* ---------- operations (local build only) ----------
@@ -7912,7 +8463,7 @@ function startLive() {
 }
 
 async function start() {
-  if (BOOT.mode === 'cloud') { await loadCloud(); await loadReviews(); await loadNotes(); await loadLists(); await loadContacts(); await loadTenderContacts(); await loadUrgency(); }
+  if (BOOT.mode === 'cloud') { await loadCloud(); await loadReviews(); await loadNotes(); await loadLists(); await loadContacts(); await loadTenderContacts(); await loadUrgency(); await loadListMeta(); }
   else loadLocal();
   const app = document.getElementById('app');
   if (app) app.hidden = false;
