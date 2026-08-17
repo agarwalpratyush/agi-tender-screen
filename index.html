@@ -4204,6 +4204,25 @@ let D = { tenders: [] };
    richer of the two - so the cloud loader assembles it from the `in_*` tables
    rather than the UI learning two vocabularies. Anything a source cannot supply
    stays empty and its section hides itself. */
+/* The link to the original document, opened AT the cited page.
+
+   The `#page=N` was missing. Every citation was labelled `Biddoc, p37` and then
+   opened page 1 of a 400-page bid document, leaving you to find p37 yourself -
+   which is most of the value of citing a page at all. The comment above `base`
+   claimed the page was honoured; the code never appended it.
+
+   Segments are percent-encoded because 386 evidence rows carry a space in the
+   filename, and a raw space in a file:// URL is at the mercy of the browser.
+   `#page=` is the PDF Open Parameters standard - Chrome's built-in viewer, Edge
+   and Acrobat all honour it. Only the local build sets `localBase`, so this
+   returns null on the hosted page, where an https document cannot follow a
+   file:// link onto someone else's disk. */
+function citeURL(base, e) {
+  if (!base || !e || !e.storage_key) return null;
+  const path = String(e.storage_key).split('/').map(encodeURIComponent).join('/');
+  return base + path + (e.page ? `#page=${e.page}` : '');
+}
+
 function adapt(rows, extra) {
   const sched = extra.sched || {}, awards = extra.awards || {},
         boq = extra.boq || {}, geo = extra.geo || {}, findings = extra.findings || {},
@@ -4215,7 +4234,7 @@ function adapt(rows, extra) {
   const base = BOOT.localBase || '';
   const cite = e => {
     const label = (e.source_file || '').replace(/^md\//, '').replace(/\.md$/, '');
-    const url = (base && e.storage_key) ? base + e.storage_key : null;
+    const url = citeURL(base, e);
     return { label: label + (e.page ? `, p${e.page}` : ''), page: e.page,
              url, image: null, portal: null, primary: url };
   };
@@ -5134,6 +5153,7 @@ const MAPTIERDEF = {
   place:    { colour: '#3f7fd0', label: 'Place names in the tender',    km: '~8 km' },
   chainage: { colour: '#2a9d8f', label: 'Chainage along a corridor',    km: '~12 km' },
   corridor: { colour: '#7f9c3a', label: 'Corridor place names',         km: '~25 km' },
+  district: { colour: '#c98f4a', label: 'District named in the tender',  km: '~25 km' },
   office:   { colour: '#b06fc9', label: 'Inviting office only',         km: '~25 km' },
   state:    { colour: '#9aa4ad', label: 'State only — worksite unknown', km: '~150 km' },
 };
@@ -6711,9 +6731,9 @@ async function hydrate(tid) {
       cite: { label: (e.source_file || '').replace(/^md\//, '').replace(/\.md$/, '')
                      + (e.page ? `, p${e.page}` : ''),
               page: e.page,
-              url: (base && e.storage_key) ? base + e.storage_key : null,
+              url: citeURL(base, e),
               image: null, portal: null,
-              primary: (base && e.storage_key) ? base + e.storage_key : null } }));
+              primary: citeURL(base, e) } }));
     t.evidence_total = t.evidence.length;
     t.quantities = (qt.data || []).map(q => ({
       file: q.source_file, term: q.term, value: q.value,
