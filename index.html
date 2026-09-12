@@ -673,6 +673,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
   --muted: #898781; --grid: #e1e0d9; --rule: #c3c2b7;
   --border: rgba(11,11,11,0.10);
   --track: #0ca30c; --review: #fab219; --skip: #898781; --accent: #2a78d6;
+  --ai: #6a4fd8;
   --shadow: 0 1px 2px rgba(11,11,11,.04), 0 4px 16px rgba(11,11,11,.05);
 }
 @media (prefers-color-scheme: dark) {
@@ -680,7 +681,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
     color-scheme: dark;
     --surface: #1a1a19; --plane: #0d0d0d; --ink: #ffffff; --ink-2: #c3c2b7;
     --muted: #898781; --grid: #2c2c2a; --rule: #383835;
-    --border: rgba(255,255,255,0.10); --accent: #3987e5;
+    --border: rgba(255,255,255,0.10); --accent: #3987e5; --ai: #a996ff;
     --shadow: 0 1px 2px rgba(0,0,0,.3), 0 4px 16px rgba(0,0,0,.4);
   }
 }
@@ -688,7 +689,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
   color-scheme: dark;
   --surface: #1a1a19; --plane: #0d0d0d; --ink: #ffffff; --ink-2: #c3c2b7;
   --muted: #898781; --grid: #2c2c2a; --rule: #383835;
-  --border: rgba(255,255,255,0.10); --accent: #3987e5;
+  --border: rgba(255,255,255,0.10); --accent: #3987e5; --ai: #a996ff;
   --shadow: 0 1px 2px rgba(0,0,0,.3), 0 4px 16px rgba(0,0,0,.4);
 }
 
@@ -1136,6 +1137,21 @@ tr.row:hover .cdel { border-color: var(--border); }
   font-size: 11px; font-weight: 600; }
 .autotag { flex: none; font-size: 10.5px; color: var(--ink-2); font-style: normal;
   opacity: .8; }
+/* The AI mark. Worded as well as coloured, so it survives a screenshot, a print
+   and a colour-blind reader - a tint alone would not. Violet because nothing
+   else in the app uses it, so it cannot be confused with a status colour. */
+.aitag { display: inline-flex; align-items: center; gap: 3px; margin-left: 6px;
+  padding: 1px 7px; border-radius: 9px; font-size: 10.5px; font-weight: 700;
+  letter-spacing: .02em; text-transform: none; white-space: nowrap;
+  vertical-align: middle; color: var(--ai);
+  background: color-mix(in srgb, var(--ai) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--ai) 45%, transparent); }
+td.num .aitag { margin: 3px 0 0; }
+/* Three classes, because .mrow.m-sup paints its own (green, 'tracked supply')
+   left bar and won at two - the wrong signal on a number nobody has confirmed. */
+.mrow.m-sup.aiest { border-left: 3px solid var(--ai); }
+.aifoot { margin-top: 9px; padding-top: 7px; font-size: 11px; color: var(--ai);
+  border-top: 1px dashed color-mix(in srgb, var(--ai) 40%, transparent); }
 
 /* collapsed reference sections */
 .fold { border: 1px solid var(--grid); border-radius: 7px; margin-top: 10px; }
@@ -1593,6 +1609,8 @@ tr.won td{background:color-mix(in srgb,var(--track) 12%,transparent);font-weight
 .picker .pickhead,.picker .picknew{flex:none}
 .pickhead{font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;
  color:var(--muted);padding:3px 7px 6px}
+.pickhead em{font-style:normal;text-transform:none;letter-spacing:0;opacity:.85}
+.picknone2{color:var(--ink-2);font-style:italic}
 .pickrow{display:flex;align-items:center;gap:9px;padding:5px 7px;border-radius:6px;
  cursor:pointer}
 .pickrow:hover{background:color-mix(in srgb,var(--accent) 9%,transparent)}
@@ -1739,6 +1757,19 @@ tr.won td{background:color-mix(in srgb,var(--track) 12%,transparent);font-weight
  background:transparent;color:var(--ink);border:1px solid transparent;border-radius:5px}
 .cin:hover{border-color:var(--grid)}
 .cin:focus{border-color:var(--accent);background:var(--plane);outline:none}
+
+/* Loading state. The board reveals itself the moment you are signed in and
+   fills in as the eight queries land, instead of leaving you on the sign-in
+   form wondering whether the password was wrong. */
+.skel{padding:10px 12px;border-bottom:1px solid var(--grid)}
+.skel i{display:block;height:9px;border-radius:4px;margin:6px 0;
+ background:linear-gradient(90deg,var(--grid) 25%,var(--plane) 37%,var(--grid) 63%);
+ background-size:400% 100%;animation:shim 1.3s ease-in-out infinite}
+.skel i.w1{width:62%}.skel i.w2{width:88%}.skel i.w3{width:41%;height:7px;opacity:.7}
+@keyframes shim{0%{background-position:100% 50%}100%{background-position:0 50%}}
+@media (prefers-reduced-motion:reduce){.skel i{animation:none}}
+.loadnote{padding:9px 12px;font-size:12px;color:var(--dim);
+ border-bottom:1px solid var(--grid)}
 </style>
 </head><body>
 
@@ -4189,8 +4220,10 @@ var qrcode = function() {
 </script>
 <script>
 window.__SB__ = supabase.createClient("https://qqzkqaedroeehuewmiic.supabase.co", "sb_publishable_2kQnRCAIxSyOfi4wsQrKDA_KHFHOJsr");
-window.__BOOT__ = { mode: "cloud",
-  caps: { citations: false, review: true, ops: false } };
+window.__BOOT__ = { mode: "cloud", prefix: "in_",
+  caps: { citations: false, review: true, ops: false }
+  , region: [[17.5, 81.0], [29.9, 97.7]]
+  , home: { center: [25.5, 90.0], zoom: 5 } };
 </script>
 <script>
 /* ---------- boot ---------- */
@@ -4199,6 +4232,26 @@ window.__BOOT__ = { mode: "cloud",
 const BOOT = window.__BOOT__ || { mode: 'local', caps: {}, data: { tenders: [] } };
 const CAPS = Object.assign({ citations: false, review: false, ops: false }, BOOT.caps);
 let D = { tenders: [] };
+
+/* Which dataset this build reads. The interface was already written once for two
+   SOURCES (local / cloud); this is the same idea for two BOARDS. India is `in_`;
+   a second market passes its own prefix in __BOOT__ and reads its own tables
+   through the same screen. The default keeps every existing build unchanged.
+
+   Table names go through T() rather than being spelled out, so adding a board is
+   a build flag and never a second copy of this file. */
+const TP = BOOT.prefix || 'in_';
+const T = n => TP + n;
+
+/* Where on Earth this board is. Same idea as T(), and needed for the same
+   reason: the screen serves more than one country now, and India's geography was
+   written into three separate places. On the Bhutan board that made the whole
+   country about 7% of the frame - the "out to the whole region" button zoomed to
+   north-east India, and an unlocated tender drew a plausible map of nowhere.
+
+   Both defaults are India's, so every existing build renders identically. */
+const REGION_BOX = BOOT.region || [[17.5, 81.0], [29.9, 97.7]];
+const HOME_SEED  = BOOT.home   || { center: [25.5, 90.0], zoom: 5 };
 
 /* The canonical tender. The local payload already has this shape - it is the
    richer of the two - so the cloud loader assembles it from the `in_*` tables
@@ -4291,9 +4344,17 @@ function adapt(rows, extra) {
     // Folder links for the On disk panel. Only the local build sets localBase, so
     // the hosted page leaves these null and the panel names the path as plain text
     // instead of offering a file:// link no browser will follow from https.
-    dir_url:   base ? base + t.tender_id + '/_raw/' : null,
-    dir_path:  base ? decodeURI((base + t.tender_id).replace(/^file:\/\/\//, '')
-                                                   .replace(/\//g, '\\')) : null,
+    //
+    // `dir_key` is the folder the row says its documents are in. India has none
+    // and keeps everything at <tender_id>/_raw/, so it falls through to that and
+    // is unchanged. A board whose files are not laid out that way - Bhutan keeps
+    // e-GP notices in documents/<id>/ and off-portal ones in documents_hpp/<slug>/
+    // - carries the folder on the row instead of the screen learning a second
+    // naming rule.
+    dir_url:   base ? base + (t.dir_key || (t.tender_id + '/_raw/')) : null,
+    dir_path:  base ? decodeURI((base + (t.dir_key || t.tender_id))
+                                  .replace(/^file:\/\/\//, '')
+                                  .replace(/\//g, '\\')) : null,
     dir_files: t.raw_file_count || 0,
     res_url:   (base && t.result_file_count) ? base + t.tender_id + '__result/_raw/' : null,
     res_path:  (base && t.result_file_count)
@@ -4357,8 +4418,8 @@ async function loadCloud() {
   // in_boq_items is filtered server-side to the summarised set: 683 rows instead
   // of 2,426, and the board only ever totals those.
   const [t, s, f, a, b] = await Promise.all([
-    all('in_tenders', 'score'), all('in_schedule_h'), all('in_contractors', 'wins'),
-    all('in_awards'), all('in_boq_items', null, q => q.eq('is_supply', true)),
+    all(T('tenders'), 'score'), all(T('schedule_h')), all(T('contractors'), 'wins'),
+    all(T('awards')), all(T('boq_items'), null, q => q.eq('is_supply', true)),
   ]);
   const g = [], fi = [], ev = [], hi = [], qt = [];
   const by = (rows, key) => (rows || []).reduce((m, r) => ((m[r[key]] ||= []).push(r), m), {});
@@ -4433,7 +4494,7 @@ const LIST_META = new Map();     // name -> {hidden}
 
 async function loadListMeta() {
   if (BOOT.mode !== 'cloud' || !window.__SB__) return;
-  const { data, error } = await window.__SB__.from('in_lists_meta')
+  const { data, error } = await window.__SB__.from(T('lists_meta'))
     .select('list_name,hidden');
   if (error) { console.warn('list meta unavailable', error); return; }
   LIST_META.clear();
@@ -4458,7 +4519,7 @@ async function createList(name, hidden) {
   renderListBar(); renderBoard();
   if (BOOT.mode !== 'cloud' || !window.__SB__) return null;
   try {
-    const { error } = await window.__SB__.from('in_lists_meta')
+    const { error } = await window.__SB__.from(T('lists_meta'))
       .upsert({ list_name: name, hidden: !!hidden }, { onConflict: 'list_name' });
     if (error) throw error;
   } catch (e) {
@@ -4481,7 +4542,7 @@ async function setListHidden(name, hidden) {
   renderListBar(); renderBoard();
   if (BOOT.mode !== 'cloud' || !window.__SB__) return;
   try {
-    const { error } = await window.__SB__.from('in_lists_meta')
+    const { error } = await window.__SB__.from(T('lists_meta'))
       .upsert({ list_name: name, hidden: !!hidden }, { onConflict: 'list_name' });
     if (error) throw error;
   } catch (e) {
@@ -4521,7 +4582,7 @@ function allLists() {
 
 async function loadLists() {
   if (BOOT.mode !== 'cloud' || !window.__SB__) return;
-  const { data, error } = await window.__SB__.from('in_lists')
+  const { data, error } = await window.__SB__.from(T('lists'))
     .select('tender_id,list_name,auto');
   if (error) { console.warn('lists unavailable', error); return; }
   LISTS.clear(); AUTO_LISTS.clear();
@@ -4531,26 +4592,59 @@ async function loadLists() {
     if (r.auto) AUTO_LISTS.add(r.list_name);
   });
   try {
-    const { data: m } = await window.__SB__.from('in_list_muted').select('list_name');
+    const { data: m } = await window.__SB__.from(T('list_muted')).select('list_name');
     MUTED.clear(); (m || []).forEach(x => MUTED.add(x.list_name));
   } catch (e) { console.warn('muted lists unavailable', e); }
 }
 
+/* File a tender onto a list. EXCLUSIVE: a tender belongs on one list, so ticking
+   another MOVES it rather than adding a second membership.
+
+   `in_lists` now carries `unique (tender_id)`, so this is not a convention the UI
+   is politely honouring - a second row is refused by the database. Which also
+   means the old upsert keyed on (tender_id, list_name) cannot work: it would
+   collide with the very row it is meant to replace. Delete first, then insert.
+
+   It used to swallow failures into console.warn. A list that looks filed and is
+   not is worse than a visible error, so the memory copy is rolled back and the
+   failure is shown. */
 async function setList(tid, name, on) {
-  if (!LISTS.has(tid)) LISTS.set(tid, new Set());
-  if (on) LISTS.get(tid).add(name); else LISTS.get(tid).delete(name);
-  if (!LISTS.get(tid).size) LISTS.delete(tid);
-  renderBoard();
+  /* The board must know this tender. A UI test once filed the id "T1" - which no
+     tender has - onto a list, and it saved: the counts then included a row nobody
+     could open. `in_lists` now has a foreign key too, so this is belt and braces,
+     but failing here is clearer than a 409 from PostgREST. */
+  if (!(D.tenders || []).some(t => t.tender_id === tid)) {
+    toast('That tender is not on the board - not filed', true);
+    return;
+  }
+  const before = new Set(listsOf(tid));
+  if (on) LISTS.set(tid, new Set([name]));
+  else {
+    const cur = LISTS.get(tid);
+    if (cur) { cur.delete(name); if (!cur.size) LISTS.delete(tid); }
+  }
+  renderBoard(); renderListBar();
   if (BOOT.mode !== 'cloud' || !window.__SB__) return;
   try {
     if (on) {
-      await window.__SB__.from('in_lists')
-        .upsert({ tender_id: tid, list_name: name }, { onConflict: 'tender_id,list_name' });
+      const { error: dErr } = await window.__SB__.from(T('lists'))
+        .delete().eq('tender_id', tid);
+      if (dErr) throw dErr;
+      const { error } = await window.__SB__.from(T('lists'))
+        .insert({ tender_id: tid, list_name: name });
+      if (error) throw error;
+      const off = [...before].filter(n => n !== name);
+      toast(off.length ? `Moved from ${off.join(', ')} to ${name}` : `Filed under ${name}`);
     } else {
-      await window.__SB__.from('in_lists').delete()
+      const { error } = await window.__SB__.from(T('lists')).delete()
         .eq('tender_id', tid).eq('list_name', name);
+      if (error) throw error;
     }
-  } catch (e) { console.warn('could not save the list', e); }
+  } catch (e) {
+    if (before.size) LISTS.set(tid, before); else LISTS.delete(tid);
+    renderBoard(); renderListBar();
+    toast(saveError(e, 'The list'), true);
+  }
 }
 
 /* Remove a list entirely - every tender comes off it, the list stops existing.
@@ -4579,16 +4673,16 @@ async function deleteList(name) {
     // would reappear at the next sync; this way the worst case is a mute with
     // nothing muted, which costs nothing and is undone by re-creating the list.
     if (wasAuto || suggestion) {
-      const { error: mErr } = await window.__SB__.from('in_list_muted')
+      const { error: mErr } = await window.__SB__.from(T('list_muted'))
         .upsert({ list_name: name }, { onConflict: 'list_name' });
       if (mErr) throw mErr;
       AUTO_LISTS.delete(name); MUTED.add(name);
     }
-    const { error } = await window.__SB__.from('in_lists')
+    const { error } = await window.__SB__.from(T('lists'))
       .delete().eq('list_name', name);
     if (error) throw error;
     // The list itself, not just its members.
-    await window.__SB__.from('in_lists_meta').delete().eq('list_name', name);
+    await window.__SB__.from(T('lists_meta')).delete().eq('list_name', name);
   } catch (e) {
     console.warn('could not remove the list', e);
     // Say so rather than leaving the screen disagreeing with the database.
@@ -4600,7 +4694,7 @@ async function deleteList(name) {
 
 async function loadReviews() {
   if (BOOT.mode !== 'cloud' || !window.__SB__) return;
-  const { data, error } = await window.__SB__.from('in_reviews')
+  const { data, error } = await window.__SB__.from(T('reviews'))
     .select('tender_id').eq('reviewed', true);
   if (!error && data) state.done = new Set(data.map(r => r.tender_id));
 }
@@ -4608,11 +4702,11 @@ async function pushReview(tid, reviewed) {
   if (BOOT.mode !== 'cloud' || !window.__SB__) return;
   const sb = window.__SB__;
   if (reviewed) {
-    await sb.from('in_reviews').upsert(
+    await sb.from(T('reviews')).upsert(
       { tender_id: tid, reviewed: true, updated_at: new Date().toISOString() },
       { onConflict: 'tender_id,user_id' });
   } else {
-    await sb.from('in_reviews').delete().eq('tender_id', tid);
+    await sb.from(T('reviews')).delete().eq('tender_id', tid);
   }
 }
 
@@ -4873,6 +4967,29 @@ function detailHTML(t, withHead = true) {
     h += '</div>';
   }
 
+  // AI estimate: near the top on the tenders that have one, framed as a minimum
+  // and carrying its working, so it can be checked rather than just believed.
+  const est = estOf(t.tender_id);
+  if (est) {
+    const bx = (Array.isArray(est.boxes) ? est.boxes : []).map(b =>
+      `<tr><td>${esc(String(b.size).replace(/x/g, ' × '))} m${b.diaphragms
+        ? ', ' + b.diaphragms + ' diaphragm' + (b.diaphragms > 1 ? 's' : '') : ''}${
+        b.note ? ' <span class=bsub>' + esc(b.note) + '</span>' : ''}</td>
+        <td class=num>${Number(b.qty).toLocaleString('en-IN')}</td></tr>`).join('');
+    const wire = [est.wire_t_gi != null && '<b>' + Number(est.wire_t_gi).toLocaleString('en-IN') + ' t</b> GI 2.7 mm',
+                  est.wire_t_pvc != null && '<b>' + Number(est.wire_t_pvc).toLocaleString('en-IN') + ' t</b> PVC 2.7/3.7 mm']
+      .filter(Boolean).join(' · ');
+    h += `<h3>Gabion quantity ${aiTag(est)}</h3><div class="mrow m-sup aiest">
+      <div class=mhead><span class=bigval>${estQty(est)}</span>
+        <span class=mscore>minimum · ${esc(est.confidence)}</span></div>
+      ${bx ? `<table class=qty><thead><tr><th>Boxes</th><th class=num>Qty</th></tr></thead><tbody>${bx}</tbody></table>` : ''}
+      ${wire ? `<div class=mtext style="margin-top:6px">Wire: ${wire}</div>` : ''}
+      <div class=mtext style="margin-top:7px;color:var(--ink-2)">${esc(est.basis)}</div>
+      <div class=aifoot>Estimated by ${esc(est.estimated_by)}${estWhen(est) ? ' on ' + estWhen(est) : ''}
+        from the tender documents. Not a figure the BoQ states - verify before quoting.</div>
+    </div>`;
+  }
+
   // The commercial headline: payment weightage x award = what this work is worth.
   const v = t.value;
   if (v && v.gabion_value_cr) {
@@ -5056,7 +5173,7 @@ async function upload(files) {
     out.prepend(line);
     const up = await window.__SB__.storage.from('tender-inbox').upload(path, f);
     if (up.error) { line.innerHTML = `${esc(f.name)} — <span class=warn>${esc(up.error.message)}</span>`; continue; }
-    const ins = await window.__SB__.from('in_uploads').insert(
+    const ins = await window.__SB__.from(T('uploads')).insert(
       { filename: f.name, size_bytes: f.size, storage_path: path });
     line.innerHTML = ins.error
       ? `${esc(f.name)} — <span class=warn>${esc(ins.error.message)}</span>`
@@ -5068,7 +5185,7 @@ async function upload(files) {
 async function runInbox() {
   const btn = document.getElementById('runinbox');
   btn.disabled = true; btn.textContent = 'Queued…';
-  const { error } = await window.__SB__.from('in_uploads').insert(
+  const { error } = await window.__SB__.from(T('uploads')).insert(
     { kind: 'run', filename: '(process inbox)', storage_path: null });
   const line = document.createElement('div');
   line.className = 'mtext';
@@ -5082,7 +5199,7 @@ async function runInbox() {
 async function renderQueue() {
   const el = document.getElementById('queue');
   if (!el || !CAPS.ops) return;
-  const { data, error } = await window.__SB__.from('in_uploads').select('*')
+  const { data, error } = await window.__SB__.from(T('uploads')).select('*')
     .order('uploaded_at', { ascending: false }).limit(25);
   if (error) { el.innerHTML = `<div class=mtext>Queue unavailable: ${esc(error.message)}</div>`; return; }
   if (!data.length) { el.innerHTML = '<div class=mtext>Nothing uploaded yet.</div>'; return; }
@@ -5100,7 +5217,7 @@ async function renderQueue() {
    to - the local copy has no connection, so the fields render read-only. */
 async function saveContact(name, field, value) {
   if (!window.__SB__) return false;
-  const { error } = await window.__SB__.from('in_contractors')
+  const { error } = await window.__SB__.from(T('contractors'))
     .update({ [field]: value, updated_at: new Date().toISOString() }).eq('name', name);
   const f = (D.firms || []).find(x => x.name === name);
   if (f && !error) f[field] = value;
@@ -5250,7 +5367,7 @@ async function loadGeo() {
   if (GEO_LOADED || BOOT.mode !== 'cloud' || !window.__ALL__) return false;
   GEO_LOADED = true;
   try {
-    const rows = await window.__ALL__('in_geo');
+    const rows = await window.__ALL__(T('geo'));
     const byId = {};
     (rows || []).forEach(r => { byId[r.tender_id] = r; });
     D.tenders.forEach(t => { if (byId[t.tender_id]) t.geo = byId[t.tender_id]; });
@@ -5306,7 +5423,7 @@ function renderMapView() {
 
   // Opens on what is drawn, not the region - the corpus is one corner of it, so
   // the regional view spent its pixels on states with no tenders in them.
-  const REGION = L.latLngBounds([17.5, 81.0], [29.9, 97.7]);
+  const REGION = L.latLngBounds(REGION_BOX[0], REGION_BOX[1]);
   function home() {
     MAP.invalidateSize();
     let b = MAPOPT.alignments && drawn.getLayers().length ? drawn.getBounds() : null;
@@ -5374,34 +5491,82 @@ function buildPins() {
     if (!g) return;
     g.clearLayers();
     let n = 0;
+    /* Gather first, draw second.
+       Two faults hid here until a board arrived whose positions are coarse.
+       Bhutan's are: 309 tenders sit on 23 distinct coordinates, and 72 of them
+       on ONE - because a Dzongkhag centroid is the honest answer for most of
+       them. Drawing straight from the loop then meant:
+
+         1. one accuracy ring PER TENDER, so 72 identical translucent circles
+            stacked at 7% fill each and turned the district into a solid blob
+            that hid the map underneath it;
+         2. 72 dots at the same coordinate, which is one dot. The other 71 were
+            unreachable at any zoom, because no zoom separates equal numbers.
+
+       So: one ring per position, and the dots fanned out inside it. */
+    const seen = [];
     (D.tenders || []).forEach(t => {
       const p = t.place;
       if (!p || p.source !== tier || p.lat == null) return;
       if (isParked(t.tender_id) && MAPOPT.tiers.has(tier)) MAPASIDE++;
       if (!boardPass(t, qs)) return;
       n++;
-      const km = Number(p.precision_km) || 0;
+      seen.push(t);
+    });
+    const groups = new Map();
+    seen.forEach(t => {
+      const k = t.place.lat + ',' + t.place.lon;
+      if (!groups.has(k)) groups.set(k, []);
+      groups.get(k).push(t);
+    });
+    groups.forEach(members => {
+      // Sorted by id, so a pin keeps its spot when the list is re-sorted or
+      // filtered. A dot that moves when you sort the table is worse than a
+      // stacked one.
+      members.sort((a, b) => String(a.tender_id).localeCompare(String(b.tender_id)));
+      const p0 = members[0].place;
+      const km = Number(p0.precision_km) || 0;
       if (km > 10) {
         // interactive:false is load-bearing. These rings are up to 150 km across
         // and the tiers are added in order, so an office or state ring lands ON
         // TOP of every smaller dot inside it and eats the click - the dot looks
         // dead while its neighbour two pixels away works fine. The ring is a
         // statement about accuracy, not a target.
-        L.circle([p.lat, p.lon], { radius: km * 1000, color: cfg.colour, weight: 1,
+        L.circle([p0.lat, p0.lon], { radius: km * 1000, color: cfg.colour, weight: 1,
           opacity: 0.5, fillColor: cfg.colour, fillOpacity: 0.07, dashArray: '4 4',
           interactive: false }).addTo(g);
       }
-      const pop = mapPopup(t.tender_id) +
-        `<p class=more style="margin-top:6px">${esc(p.note || '')}</p>`;
-      // An invisible 12 px disc under the 5 px dot. A five-pixel target is a
-      // fiddle with a trackpad and hopeless on a touchscreen; Leaflet has no
-      // separate hit radius, so this is the hit area and the dot on top is the
-      // picture. Added first so the visible one still draws over it.
-      L.circleMarker([p.lat, p.lon], { radius: 12, stroke: false, fillOpacity: 0,
-        fillColor: cfg.colour }).bindPopup(pop).addTo(g);
-      L.circleMarker([p.lat, p.lon], { radius: 5, color: '#fff', weight: 1.5,
-        fillColor: cfg.colour, fillOpacity: 0.95 }).bindPopup(pop).addTo(g);
-      if (tier !== 'state') MAPEXTRA.push([p.lat, p.lon]);
+      /* Fan a shared position out over a golden-angle spiral, which fills a disc
+         evenly instead of ringing its edge. This adds NO precision and must not
+         be read as any: the dot's exact spot is arbitrary, the ring around it is
+         the actual claim, and the spread stays at ~55% of that radius so a dot
+         never escapes the circle that qualifies it. A position held by only one
+         tender does not move at all. */
+      const m = members.length;
+      const spread = Math.max(km, 4) * 0.55;
+      const latKm = 111.32;
+      const lonKm = 111.32 * Math.cos(p0.lat * Math.PI / 180) || 111.32;
+      members.forEach((t, i) => {
+        const p = t.place;
+        let la = p.lat, lo = p.lon;
+        if (m > 1) {
+          const frac = Math.sqrt((i + 0.5) / m);
+          const ang = i * 2.399963229728653;   // golden angle
+          la += (frac * spread * Math.sin(ang)) / latKm;
+          lo += (frac * spread * Math.cos(ang)) / lonKm;
+        }
+        const pop = mapPopup(t.tender_id) +
+          `<p class=more style="margin-top:6px">${esc(p.note || '')}</p>`;
+        // An invisible 12 px disc under the 5 px dot. A five-pixel target is a
+        // fiddle with a trackpad and hopeless on a touchscreen; Leaflet has no
+        // separate hit radius, so this is the hit area and the dot on top is the
+        // picture. Added first so the visible one still draws over it.
+        L.circleMarker([la, lo], { radius: 12, stroke: false, fillOpacity: 0,
+          fillColor: cfg.colour }).bindPopup(pop).addTo(g);
+        L.circleMarker([la, lo], { radius: 5, color: '#fff', weight: 1.5,
+          fillColor: cfg.colour, fillOpacity: 0.95 }).bindPopup(pop).addTo(g);
+        if (tier !== 'state') MAPEXTRA.push([la, lo]);
+      });
     });
     MAPCOUNT[tier] = n;
     const on = MAPOPT.tiers.has(tier) && n > 0;
@@ -5582,7 +5747,7 @@ function mapPopup(tid) {
   if (!t) return esc(tid || '');
   const d = t.detail || {}, w = windowOf(t);
   const row = (k, v) => v ? `<div class=pkv><span>${k}</span><b>${v}</b></div>` : '';
-  const qty = gabOf(t) ? crv(gabOf(t)) : (bestQty(t) || '');
+  const qty = gabOf(t) ? crv(gabOf(t)) : cumOf(t) ? bestQty(t) : estOf(t.tender_id) ? estQty(estOf(t.tender_id)) + ' (AI estimate)' : (bestQty(t) || '');
   return `<div class=mpop>
     <div class=ptitle>${esc(d.title || tid)}</div>
     <div class=pid>${esc(tid)}${d.state ? ' \u00b7 ' + esc(d.state) : ''}</div>
@@ -5740,7 +5905,7 @@ function printSheet(t) {
       if (s[k] && !spec[k]) spec[k] = s[k];
     });
   });
-  const qty = gabOf(t) ? crv(gabOf(t)) : (bestQty(t) || 'not stated');
+  const qty = gabOf(t) ? crv(gabOf(t)) : cumOf(t) ? bestQty(t) : estOf(t.tender_id) ? estQty(estOf(t.tender_id)) + ' (AI estimate)' : (bestQty(t) || 'not stated');
   // One line, not five rows. The mesh, the wire and the coating are read
   // together as a single specification anyway, and five labelled rows cost the
   // page 100 points of height that the questions and the notes need more.
@@ -5919,7 +6084,7 @@ function openMapDrawer(tid) {
       // fitBounds or setView ever ran, and the drawer slid open onto a blank
       // grey panel with no tiles. The view below is only a seed; fitBounds
       // replaces it a few lines down.
-      MINI = L.map('minimap', { center: [25.5, 90.0], zoom: 5,
+      MINI = L.map('minimap', { center: HOME_SEED.center, zoom: HOME_SEED.zoom,
         layers: [L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',
           { maxZoom: 19, attribution: '&copy; OpenStreetMap' })] });
       L.control.scale({ imperial: false }).addTo(MINI);
@@ -6018,7 +6183,7 @@ function openMapDrawer(tid) {
       // geometry on demand, and until it lands they look identical to a tender
       // with nothing. Calling those "not located" is the one wrong thing to say
       // about the best-located jobs on the board.
-      MINI.setView([25.5, 90.0], 5, { animate: false });
+      MINI.setView(HOME_SEED.center, HOME_SEED.zoom, { animate: false });
       const f = document.getElementById('minifoot');
       if (f) f.innerHTML = MINIWAIT === tid
         ? '<span class=mlhow>reading the alignment…</span> ' +
@@ -6107,7 +6272,7 @@ function renderMapList() {
     const d = t.detail || {}, w = windowOf(t);
     const surveyed = t.geo && t.geo.centre_lat != null;
     const how = surveyed ? 'surveyed alignment' : (HOW[(t.place || {}).source] || '');
-    const size = gabOf(t) ? crv(gabOf(t)) + ' gabion' : (bestQty(t) || '');
+    const size = gabOf(t) ? crv(gabOf(t)) + ' gabion' : cumOf(t) ? bestQty(t) : estOf(t.tender_id) ? estQty(estOf(t.tender_id)) + ' (AI estimate)' : (bestQty(t) || '');
     const who = t.award && t.award.winner ? esc(t.award.winner) : bstatus(t);
     const where = [d.corridor || d.location, d.state].filter(Boolean).join(', ');
     const km = t.geo && t.geo.total_line_km
@@ -6209,14 +6374,14 @@ function markNoted(tid, on) {
 
 async function pushNote(tid, text) {
   if (BOOT.mode !== 'cloud' || !window.__SB__) return;
-  await window.__SB__.from('in_notes').upsert(
+  await window.__SB__.from(T('notes')).upsert(
     { tender_id: tid, note: text, updated_at: new Date().toISOString() },
     { onConflict: 'tender_id,user_id' });
 }
 
 async function loadNotes() {
   if (BOOT.mode !== 'cloud' || !window.__SB__) return;
-  const { data, error } = await window.__SB__.from('in_notes').select('tender_id,note,updated_at');
+  const { data, error } = await window.__SB__.from(T('notes')).select('tender_id,note,updated_at');
   if (!error && data) data.forEach(r => { NOTES[r.tender_id] = { text: r.note, at: r.updated_at }; });
 }
 
@@ -6664,6 +6829,8 @@ function renderBoard() {
         <td>${t.award && t.award.winner ? '<b>' + esc(t.award.winner) + '</b>'
               : '<span class=bsub>' + bstatus(t) + '</span>'}</td>
         <td class=num>${gabOf(t) ? '<b>' + crv(gabOf(t)) + '</b>'
+          : cumOf(t) ? '<b>' + esc(bestQty(t)) + '</b><span class=bsub>quantity, no price</span>'
+          : estOf(t.tender_id) ? '<b>' + estQty(estOf(t.tender_id)) + '</b><br>' + aiTag(estOf(t.tender_id))
           : bestQty(t)
             ? '<b>' + esc(bestQty(t)) + '</b><span class=bsub>quantity, no price</span>'
           : (t.hit_totals && t.hit_totals.core)
@@ -6711,8 +6878,8 @@ async function hydrate(tid) {
   const one = tbl => SB.from(tbl).select('*').eq('tender_id', tid);
   try {
     const [ev, qt, hi, fi, bq, bd] = await Promise.all([
-      one('in_evidence'), one('in_quantities'), one('in_hits'),
-      one('in_findings'), one('in_boq_items'), one('in_bids'),
+      one(T('evidence')), one(T('quantities')), one(T('hits')),
+      one(T('findings')), one(T('boq_items')), one(T('bids')),
     ]);
     // in_awards holds the contract header; the bidders are their own table. The
     // detail panel lists them with their GSTINs, and the losers matter too - they
@@ -6896,9 +7063,32 @@ const URG = { urgent: 0, soon: 1, watch: 2 };
 const URG_LABEL = { urgent: 'Call now', soon: 'Call this week', watch: 'Keep an eye' };
 const urgOf = tid => URGENCY.get(tid) || null;
 
+/* Gabion quantities estimated by AI from a tender's documents, where the BoQ
+   states no volume. Always a MINIMUM and always marked: a number the documents
+   state and a number worked out from them must never read as the same kind of
+   fact. Kept in its own table so sync.py can never overwrite it, and it never
+   outranks a volume the BoQ actually gives. */
+const ESTIMATES = new Map();       // tender_id -> row
+const estOf = tid => ESTIMATES.get(tid) || null;
+
+async function loadEstimates() {
+  if (BOOT.mode !== 'cloud' || !window.__SB__) return;
+  const { data, error } = await window.__SB__.from(T('estimates'))
+    .select('tender_id,min_cum,boxes,wire_t_gi,wire_t_pvc,basis,confidence,estimated_by,estimated_at');
+  if (error) { console.warn('estimates unavailable', error); return; }
+  ESTIMATES.clear();
+  (data || []).forEach(r => ESTIMATES.set(r.tender_id, r));
+}
+
+const estQty = e => '≥ ' + Math.round(Number(e.min_cum)).toLocaleString('en-IN') + ' Cum';
+const estWhen = e => e.estimated_at ? new Date(e.estimated_at).toLocaleDateString('en-IN',
+  { day: 'numeric', month: 'short', year: 'numeric' }) : '';
+const aiTag = e => `<span class=aitag title="Estimated by ${esc(e.estimated_by || 'AI')}${
+  estWhen(e) ? ' on ' + estWhen(e) : ''} from the tender documents. Not a figure the BoQ states - verify before quoting.">✦ AI estimate</span>`;
+
 async function loadUrgency() {
   if (BOOT.mode !== 'cloud' || !window.__SB__) return;
-  const { data, error } = await window.__SB__.from('in_urgency')
+  const { data, error } = await window.__SB__.from(T('urgency'))
     .select('tender_id,level,due,note');
   if (error) { console.warn('urgency unavailable', error); return; }
   URGENCY.clear();
@@ -6915,9 +7105,9 @@ async function setUrgency(tid, level, due, note) {
   if (BOOT.mode !== 'cloud' || !window.__SB__) return;
   try {
     if (!level) {
-      await window.__SB__.from('in_urgency').delete().eq('tender_id', tid);
+      await window.__SB__.from(T('urgency')).delete().eq('tender_id', tid);
     } else {
-      await window.__SB__.from('in_urgency').upsert(
+      await window.__SB__.from(T('urgency')).upsert(
         { tender_id: tid, level, due: due || null, note: note || null,
           updated_at: new Date().toISOString() }, { onConflict: 'tender_id' });
     }
@@ -6943,7 +7133,7 @@ async function loadContacts() {
   // than silently losing the tail the day the directory grows.
   const rows = [];
   for (let from = 0; ; from += 1000) {
-    const { data, error } = await window.__SB__.from('in_contacts')
+    const { data, error } = await window.__SB__.from(T('contacts'))
       .select('id,firm,person,desig,office,role,state,dept,agency,conf,asof,' +
               'kind,value,label,source,note,projects,via')
       .order('id').range(from, from + 999);
@@ -6973,7 +7163,7 @@ async function addContact(firm, person, role, kind, value, label) {
   refreshContactViews();
   if (BOOT.mode !== 'cloud' || !window.__SB__) return true;
   try {
-    const { error } = await window.__SB__.from('in_contacts')
+    const { error } = await window.__SB__.from(T('contacts'))
       .upsert(row, { onConflict: 'firm,person,kind,value' });
     if (error) throw error;
     await loadContacts(); renderCallList();
@@ -7060,7 +7250,7 @@ const TLINKS = new Map();
 
 async function loadTenderContacts() {
   if (BOOT.mode !== 'cloud' || !window.__SB__) return;
-  const { data, error } = await window.__SB__.from('in_tender_contacts')
+  const { data, error } = await window.__SB__.from(T('tender_contacts'))
     .select('tender_id,contact_id');
   if (error) { console.warn('tender contacts unavailable', error); return; }
   TLINKS.clear();
@@ -7078,11 +7268,11 @@ async function linkContact(tid, contactId, on) {
   if (BOOT.mode !== 'cloud' || !window.__SB__ || !contactId) return;
   try {
     if (on) {
-      await window.__SB__.from('in_tender_contacts')
+      await window.__SB__.from(T('tender_contacts'))
         .upsert({ tender_id: tid, contact_id: contactId },
                 { onConflict: 'tender_id,contact_id' });
     } else {
-      await window.__SB__.from('in_tender_contacts').delete()
+      await window.__SB__.from(T('tender_contacts')).delete()
         .eq('tender_id', tid).eq('contact_id', contactId);
     }
   } catch (e) {
@@ -7132,7 +7322,7 @@ async function addPerson(rec) {
   refreshContactViews();
   if (BOOT.mode !== 'cloud' || !window.__SB__) return null;
   try {
-    const { error } = await window.__SB__.from('in_contacts')
+    const { error } = await window.__SB__.from(T('contacts'))
       .upsert(row, { onConflict: 'firm,person,kind,value' });
     if (error) throw error;
     await loadContacts(); refreshContactViews();
@@ -7174,7 +7364,7 @@ async function removeContact(firm, person, id, kind, value) {
   refreshContactViews();
   if (BOOT.mode !== 'cloud' || !window.__SB__ || !id) return;
   try {
-    await window.__SB__.from('in_contacts').delete().eq('id', id);
+    await window.__SB__.from(T('contacts')).delete().eq('id', id);
   } catch (e) { console.warn('could not remove the contact', e); }
 }
 
@@ -7577,6 +7767,8 @@ function renderDash() {
 
       <div class=callneed>${
         gabOf(t) ? `<b>${crv(gabOf(t))}</b><span>gabion in this job</span>`
+        : cumOf(t) ? `<b>${esc(bestQty(t))}</b><span>quantity in the BoQ</span>`
+        : estOf(t.tender_id) ? `<b>${estQty(estOf(t.tender_id))}</b>${aiTag(estOf(t.tender_id))}`
         : bestQty(t) ? `<b>${esc(bestQty(t))}</b><span>quantity in the BoQ</span>`
         : `<span class=cwnone>gabion not priced</span>`}</div>
 
@@ -8084,11 +8276,13 @@ function openPicker(anchor, tid) {
   const el = document.createElement('div');
   el.className = 'picker';
   el.innerHTML =
-    `<div class=pickhead>Lists</div><div class=pickscroll>` +
+    `<div class=pickhead>Lists <em>one per tender</em></div><div class=pickscroll>` +
+    `<div class=pickrow><label><input type=radio name=picklist data-list=""
+         ${mine.size ? '' : 'checked'}><span class=picknone2>Not on a list</span></label></div>` +
     names.map(n => {
       const used = counts.get(n) || 0;
       return `<div class=pickrow>
-        <label><input type=checkbox data-list="${esc(n)}" ${mine.has(n) ? 'checked' : ''}>
+        <label><input type=radio name=picklist data-list="${esc(n)}" ${mine.has(n) ? 'checked' : ''}>
           <span>${esc(n)}</span></label>
         ${HIDDEN_LISTS.has(n) ? '<i>hidden from the board</i>' : ''}
         ${AUTO_LISTS.has(n) ? '<i class=autotag>automatic</i>' : ''}
@@ -8118,8 +8312,15 @@ function openPicker(anchor, tid) {
   if (flip) el.style.top = `${Math.round(Math.max(EDGE, r.top - GAP - el.offsetHeight))}px`;
   else      el.style.top = `${Math.round(r.bottom + GAP)}px`;
 
-  el.querySelectorAll('input[type=checkbox]').forEach(cb =>
-    cb.addEventListener('change', () => setList(tid, cb.dataset.list, cb.checked)));
+  /* Radios, because the choice is exclusive. Picking one files the tender there
+     and takes it off whatever it was on; "Not on a list" takes it off entirely. */
+  el.querySelectorAll('input[type=radio]').forEach(rb =>
+    rb.addEventListener('change', () => {
+      if (!rb.checked) return;
+      const want = rb.dataset.list;
+      if (want) { setList(tid, want, true); return; }
+      [...listsOf(tid)].forEach(n => setList(tid, n, false));
+    }));
 
   /* Two clicks to delete, in place. The first turns the x into the consequence -
      "Remove from 16?" - so the number is read before it is acted on, and there is
@@ -8463,8 +8664,8 @@ async function refreshLive(why) {
 function startLive() {
   if (BOOT.mode !== 'cloud' || !window.__SB__) return;
   try {
-    window.__SB__.channel('in_tenders_live')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'in_tenders' },
+    window.__SB__.channel(T('tenders_live'))
+      .on('postgres_changes', { event: '*', schema: 'public', table: T('tenders') },
           () => refreshLive('realtime'))
       .subscribe();
   } catch (e) { console.warn('realtime unavailable', e); }
@@ -8472,7 +8673,7 @@ function startLive() {
   setInterval(async () => {
     if (document.hidden) return;          // no point polling a tab nobody is looking at
     try {
-      const { data } = await window.__SB__.from('in_tenders')
+      const { data } = await window.__SB__.from(T('tenders'))
         .select('updated_at').order('updated_at', { ascending: false }).limit(1);
       const latest = data && data[0] && data[0].updated_at;
       if (!latest) return;
@@ -8482,8 +8683,81 @@ function startLive() {
   }, 45000);
 }
 
+/* Say what is happening while it happens.
+
+   start() runs eight queries one after another before it reveals anything,
+   so signing in used to mean staring at an unchanged sign-in form for long
+   enough to assume the password was wrong. Nothing was broken; nothing said
+   so either. __PROGRESS__ is set by the page that owns the sign-in form; it
+   is optional, so a build without one behaves exactly as before. */
+function progress(msg) {
+  try { if (typeof window.__PROGRESS__ === "function") window.__PROGRESS__(msg); }
+  catch (e) {}
+}
+
+/* Show the board immediately, with placeholder rows, and let the real rows
+   replace them. A shape that is about to be filled reads as loading; a blank
+   panel reads as broken. */
+function showSkeleton(msg) {
+  const app = document.getElementById("app");
+  const gate = document.getElementById("gate");
+  if (app) app.hidden = false;
+  if (gate) gate.hidden = true;
+  const host = document.getElementById("boardlist") || document.getElementById("list");
+  if (!host || host.dataset.skel === "1") return;
+  host.dataset.skel = "1";
+  // The pane the skeleton lives in is hidden until showView() runs, which is
+  // the LAST thing start() does - so without this the placeholder rows were
+  // in the DOM and invisible, which is the same as not having them. Reveal
+  // the pane that is about to be filled; showView() takes over at the end.
+  const pane = host.closest("[id^='view-']");
+  if (pane) {
+    ["dash", "board", "map", "contractors", "ops"].forEach(n => {
+      const el = document.getElementById("view-" + n);
+      if (el) el.hidden = (el !== pane);
+    });
+  }
+  let h = `<div class=loadnote id=skelnote>${esc(msg || "Loading…")}</div>`;
+  for (let i = 0; i < 9; i++) {
+    h += "<div class=skel><i class=w1></i><i class=w2></i><i class=w3></i></div>";
+  }
+  host.innerHTML = h;
+}
+
+function skeletonNote(msg) {
+  const n = document.getElementById("skelnote");
+  if (n) n.textContent = msg;
+}
+
+function clearSkeleton() {
+  const host = document.getElementById("boardlist") || document.getElementById("list");
+  if (host) delete host.dataset.skel;
+}
+
 async function start() {
-  if (BOOT.mode === 'cloud') { await loadCloud(); await loadReviews(); await loadNotes(); await loadLists(); await loadContacts(); await loadTenderContacts(); await loadUrgency(); await loadListMeta(); }
+  if (BOOT.mode === 'cloud') {
+    // Revealed FIRST, then filled. Each step names itself, because 'Loading'
+    // that never changes is indistinguishable from 'stuck'.
+    progress('Loading the board…');
+    showSkeleton('Loading the board…');
+    const steps = [
+      ['tenders',   loadCloud],
+      ['reviews',   loadReviews],
+      ['notes',     loadNotes],
+      ['lists',     loadLists],
+      ['contacts',  loadContacts],
+      ['tender contacts', loadTenderContacts],
+      ['urgency',   loadUrgency],
+      ['estimates', loadEstimates],
+      ['list settings',   loadListMeta],
+    ];
+    for (let i = 0; i < steps.length; i++) {
+      const label = `Loading ${steps[i][0]}… (${i + 1} of ${steps.length})`;
+      progress(label); skeletonNote(label);
+      await steps[i][1]();
+    }
+    progress('Drawing the board…'); skeletonNote('Drawing the board…');
+  }
   else loadLocal();
   const app = document.getElementById('app');
   if (app) app.hidden = false;
@@ -8493,6 +8767,7 @@ async function start() {
   // scanned QR both land on.
   const deep = decodeURIComponent((location.hash.match(/[#&]t=([^&]+)/) || [])[1] || '');
   if (deep && D.tenders.some(x => x.tender_id === deep)) { board.sel = deep; board.q = ''; }
+  clearSkeleton();
   showView(state.view || 'board');
   renderDoneChip();
   renderList(); renderBoard(); renderCallList();
@@ -8522,20 +8797,38 @@ if (BOOT.mode === 'local') {
 <script>
 // RLS does the gating: an unauthenticated read returns zero rows, not an error,
 // so a successful query with data is itself proof of authorisation.
+// The button reports what is happening. Signing in is quick; the eight
+// queries after it are not, and a form that sits unchanged for several
+// seconds reads as a rejected password. So: the button says which stage it
+// is on, ui.py drives it through window.__PROGRESS__, and it is re-enabled
+// on failure so a real wrong password can be retried.
+const gateBtn = document.querySelector('#gate button');
+const gateIdle = gateBtn ? gateBtn.textContent : 'Sign in';
+window.__PROGRESS__ = msg => { if (gateBtn) gateBtn.textContent = msg; };
 document.getElementById('gate').addEventListener('submit', async ev => {
   ev.preventDefault();
   const e = document.getElementById('gerr'); e.textContent = '';
+  if (gateBtn) { gateBtn.disabled = true; gateBtn.textContent = 'Signing in…'; }
   try {
     const { error } = await window.__SB__.auth.signInWithPassword({
       email: document.getElementById('email').value.trim(),
       password: document.getElementById('pw').value });
     if (error) throw error;
     await window.__START__();
-  } catch (err) { e.textContent = (err && err.message) || 'Could not sign in.'; }
+  } catch (err) {
+    e.textContent = (err && err.message) || 'Could not sign in.';
+    if (gateBtn) { gateBtn.disabled = false; gateBtn.textContent = gateIdle; }
+  }
 });
 // Resume an existing session so a refresh does not ask again.
 window.__SB__.auth.getSession().then(({ data }) => {
-  if (data.session) window.__START__().catch(() => {});
+  // A remembered session takes the same eight queries, and used to show the
+  // sign-in form throughout - the worst case, because nothing was even typed.
+  if (!data.session) return;
+  if (gateBtn) { gateBtn.disabled = true; gateBtn.textContent = 'Signing you back in…'; }
+  window.__START__().catch(() => {
+    if (gateBtn) { gateBtn.disabled = false; gateBtn.textContent = gateIdle; }
+  });
 });
 </script>
 </body></html>
