@@ -5190,10 +5190,14 @@ function detailHTML(t, withHead = true) {
           b.coating || '', b.is_code ? 'IS ' + b.is_code : ''
         ].filter(Boolean).map(esc).join(' \u00b7 ');
         const rep = (b.seen_count > 1) ? ` <span class=lmeta>\u00d7${b.seen_count}</span>` : '';
+        // A gabion-mentioning Cum line that is NOT in the volume says so, or the
+        // board total and the rows beneath it would disagree with no explanation.
+        const skipped = b.core_match && b.counts_volume === false && b.quantity !== null &&
+          (b.unit_norm === 'Cum') ? ` <span class=lmeta title="Mentions gabion but is not gabion supply - haulage, excavation, concrete, or a duplicate of a spreadsheet line - so it is not added to the volume">not in volume</span>` : '';
         return `<tr class="${b.core_match ? 'is-core' : ''}">
           <td class=num>${b.quantity === null ? '\u2014' : Number(b.quantity).toLocaleString()}</td>
           <td>${esc(b.unit || '')}</td>
-          <td>${esc(b.description)}${rep}</td>
+          <td>${esc(b.description)}${rep}${skipped}</td>
           <td class=spec>${spec || '\u2014'}</td>
           <td>${cite(b.url ? { url: b.url, label: b.cell || b.file } : null, b.cell || b.file)}</td>
         </tr>`;
@@ -6728,10 +6732,17 @@ const CUM = /^(cu\.?\s?m|cum\.?|one\s*cum|m3|m³)$/i;
    and falls back to the regex only for rows synced before that field existed.
    The sheets spell one unit four ways - Cum, cum, Cum., "One Cum" - and matching
    the raw string counted 138,051 where the real figure is 301,140. */
+/* What is ADDED UP is decided once, in volume.py, and arrives as `counts_volume`.
+   `core_match` only means "mentions a core product", and summing on it tripled a
+   tender: haulage of the same crates, the excavation under a crate wall and the bid-PDF
+   copy of a spreadsheet line all counted. The fallback keeps a page built before
+   that column existed from showing nothing at all. */
 function cumOf(t) {
-  return (t.supply || [])
-    .filter(r => r.core_match && r.quantity != null &&
-      (r.unit_norm ? r.unit_norm === 'Cum' : CUM.test(String(r.unit || '').trim())))
+  const rows = t.supply || [];
+  const decided = rows.some(r => r.counts_volume !== undefined);
+  return rows
+    .filter(r => r.quantity != null && (decided ? r.counts_volume === true
+      : r.core_match && (r.unit_norm ? r.unit_norm === 'Cum' : CUM.test(String(r.unit || '').trim()))))
     .reduce((a, r) => a + Number(r.quantity), 0);
 }
 
