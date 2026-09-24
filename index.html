@@ -5107,9 +5107,9 @@ function detailHTML(t, withHead = true) {
     const wire = [est.wire_t_gi != null && '<b>' + Number(est.wire_t_gi).toLocaleString('en-IN') + ' t</b> GI 2.7 mm',
                   est.wire_t_pvc != null && '<b>' + Number(est.wire_t_pvc).toLocaleString('en-IN') + ' t</b> PVC 2.7/3.7 mm']
       .filter(Boolean).join(' · ');
-    h += `<h3>Gabion quantity ${aiTag(est)}</h3><div class="mrow m-sup aiest">
+    h += `<h3>${est.headline ? 'Product quantity' : 'Gabion quantity'} ${aiTag(est)}</h3><div class="mrow m-sup aiest">
       <div class=mhead><span class=bigval>${estQty(est)}</span>
-        <span class=mscore>minimum · ${esc(est.confidence)}</span></div>
+        <span class=mscore>${est.headline ? '' : 'minimum · '}${esc(est.confidence)}</span></div>
       ${bx ? `<table class=qty><thead><tr><th>Boxes</th><th class=num>Qty</th></tr></thead><tbody>${bx}</tbody></table>` : ''}
       ${wire ? `<div class=mtext style="margin-top:6px">Wire: ${wire}</div>` : ''}
       <div class=mtext style="margin-top:7px;color:var(--ink-2)">${esc(est.basis)}</div>
@@ -7226,13 +7226,17 @@ const estOf = tid => ESTIMATES.get(tid) || null;
 async function loadEstimates() {
   if (BOOT.mode !== 'cloud' || !window.__SB__) return;
   const { data, error } = await window.__SB__.from(T('estimates'))
-    .select('tender_id,min_cum,boxes,wire_t_gi,wire_t_pvc,basis,confidence,estimated_by,estimated_at');
+    .select('tender_id,min_cum,boxes,wire_t_gi,wire_t_pvc,basis,confidence,estimated_by,estimated_at,headline');
   if (error) { console.warn('estimates unavailable', error); return; }
   ESTIMATES.clear();
   (data || []).forEach(r => ESTIMATES.set(r.tender_id, r));
 }
 
-const estQty = e => '≥ ' + Math.round(Number(e.min_cum)).toLocaleString('en-IN') + ' Cum';
+/* Cubic metres are the usual measure, not the only one: a slope job is sold by the
+   square metre and `min_cum` is NOT NULL, so `headline` carries the real quantity
+   and this prints it verbatim rather than inventing a volume. */
+const estQty = e => e.headline ? e.headline
+  : '≥ ' + Math.round(Number(e.min_cum)).toLocaleString('en-IN') + ' Cum';
 const estWhen = e => e.estimated_at ? new Date(e.estimated_at).toLocaleDateString('en-IN',
   { day: 'numeric', month: 'short', year: 'numeric' }) : '';
 const aiTag = e => `<span class=aitag title="Estimated by ${esc(e.estimated_by || 'AI')}${
