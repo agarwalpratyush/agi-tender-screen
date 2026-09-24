@@ -1165,6 +1165,10 @@ td.num .aitag { margin: 3px 0 0; }
 .fold > summary:hover { color: var(--ink-2); }
 .fold .foldbody { padding: 4px 11px 12px; }
 .fold .lmeta { display: inline; }
+/* The summary line is uppercase and muted; the winner's name is neither. */
+.awardfold > summary .verdict { text-transform: none; letter-spacing: 0;
+  margin-left: 6px; vertical-align: middle; }
+.awardfold > summary .lmeta { text-transform: none; letter-spacing: 0; }
 
 .bigval { font-size: 22px; font-weight: 650; letter-spacing: -0.02em;
   color: var(--track); }
@@ -5061,10 +5065,15 @@ function detailHTML(t, withHead = true) {
   // the only name that matters; the rest stays one click away in the source doc.
   const a = t.award;
   if (a) {
-    h += '<h3>Award \u2014 who to call</h3><div class="mrow m-sup">';
-    if (a.winner) h += `<div class=mhead><span class="verdict v-TRACK"><i></i>WON BY
-      ${esc(a.winner)}</span><span class=mscore>${a.winning_amount
-        ? '\u20b9' + Number(a.winning_amount).toLocaleString() : ''}</span></div>`;
+    /* The winner and the amount stay ON the summary line, so a collapsed section
+       still answers "who won it, and for how much". What folds away is the bulk -
+       the contract line, the description and the ranked bidder table, which on a
+       16-bidder tender pushed every other section off the screen. */
+    h += `<details class="fold awardfold"><summary>Award \u2014 who to call${
+      a.winner ? ` <span class="verdict v-TRACK"><i></i>WON BY ${esc(a.winner)}</span>` : ''}${
+      a.winning_amount ? ` <span class=lmeta>\u20b9${
+        Number(a.winning_amount).toLocaleString('en-IN')}</span>` : ''}</summary>
+      <div class=foldbody><div class="mrow m-sup">`;
     const bits = [];
     if (a.contract_amount) bits.push('contract ' + esc(a.contract_amount));
     if (a.contract_date) bits.push('dated ' + esc(a.contract_date));
@@ -5092,7 +5101,7 @@ function detailHTML(t, withHead = true) {
       h += `<div class=mtext style="margin-top:6px;color:var(--muted)">
         ${a.bidder_count} bidders evaluated \u2014 see ${src}</div>`;
     }
-    h += '</div>';
+    h += '</div></div></details>';
   }
 
   // AI estimate: near the top on the tenders that have one, framed as a minimum
@@ -5150,7 +5159,15 @@ function detailHTML(t, withHead = true) {
   if (v && (v.schedule || []).length) {
     const cls = { direct: 'sup-direct', possible: 'sup-possible', no: '' };
     const tag = { direct: 'direct', possible: 'possible', no: '' };
-    h += `<h3>Schedule-H \u2014 contract price weightages</h3>
+    /* Folded like the award block: on an EPC contract this table runs to twenty or
+       more payment items, and it is reference material - the summary keeps the one
+       number that decides whether to open it. */
+    const sup$ = v.schedule.filter(i => i.supply && i.supply !== 'no').length;
+    h += `<details class="fold awardfold"><summary>Schedule-H \u2014 contract price
+      weightages <span class=lmeta>${v.schedule.length} item${
+        v.schedule.length > 1 ? 's' : ''}${sup$ ? ' \u00b7 ' + sup$ + ' to supply' : ''}${
+        v.gabion_value_cr ? ' \u00b7 \u20b9' + Number(v.gabion_value_cr).toFixed(2)
+          + ' Cr gabion' : ''}</span></summary><div class=foldbody>
       <table class=qty><thead><tr><th>Payment item</th><th class=num>Group</th>
       <th class=num>Item</th><th class=num>Share</th><th class=num>Value Cr</th>
       <th>Supply</th></tr></thead><tbody>` +
@@ -5168,7 +5185,7 @@ function detailHTML(t, withHead = true) {
     h += `<div class=mtext style="margin-top:7px;color:var(--muted)">
       ${bits.join(' \u00b7 ')} \u00b7 <i>possible</i> = a wall that may be built from
       gabion or from concrete; check that tender's structural drawings.
-      Source: ${esc(v.source || 'Schedule-H')}</div>`;
+      Source: ${esc(v.source || 'Schedule-H')}</div></div></details>`;
   }
 
   // Reference material: present when wanted, out of the way by default.
