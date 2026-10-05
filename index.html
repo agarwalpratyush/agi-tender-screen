@@ -1363,8 +1363,11 @@ h3.s{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--mu
 /* Mute the basemap so the tenders sit on top of it rather than competing with it.
    Applied to the tile pane only - the markers and lines live in other panes and
    keep their full saturation, which is the whole point. */
-.leaflet-tile-pane{filter:grayscale(0.62) brightness(1.06) contrast(0.9)}
-.leaflet-container.sat .leaflet-tile-pane{filter:grayscale(0.35) brightness(0.95)}
+/* 5 Oct 2026: was grayscale(0.62) - it flattened the map into a faded grey and
+   was half of why it read as "not good". A light desaturation is enough to keep
+   the tender lines and pins in front of OpenTopoMap's greens and browns. */
+.leaflet-tile-pane{filter:saturate(0.8) brightness(1.02)}
+.leaflet-container.sat .leaflet-tile-pane{filter:saturate(0.9)}
 /* map side list - the panel you pick a job from, so it carries what a call needs:
    the job, who to ring, where it is, how much gabion, when it is built, and how
    well we actually know the position. The coloured bar is the same colour the
@@ -5210,7 +5213,7 @@ function detailHTML(t, withHead = true) {
         // A gabion-mentioning Cum line that is NOT in the volume says so, or the
         // board total and the rows beneath it would disagree with no explanation.
         const skipped = b.core_match && b.counts_volume === false && b.quantity !== null &&
-          (b.unit_norm === 'Cum') ? ` <span class=lmeta title="Mentions gabion but is not gabion supply - haulage, excavation, concrete, or a duplicate of a spreadsheet line - so it is not added to the volume">not in volume</span>` : '';
+          (b.unit_norm === 'Cum') ? ` <span class=lmeta title="Mentions gabion but is not gabion supply - haulage, excavation, backfill, concrete, a crate made of polymer or PP rope (not our product), or a duplicate of a spreadsheet line - so it is not added to the volume">not in volume</span>` : '';
         return `<tr class="${b.core_match ? 'is-core' : ''}">
           <td class=num>${b.quantity === null ? '\u2014' : Number(b.quantity).toLocaleString()}</td>
           <td>${esc(b.unit || '')}</td>
@@ -5410,7 +5413,30 @@ let MAPASIDE = 0;      // pins that belong to a set-aside list
    BOARD's state (board.list, board.q, state.doneMode), and the map reads it so
    the two views can never disagree. What is left here is genuinely about the
    map - which basemap, and which accuracy tiers to trust. */
-let MAPOPT = { base: 'Streets', tiers: null, alignments: true };
+/* OpenStreetMap, used the way its Tile Usage Policy asks
+   (operations.osmfoundation.org/policies/tiles - read 5 Oct 2026):
+   - the exact URL https://tile.openstreetmap.org/{z}/{x}/{y}.png, no a/b/c
+     subdomains, no other host;
+   - "web pages: ensure a valid HTTP Referer header is sent" - which is why OSM is
+     used ONLY when the board is served over http(s). A page opened from disk
+     (file://) sends no Referer and CANNOT comply; that is exactly what got us the
+     "Access blocked" tiles in Sep 2026. So file:// never requests an OSM tile.
+   - attribution "(c) OpenStreetMap contributors" linked to /copyright, clearly
+     visible on the map - Leaflet's attribution control, never hidden by our CSS;
+   - no bulk download, prefetch or offline use - Leaflet only fetches the tiles in
+     view; we add no cache-busting and no no-cache headers, so the browser caches
+     per the server's headers as the policy requires.
+   Mirrors are no way round this: OpenStreetMap Germany's terms allow embedding
+   only for non-commercial use and point back to this same policy.
+   OpenTopoMap (Terrain) is the off-disk default: its terms permit free use,
+   commercial included, given no mass downloading and a clearly visible credit in
+   the wording below - and it does not require a Referer. */
+const MAP_ONLINE = /^https?:$/.test(location.protocol);
+const OSM_TILES = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+const OSM_ATTR = '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors';
+const OTM_TILES = 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png';
+const OTM_ATTR = 'Map data: &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors, SRTM | Map style: &copy; <a href="https://opentopomap.org" target="_blank" rel="noopener">OpenTopoMap</a> (CC-BY-SA)';
+let MAPOPT = { base: MAP_ONLINE ? 'OpenStreetMap' : 'Terrain', tiers: null, alignments: true };
 
 /* Every tier geocode.py can produce, best first. Colour runs warm-to-grey with
    confidence, so a glance tells you how much of the map is actually known. */
@@ -5537,7 +5563,10 @@ function renderMapView() {
   const pane = document.getElementById('map');
   if (!pane || !window.L || MAP) return;
 
-  /* All three base maps come from Esri's tile servers, and that is deliberate.
+  /* Base maps: OpenStreetMap (Germany server, default), Terrain (OpenTopoMap),
+     Satellite and Streets (Esri).
+     Every one of them is chosen for working from a file:// page - read this
+     before adding another.
 
      Streets used to be tile.openstreetmap.org. OSM's volunteer servers refuse a
      browser that sends no Referer header - and a page opened straight off disk
@@ -5546,26 +5575,61 @@ function renderMapView() {
      painted across the map as if it were geography. It never showed in testing,
      because a localhost page DOES send a Referer. Checked on 12 Sep 2026: with a
      browser User-Agent and no Referer OSM served the 6 KB block notice, while
-     Esri returned real tiles with or without one. OpenTopoMap is volunteer-run
-     under a similar policy, so it goes too rather than being the next outage. */
+     Esri returned real tiles with or without one.
+
+     5 Oct 2026: the Esri street map was too empty to be useful - at zoom 13 on
+     Haflong it showed one road and a name. OpenTopoMap shows contours, villages,
+     roads, rivers and the railway, which is what you need to judge a hill-road
+     protection job. Re-tested for the OSM failure before adopting it: with no
+     Referer it returns real 54 KB topo tiles (OSM returns its 7 KB block notice).
+     It IS volunteer-run, so a run of tile errors switches the map to Streets
+     rather than leaving it blank. CARTO was tried too and now demands an API key.
+
+     Same day, Pratyush asked for OpenStreetMap itself, used strictly within its
+     rules - see MAP_ONLINE at the top of the map code: OpenStreetMap on the
+     online board only, Terrain as the default when opened from disk. */
   const ESRI = 'https://server.arcgisonline.com/ArcGIS/rest/services/';
   const ESRI_ATTR = 'Tiles &copy; Esri &mdash; Esri, HERE, Garmin, &copy; OpenStreetMap contributors';
-  const osm = L.tileLayer(ESRI + 'World_Street_Map/MapServer/tile/{z}/{y}/{x}',
+  const osm = MAP_ONLINE ? L.tileLayer(OSM_TILES, { maxZoom: 19, attribution: OSM_ATTR }) : null;
+  const terrain = L.tileLayer(OTM_TILES, { maxZoom: 17, subdomains: 'abc', attribution: OTM_ATTR });
+  const street = L.tileLayer(ESRI + 'World_Street_Map/MapServer/tile/{z}/{y}/{x}',
     { maxZoom: 19, attribution: ESRI_ATTR });
-  const sat = L.tileLayer(ESRI + 'World_Imagery/MapServer/tile/{z}/{y}/{x}',
-    { maxZoom: 19, attribution: 'Tiles &copy; Esri &mdash; Source: Esri, Maxar, Earthstar Geographics' });
-  const topo = L.tileLayer(ESRI + 'World_Topo_Map/MapServer/tile/{z}/{y}/{x}',
-    { maxZoom: 19, attribution: ESRI_ATTR });
+  // Bare imagery had no names on it, so you could not tell which valley you were
+  // looking at. Esri's boundary/place and road reference layers sit on top.
+  const sat = L.layerGroup([
+    L.tileLayer(ESRI + 'World_Imagery/MapServer/tile/{z}/{y}/{x}',
+      { maxZoom: 19, attribution: 'Tiles &copy; Esri &mdash; Source: Esri, Maxar, Earthstar Geographics' }),
+    L.tileLayer(ESRI + 'Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19 }),
+    L.tileLayer(ESRI + 'Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19 }),
+  ]);
+  // Off disk there is no OpenStreetMap entry at all - not even a dead button -
+  // so nothing can ever send it a Referer-less request.
+  const BASE = osm
+    ? { 'OpenStreetMap': osm, 'Terrain': terrain, 'Satellite': sat, 'Streets': street }
+    : { 'Terrain': terrain, 'Satellite': sat, 'Streets': street };
 
-  MAP = L.map('map', { layers: [osm] });
-  // Base layers are added to the SAME control as the overlays further down -
-  // two stacked layer controls was half the clutter this was meant to remove.
-  const BASE = { 'Streets': osm, 'Satellite': sat, 'Topographic': topo };
+  // The last base map you picked is remembered on this machine. Wrapped: storage
+  // can be unavailable, and a map that refuses to draw over a preference is worse.
+  let pick = osm ? 'OpenStreetMap' : 'Terrain';
+  try { const p = localStorage.getItem('agi.mapbase'); if (BASE[p]) pick = p; } catch (e) {}
+  MAP = L.map('map', { layers: [BASE[pick]] });
+  MAPOPT.base = pick;      // the filter panel's Base map buttons read this
+  // Imagery is already dark; the dimming would turn it to mud, so the container
+  // carries a class and the CSS applies a lighter touch.
+  MAP.getContainer().classList.toggle('sat', pick === 'Satellite');
   L.control.scale({ imperial: false }).addTo(MAP);
-  // Imagery is already dark; the street dimming would turn it to mud, so the
-  // container carries a class and the CSS applies a lighter touch.
-  MAP.on('baselayerchange', e => {
-    MAP.getContainer().classList.toggle('sat', e.name === 'Satellite');
+  // Safety net for the volunteer tile servers (OpenStreetMap, OpenTopoMap): if one
+  // fails repeatedly before a single tile has loaded, fall back to Esri Streets
+  // for this session rather than leaving a blank map - and stop asking it.
+  [['OpenStreetMap', osm], ['Terrain', terrain]].filter(([, l]) => l).forEach(([name, layer]) => {
+    let ok = 0, bad = 0;
+    layer.on('tileload', () => { ok++; });
+    layer.on('tileerror', () => {
+      if (++bad >= 6 && !ok && MAP.hasLayer(layer)) {
+        MAP.removeLayer(layer); street.addTo(MAP); MAPOPT.base = 'Streets';
+        toast(name + ' map unavailable \u2014 showing Streets');
+      }
+    });
   });
 
   const drawn = L.featureGroup().addTo(MAP);
@@ -5846,6 +5910,7 @@ function toggleMapGear() {
         if (k !== nm && MAP.hasLayer(layer)) MAP.removeLayer(layer);
       });
       MAPOPT.base = nm;
+      try { localStorage.setItem('agi.mapbase', nm); } catch (err) {}
       // Imagery is already dark; the street dimming would turn it to mud, so the
       // container carries a class and the CSS applies a lighter touch.
       MAP.getContainer().classList.toggle('sat', nm === 'Satellite');
@@ -6246,9 +6311,11 @@ function openMapDrawer(tid) {
       // grey panel with no tiles. The view below is only a seed; fitBounds
       // replaces it a few lines down.
       MINI = L.map('minimap', { center: HOME_SEED.center, zoom: HOME_SEED.zoom,
-        // Esri, not OSM - see the note in renderMapView: OSM blocks file:// pages.
-        layers: [L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',
-          { maxZoom: 19, attribution: 'Tiles &copy; Esri' })] });
+        // Same rule as the main map (see MAP_ONLINE): OpenStreetMap only when
+        // served over http(s), where a Referer is sent; OpenTopoMap off disk.
+        layers: [MAP_ONLINE
+          ? L.tileLayer(OSM_TILES, { maxZoom: 19, attribution: OSM_ATTR })
+          : L.tileLayer(OTM_TILES, { maxZoom: 17, subdomains: 'abc', attribution: OTM_ATTR })] });
       L.control.scale({ imperial: false }).addTo(MINI);
     }
     if (MINILAYER) { MINI.removeLayer(MINILAYER); MINILAYER = null; }
