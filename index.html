@@ -1099,6 +1099,9 @@ a.em { font-size: 12.5px; }
 a.ph:hover, a.em:hover { text-decoration: underline; }
 .clabel { font-size: 11px; color: var(--ink); background: var(--grid);
   padding: 0 6px; border-radius: 9px; margin-left: 6px; }
+/* When a number was put on the board, and where it came from (Pratyush, 20 Oct 2026:
+   "mark when you put a number there"). */
+.cadded { display: block; font-size: 10.5px; color: var(--ink-2); margin: 1px 0 3px; }
 .none { display: block; color: #b0431f; font-size: 12.5px; font-weight: 500; }
 .none small { display: block; color: var(--ink-2); font-weight: 400;
   font-size: 11px; font-style: italic; }
@@ -4717,9 +4720,15 @@ function allLists() {
 
 async function loadLists() {
   if (BOOT.mode !== 'cloud' || !window.__SB__) return;
-  const { data, error } = await window.__SB__.from(T('lists'))
-    .select('tender_id,list_name,auto');
-  if (error) { console.warn('lists unavailable', error); return; }
+  // Paged: 815 rows on 20 Oct 2026 and growing; past 1000 an unpaged read silently drops the rest.
+  const data = [];
+  for (let from = 0; ; from += 1000) {
+    const { data: page, error } = await window.__SB__.from(T('lists'))
+      .select('tender_id,list_name,auto').order('tender_id').order('list_name').range(from, from + 999);
+    if (error) { console.warn('lists unavailable', error); return; }
+    data.push(...(page || []));
+    if (!page || page.length < 1000) break;
+  }
   LISTS.clear(); AUTO_LISTS.clear();
   (data || []).forEach(r => {
     if (!LISTS.has(r.tender_id)) LISTS.set(r.tender_id, new Set());
@@ -7375,7 +7384,7 @@ async function loadContacts() {
   for (let from = 0; ; from += 1000) {
     const { data, error } = await window.__SB__.from(T('contacts'))
       .select('id,firm,person,desig,office,role,state,dept,agency,conf,asof,' +
-              'kind,value,label,source,note,projects,via')
+              'kind,value,label,source,note,projects,via,created_at')
       .order('id').range(from, from + 999);
     if (error) { console.warn('contacts unavailable', error); return; }
     rows.push(...(data || []));
@@ -7487,16 +7496,27 @@ function refreshContactViews() {
    right call for several packages on a corridor, and one package needs both the
    firm's owner and its site engineer. */
 const TLINKS = new Map();
+// When each number was put on each job: tender_id + '|' + contact_id -> created_at of the link.
+const TLINKAT = new Map();
 
 async function loadTenderContacts() {
   if (BOOT.mode !== 'cloud' || !window.__SB__) return;
-  const { data, error } = await window.__SB__.from(T('tender_contacts'))
-    .select('tender_id,contact_id');
-  if (error) { console.warn('tender contacts unavailable', error); return; }
-  TLINKS.clear();
-  (data || []).forEach(r => {
+  // Paged: 1000 is PostgREST's page limit, and on 20 Oct 2026 the directory links took this
+  // table past several thousand rows - an unpaged read silently dropped most of them.
+  const rows = [];
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await window.__SB__.from(T('tender_contacts'))
+      .select('tender_id,contact_id,created_at').order('contact_id').order('tender_id')
+      .range(from, from + 999);
+    if (error) { console.warn('tender contacts unavailable', error); return; }
+    rows.push(...(data || []));
+    if (!data || data.length < 1000) break;
+  }
+  TLINKS.clear(); TLINKAT.clear();
+  rows.forEach(r => {
     if (!TLINKS.has(r.tender_id)) TLINKS.set(r.tender_id, new Set());
     TLINKS.get(r.tender_id).add(r.contact_id);
+    if (r.created_at) TLINKAT.set(r.tender_id + '|' + r.contact_id, r.created_at);
   });
 }
 
@@ -7583,6 +7603,22 @@ async function addPerson(rec) {
 /* Contacts attached to one tender: whoever won it, plus anyone recorded against
    this job specifically. A site engineer belongs to the job, not to the firm's
    head office, and `tender_id` is what keeps that distinction. */
+/* "added 20 Oct 2026 · HP PWD telephone directory 2024" under every number: when it went on the
+   board and from what. Rows typed in by hand say "added by hand". */
+function addedTag(c, tid) {
+  if (!c) return '';
+  // On a tender, the date that matters is when the number was put on THIS job; a phone-book
+  // number from August linked to a job today reads "added to this job 20 Oct 2026".
+  const linkAt = tid && c.id != null ? TLINKAT.get(tid + '|' + c.id) : null;
+  const at = linkAt || c.created_at;
+  if (!at) return '';
+  const day = x => { const d = new Date(x); return isNaN(d) ? '' :
+    d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }); };
+  const from = c.agency || (c.source === 'manual' ? 'added by hand' : '');
+  return `<span class=cadded>${linkAt ? 'added to this job' : 'added'} ${esc(day(at))}${
+    from ? ' · ' + esc(from) : ''}</span>`;
+}
+
 function contactsForTender(t) {
   const w = (t.award && t.award.winner) || '';
   const byFirm = w ? contactsOf(w) : [];
@@ -7791,9 +7827,9 @@ function dirTable(rows) {
   const tel = x => `<a class="ph${/^[6-9]\d{9}$/.test(x.value) ? '' : ' land'}"
       href="tel:${esc(x.value)}">${esc(fmt(x.value))}</a>${who(x)}${
       x.label && x.label !== 'mobile' && x.label !== 'landline'
-        ? `<span class=clabel>${esc(x.label)}</span>` : ''}${jobs(x)}${delBtn(x)}`;
+        ? `<span class=clabel>${esc(x.label)}</span>` : ''}${jobs(x)}${delBtn(x)}${addedTag(x)}`;
   const mail = x => `<a class=em href="mailto:${esc(x.value)}">${esc(x.value)}</a>${who(x)}${
-      x.label ? `<span class=clabel>${esc(x.label)}</span>` : ''}${jobs(x)}${delBtn(x)}`;
+      x.label ? `<span class=clabel>${esc(x.label)}</span>` : ''}${jobs(x)}${delBtn(x)}${addedTag(x)}`;
 
   const isOff = dir.role === 'officer';
   let html = `<table class=dirtable><thead><tr>
@@ -8113,6 +8149,7 @@ function tenderContactsHTML(t) {
              <button class=tcunlink data-id="${esc(t.tender_id)}" data-cid="${c.id}"
                title="Unlink from this contract">×</button>`
           : (c.tender_id === t.tender_id ? '<span class=tcjob>this job</span>' : '')}
+      ${addedTag(c, t.tender_id)}
     </li>`;
   const all = [...byJob, ...byFirm];
   return `<div class=tcbox>
